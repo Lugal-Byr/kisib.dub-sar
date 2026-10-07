@@ -134,9 +134,13 @@ namespace Kisib
 
         internal string LoadCheckpoint(string name)
         {
-            if (name != "capi2-bookmark") throw new InvalidOperationException("Unknown application checkpoint.");
-            string path = Path.Combine(DirectoryPath, name + ".xml");
-            return File.Exists(path) ? Encoding.UTF8.GetString(files.ReadBytes(path, 65536)) : null;
+            lock (gate)
+            {
+                if (disposed) throw new ObjectDisposedException("HistoryArchive");
+                if (name != "capi2-bookmark") throw new InvalidOperationException("Unknown application checkpoint.");
+                string path = Path.Combine(DirectoryPath, name + ".xml");
+                return File.Exists(path) ? Encoding.UTF8.GetString(files.ReadBytes(path, 65536)) : null;
+            }
         }
 
         internal void SaveCheckpoint(string name, string contents)

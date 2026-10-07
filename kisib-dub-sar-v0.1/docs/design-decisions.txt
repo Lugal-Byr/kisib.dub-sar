@@ -319,3 +319,9 @@ without replacing logs with snapshots. Source-record loss on scheduling delays o
 power failure is still possible and is not claimed away. Measured first complete
 GUI inventory improved from 161 seconds (x64) and a 180-second timeout (ARM64) to
 29/34 seconds on the later hosted run. Native source access errors remain visible.
+
+D028 — Checkpoint read/replacement race, 2026-10-07 UTC
+The final real x64 collector test observed an IOException while a bookmark was
+being atomically replaced concurrently with a read. Serialize reads under the
+same archive gate used by replacement writes. A 100-write/1000-read regression
+requires complete values, the final replacement and no retained storage errors.

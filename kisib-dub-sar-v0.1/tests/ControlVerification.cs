@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Xml;
 
 namespace Kisib
@@ -82,6 +83,25 @@ namespace Kisib
                 {
                     check(history.LoadAnnotations().Certificates.Single().Owner == "Changed example owner", "Restart restores the last committed label version");
                     check(history.LoadCheckpoint("capi2-bookmark").Contains("synthetic checkpoint"), "Replay checkpoint survives a new archive session");
+                    Exception raceError = null;
+                    using (ManualResetEvent start = new ManualResetEvent(false))
+                    {
+                        Thread writer = new Thread(delegate()
+                        {
+                            start.WaitOne();
+                            try { for (int i = 0; i < 100; i++) history.SaveCheckpoint("capi2-bookmark", "<BookmarkList>race " + i + "</BookmarkList>"); }
+                            catch (Exception ex) { raceError = ex; }
+                        });
+                        Thread reader = new Thread(delegate()
+                        {
+                            start.WaitOne();
+                            try { for (int i = 0; i < 1000; i++) { string value = history.LoadCheckpoint("capi2-bookmark"); if (!value.StartsWith("<BookmarkList>") || !value.EndsWith("</BookmarkList>")) throw new InvalidOperationException("Partial checkpoint read."); } }
+                            catch (Exception ex) { raceError = ex; }
+                        });
+                        writer.Start(); reader.Start(); start.Set(); writer.Join(); reader.Join();
+                    }
+                    check(raceError == null && history.LastError == null && history.LoadCheckpoint("capi2-bookmark").Contains("race 99"),
+                        "Concurrent checkpoint reads and atomic replacements keep complete values without sharing failures");
                 }
             }
             finally { if (Directory.Exists(temporary)) Directory.Delete(temporary, true); }

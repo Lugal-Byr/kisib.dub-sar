@@ -88,6 +88,11 @@ https://github.com/Lugal-Byr/kisib.dub-sar/actions/runs/37676903719
    bounded before allocation; total certificate count is not truncated.
 
 Additional corrections and hardening
+A later real x64 collector run exposed a concurrent checkpoint read/replace
+sharing failure. Reads now use the same archive gate as replacements. The
+regression test runs 100 writes and 1000 reads concurrently and requires complete
+values, successful final replacement and no storage error.
+
 The old Framework EventBookmark constructor/property calls did not compile.
 They now use fixed-type, size-bounded DataContract serialization, without
 BinaryFormatter. DTD/external resolution is prohibited.
