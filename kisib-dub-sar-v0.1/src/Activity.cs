@@ -14,6 +14,31 @@ using System.Xml;
 
 namespace Kisib
 {
+    // EventBookmark exposes ISerializable on .NET Framework, not the public
+    // XML constructor/property available on newer .NET. Fixed-type, bounded
+    // DataContractSerializer transport avoids BinaryFormatter and reflection.
+    internal static class BookmarkCodec
+    {
+        internal static string Encode(EventBookmark bookmark)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                Serializer().WriteObject(stream, bookmark);
+                return Encoding.UTF8.GetString(stream.ToArray());
+            }
+        }
+        internal static EventBookmark Decode(string text)
+        {
+            if (text == null || text.Length > 65536) throw new SerializationException("Unsupported CAPI2 bookmark size.");
+            XmlReaderSettings settings = new XmlReaderSettings { XmlResolver = null, DtdProcessing = DtdProcessing.Prohibit, MaxCharactersInDocument = 65536 };
+            using (StringReader input = new StringReader(text))
+            using (XmlReader reader = XmlReader.Create(input, settings))
+                return (EventBookmark)Serializer().ReadObject(reader);
+        }
+        private static DataContractSerializer Serializer()
+        { return new DataContractSerializer(typeof(EventBookmark), new DataContractSerializerSettings { MaxItemsInObjectGraph = 32 }); }
+    }
+
     [DataContract] internal sealed class ApplicationRecord
     {
         [DataMember] internal int ProcessId;
@@ -221,11 +246,15 @@ namespace Kisib
                 if (replayAvailable) SetStatus("CAPI2 explicit replay of all available Windows records; previous evidence retained");
                 EventLogQuery query = new EventLogQuery(Channel, PathType.LogName, "*");
                 EventLogWatcher candidate;
-                try { candidate = new EventLogWatcher(query, bookmark == null ? null : new EventBookmark(bookmark), true); }
+                try { candidate = new EventLogWatcher(query, bookmark == null ? null : BookmarkCodec.Decode(bookmark), true); }
                 catch (EventLogException ex)
                 { SetStatus("CAPI2 bookmark unavailable; replaying available Windows records: " + ex.Message); candidate = new EventLogWatcher(query, null, true); }
                 catch (ArgumentException ex)
                 { SetStatus("CAPI2 bookmark invalid; replaying available Windows records: " + ex.Message); candidate = new EventLogWatcher(query, null, true); }
+                catch (SerializationException ex)
+                { SetStatus("CAPI2 bookmark transport invalid; replaying available Windows records: " + ex.Message); candidate = new EventLogWatcher(query, null, true); }
+                catch (XmlException ex)
+                { SetStatus("CAPI2 bookmark XML invalid; replaying available Windows records: " + ex.Message); candidate = new EventLogWatcher(query, null, true); }
                 candidate.EventRecordWritten += RecordWritten;
                 lock (gate) { if (disposed) { candidate.Dispose(); return; } watcher = candidate; }
                 SetStatus("CAPI2 listening; retained Windows records replay, then live events"); candidate.Enabled = true;
@@ -270,7 +299,7 @@ namespace Kisib
                             ArchivedEvents++; seen.Add(key); seenOrder.Enqueue(key);
                             if (seenOrder.Count > 20000) seen.Remove(seenOrder.Dequeue()); // replay cache only; persisted records have no cap
                         }
-                        if (!checkpointBlocked && record.Bookmark != null) history.SaveCheckpoint("capi2-bookmark", record.Bookmark.BookmarkXml);
+                        if (!checkpointBlocked && record.Bookmark != null) history.SaveCheckpoint("capi2-bookmark", BookmarkCodec.Encode(record.Bookmark));
                     }
                     Publish(activity);
                     if (!saved) { checkpointBlocked = true; SetStatus("CAPI2 received; history write unavailable — bookmark held before the gap for replay"); }
