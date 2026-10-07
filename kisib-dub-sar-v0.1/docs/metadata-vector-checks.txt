@@ -12,4 +12,5 @@ PASS: independent fixture metadata, SPKI, and signature: metadata/rsa-pss-sha1.c
 PASS: independent fixture metadata, SPKI, and signature: metadata/rsa-pss-sha256.cer
 PASS: independent fixture metadata, SPKI, and signature: fixture.cer
 PASS: same-subject reissue and different-subject reuse fixtures share a key and have distinct certificates
-NOT RUN: C# metadata/signal implementation; Windows APIs and GUI
+C# metadata/signal implementation, native Windows APIs and GUI were subsequently
+tested on hosted Windows runners; see windows-verification-report.txt.

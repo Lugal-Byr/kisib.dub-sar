@@ -31,10 +31,11 @@ for path in sorted(list((root / "src").glob("*.cs")) + list((root / "tests").glo
 source = "\n".join(path.read_text(encoding="utf-8") for path in (root / "src").glob("*.cs"))
 imports = re.findall(r"extern\s+\w+\s+(\w+)\s*\(", source)
 allowed = {"CertEnumSystemStoreLocation", "CertEnumSystemStore", "CertEnumPhysicalStore", "CertOpenStore", "CertEnumCertificatesInStore", "CertGetEnhancedKeyUsage", "CertFreeCertificateContext", "CertCloseStore", "SetLastError"}
+archive_allowed = {"CreateFileW", "GetFileInformationByHandle", "GetFinalPathNameByHandleW"}
 etw_allowed = {"StartTraceW", "ControlTraceW", "OpenTraceW", "ProcessTrace", "CloseTrace"}
 crypto_imports = re.findall(r"extern\s+\w+\s+(\w+)\s*\(", (root / "src/Native.cs").read_text())
 check(set(crypto_imports) == allowed, "Certificate native boundary stays restricted to the original read/enumerate/cleanup calls")
-check(set(imports) == allowed | etw_allowed and len(imports) == 14, "Only five documented ETW controller/consumer imports extend the native boundary")
+check(set(imports) == allowed | etw_allowed | archive_allowed and len(imports) == 17, "Only five ETW and three file-handle validation APIs extend the native boundary")
 check(not re.search(r"Cert(?:Add|Delete|Set|Register|Unregister)|PFXImport|CryptAcquireCertificatePrivateKey|Registry.*(?:SetValue|CreateSubKey)", source), "No certificate mutation, private-key acquisition, or registry-write APIs")
 check(source.count("Native.CertOpenStore(") == 1, "Single production store-open boundary")
 check("location.Flags | Native.ReadFlags" in source and "CERT_STORE_READONLY_FLAG | CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_ENUM_ARCHIVED_FLAG" in source, "All production store opens use read-only existing archived flags")
@@ -46,12 +47,12 @@ check("right.Panel2.Controls.Add(detailTabs)" in source and "Orientation = Orien
 check("existing.Der.SequenceEqual(der)" in source, "Hash match checked against full DER before deduplication")
 with (root / "docs/feature-sources.csv").open(encoding="utf-8", newline="") as stream:
     rows = list(csv.DictReader(stream))
-check(len(rows) == 103 and all(row["microsoft_term"] and row["learn_url"].startswith("https://learn.microsoft.com/") and row["tag"] in ("documented", "to test") for row in rows), "All 103 registered features have an underlying term/source/tag")
+check(len(rows) == 110 and all(row["microsoft_term"] and row["learn_url"].startswith("https://learn.microsoft.com/") and row["tag"] in ("documented", "to test") for row in rows), "All 110 registered features have an underlying term/source/tag")
 check(not any(row["tag"] == "documented" for row in rows if row["feature"] in {"Chain construction", "Local CSV lists", "Owner standings and country grouping", "CCADB hash lookup and program status"}), "Gated views stay to test")
 check(all(row["tag"] == "to test" for row in rows if row["feature"] in {"Key size (bits)", "SPKI SHA-256", "Weak tier", "SHA-1 collision", "Key reuse"}), "Derived metadata and local inspection rules stay to test")
 with (root / "docs/function-catalog.csv").open(encoding="utf-8", newline="") as stream:
     functions = list(csv.DictReader(stream))
-check([row["function_id"] for row in functions] == ["F%03d" % i for i in range(1, 136)] and all(row["microsoft_term"] and row["learn_url"].startswith("https://learn.microsoft.com/") and row["tag"] in ("documented", "to test") for row in functions), "All 135 stable function IDs retain source/tag fields")
+check([row["function_id"] for row in functions] == ["F%03d" % i for i in range(1, 143)] and all(row["microsoft_term"] and row["learn_url"].startswith("https://learn.microsoft.com/") and row["tag"] in ("documented", "to test") for row in functions), "All 142 stable function IDs retain source/tag fields")
 check(all(row["tag"] == "to test" for row in functions[111:]), "New application/issuer/ETW implementations remain to test")
 check("MaxCharactersInDocument = 4 * 1024 * 1024" in source and "DtdProcessing = DtdProcessing.Prohibit" in source and "XmlResolver = null" in source, "CAPI2 parser prohibits DTD/external resolution and bounds interpreted XML")
 check('history.RecordActivity(activity)' in source and '!checkpointBlocked && record.Bookmark != null' in source and 'hold' in source.lower(), "CAPI2 source declares durable-before-checkpoint ordering and visible gap handling")
@@ -70,6 +71,7 @@ privilege = manifest.find(".//{urn:schemas-microsoft-com:asm.v3}requestedExecuti
 check(privilege is not None and privilege.attrib["level"] == "asInvoker", "Optional executable manifest requests ordinary user privilege")
 check(not any(path.suffix.lower() in (".pfx", ".p12", ".pem", ".key") for path in root.rglob("*")), "No private-key file in package")
 check(not re.search(r"ExecutionPolicy|RunAs|Invoke-WebRequest|DownloadString", (root / "Start.cmd").read_text(), re.I), "Launcher has no policy bypass, elevation, or download")
-report = "Source/data audit completed in Linux; not C# compilation, behavior testing or a Windows API test.\n\n" + "\n".join("PASS: " + label for label in checks) + "\n\nNOT RUN: C# compilation; Windows GUI; native enumeration; CAPI2/ETW collection; archive runtime; manual Home/Pro gate.\n"
+check('Path.Combine(Environment.SystemDirectory, "mmc.exe")' in source and "UseShellExecute = false" in source and 'Process.Start("eventvwr.msc")' not in source, "Event Viewer uses an explicit system executable with shell execution disabled")
+report = "Source/data audit completed in Linux; these source assertions are separate from the hosted Windows runtime tests.\n\n" + "\n".join("PASS: " + label for label in checks) + "\n\nRuntime evidence: docs/windows-verification-report.txt. Manual Windows 11 Home/Pro gate remains pending.\n"
 (root / "docs/source-checks.txt").write_text(report, encoding="utf-8")
 print(report)

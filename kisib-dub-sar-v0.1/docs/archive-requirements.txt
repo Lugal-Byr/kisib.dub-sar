@@ -11,12 +11,15 @@ The complete CCADB CA catalog is the required reference baseline. Consumer
 software provenance adds evidence to that baseline and does not restrict it.
 10,000 is a scale reference, never a cap, sample size, or collection cutoff.
 
-Source prepared in this package, Windows runtime still to test
+Implemented and hosted-Windows tested; Windows 11 Home/Pro gate pending
 
 Every scan note, native error, observed certificate occurrence and effective
 EKU observation is appended to a UTC JSON-lines journal with event, scan,
-session, computer and caller account identity. Events are flushed as they are
-written, rather than waiting for a completed scan or window shutdown.
+session, computer and caller account identity. Every row is flushed to the OS as
+it is written. Ordinary rows get disk sync at the next one-second timer tick under
+normal scheduling; CAPI2/label/scan commits sync before returning. Close flushes
+remaining rows. Sudden power loss or scheduling delays may interrupt the latest
+ordinary rows; collection never waits for a fresh snapshot before retaining them.
 Certificate DER is stored as soon as it is observed. Exact public bytes are
 retained, including bytes that fail certificate decoding. No private keys are
 opened/exported and no Windows certificate store is modified.
@@ -86,7 +89,8 @@ A separate serializer test round-trips 10,025 synthetic reference records with
 large metadata arrays. This is a codec scale check, not a real CA collection or
 a measured performance result. The production serializer explicitly allows a
 large object graph; 10,000 is not a configured collection limit.
-These C# tests and the Windows 11 Home/Pro machine gate remain NOT RUN here.
+These C# tests passed on both hosted Windows runners. The Windows 11 Home/Pro
+machine gate remains pending. See windows-verification-report.txt for exact scope.
 
 Complete CA catalog baseline — required, ingestion still after machine gate
 

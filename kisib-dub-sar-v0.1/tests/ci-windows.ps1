@@ -1,3 +1,5 @@
+# Hosted disposable-VM harness: temporarily enables/restores CAPI2 and starts owned kernel capture.
+# Test.cmd is the read-only consumer-machine suite.
 param([string]$Project = (Split-Path $PSScriptRoot -Parent))
 $ErrorActionPreference = 'Stop'
 $Project = [IO.Path]::GetFullPath($Project)
@@ -29,6 +31,25 @@ if ($gui -ne 0) { throw 'Native GUI smoke verification failed.' }
 $binary = Join-Path $resultDirectory 'kisib.dub-sar.exe'
 & $compiler /nologo /target:winexe /platform:anycpu /optimize+ /warn:4 "/win32manifest:$(Join-Path $Project 'app.manifest')" "/out:$binary" @references @sources
 if ($LASTEXITCODE -ne 0) { throw 'Application executable compilation failed.' }
+$exeProcess = Start-Process -FilePath $binary -PassThru
+try {
+  $windowClock = [Diagnostics.Stopwatch]::StartNew()
+  do {
+    Start-Sleep -Milliseconds 100
+    $exeProcess.Refresh()
+    if ($exeProcess.HasExited) { throw 'Compiled executable exited before its native window opened.' }
+  } until ($exeProcess.MainWindowHandle -ne 0 -or $windowClock.Elapsed.TotalSeconds -gt 20)
+  if ($exeProcess.MainWindowHandle -eq 0 -or $exeProcess.MainWindowTitle -notlike 'kisib.dub-sar v0.1*') { throw 'Compiled executable native window was not observed.' }
+  Write-Host 'PASS executable: compiled EXE opens its actual native Explorer window.'
+  if (-not $exeProcess.CloseMainWindow()) { throw 'Compiled executable refused its own window-close request.' }
+  if (-not $exeProcess.WaitForExit(20000)) { throw 'Compiled executable did not exit after closing its window.' }
+  if ($exeProcess.ExitCode -ne 0) { throw 'Compiled executable exited with a failure code.' }
+  Write-Host 'PASS executable: normal window close exits successfully.'
+} finally {
+  $exeProcess.Refresh()
+  if (-not $exeProcess.HasExited) { $exeProcess.Kill(); $exeProcess.WaitForExit(5000) | Out-Null }
+  $exeProcess.Dispose()
+}
 $environmentReport = [ordered]@{
   testedUtc = [DateTime]::UtcNow.ToString('o')
   os = [Environment]::OSVersion.VersionString

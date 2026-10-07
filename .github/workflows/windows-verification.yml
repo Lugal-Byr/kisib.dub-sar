@@ -18,7 +18,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, exact revision already exercised
         with:
           persist-credentials: false
       - name: Compile and run Windows tests
@@ -26,7 +26,7 @@ jobs:
         run: ./kisib-dub-sar-v0.1/tests/ci-windows.ps1
       - name: Retain build and test evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, exact revision already exercised
         with:
           name: kisib-verification-${{ matrix.runner }}
           path: kisib-dub-sar-v0.1/test-results/

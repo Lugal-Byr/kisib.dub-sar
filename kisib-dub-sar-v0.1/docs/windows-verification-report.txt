@@ -1,0 +1,152 @@
+kisib.dub-sar v0.1 — Windows verification and adversarial review
+2026-10-07 UTC
+
+Result
+The native certificate explorer, continuing archive, issuer grouping UI and
+Windows diagnostic collectors passed real hosted Windows checks after repairs.
+This is an unsigned tested preview. It is not a security certification, a
+production policy-enforcement release, or a Microsoft Store package.
+
+The build workflow is the release gate. The download includes exact commit,
+executable SHA-256, runner/environment records and release-tests.txt. Source:
+https://github.com/Lugal-Byr/kisib.dub-sar/tree/codex/windows-verification-2026-10-07
+Workflow:
+https://github.com/Lugal-Byr/kisib.dub-sar/actions/workflows/windows-verification.yml
+
+Verified environments
+Windows Server 2022 Datacenter, build 20348, AMD64, 64-bit CLR.
+Windows 11 Enterprise, build 26200, ARM64, 64-bit CLR.
+These are disposable GitHub-hosted VMs, not the user's PC. Windows 11 Home/Pro,
+including x64 consumer acceptance, remains a separate unpassed machine gate.
+
+A complete core/GUI/collector run already passed on both architectures:
+https://github.com/Lugal-Byr/kisib.dub-sar/actions/runs/37680396158
+Source commit: f71cdbc9f91907a3bd4fcb5d0d017411fc442ff3
+206 assertions per runner: 158 core, 7 adversarial, 16 real collector, 25 GUI.
+The current packaging gate additionally launches/closes the actual compiled
+EXE per runner in two assertions; final results are in release-tests.txt.
+
+Working behavior exercised
+Actual WinForms tree/list/details window; 12 requested certificate columns;
+all six far-left grouping modes and three sorting modes; Enabled/Blocked/
+Unassigned label children; exact SHA-256 search, scoped selection, lower
+certificate details, 248 country rows, minimum size, shutdown and archive reopen.
+
+Actual native system-store and physical-store enumeration, with successful
+.Default Root reads in CURRENT_USER and LOCAL_MACHINE. Every Found in value
+was checked against returned native physical occurrences. The earlier empty
+physical-store loops can no longer pass these tests. The measured run found:
+Server x64: 8 locations, 135 system stores, 244 physical stores, 586 certificates.
+Windows 11 ARM64: 8 locations, 139 system stores, 254 physical stores, 588 certs.
+Both had zero unresolved physical sources among observed certificates. Windows
+still denied specific SmartCardRoot reads (8/10 errors); those original source
+errors remain visible and are not represented as empty stores or removals.
+
+Archive restart, public DER retention/deduplication, failed/canceled read
+baselines, dated pagination, torn records, corrupt indexes and exclusive writers.
+10,025 synthetic reference records round-tripped in the codec. This is not a
+claim that the full CCADB catalog was fetched or that 10,025 real CA certs were
+inventoried. No count cutoff was added.
+
+Ten independent public certificate fixtures: exact SPKI and certificate hashes,
+RSA sizes including 2047/2048 boundary, MD5/SHA-1/RSA-PSS signatures, same-subject
+reissue and different-subject key reuse. Synthetic SHA-1 collisions test grouping;
+no actual cryptographic collision was generated.
+
+Real CAPI2 events from a fixture chain build, with source PID and explicit
+certificate lookup reference; XML retention; real bookmark round-trip/resume;
+invalid-checkpoint fallback; integrity/schema-checked archived evidence reads.
+Temporary CAPI2 channel enabling was restored in the disposable VM.
+
+Real owned ETW system-call session start/query/stop/restart. Original ETLs were
+reopened with OpenTrace/ProcessTrace, separately from bounded live examples.
+The measured run received 25,367 / 36,420 events, respectively, with zero reported
+source loss or decode errors in that short run. It also recorded omitted UI
+examples separately. This does not prove long-duration or universal coverage.
+Selected-process file SHA-256 matched an independent read. Stale process lifetime
+was refused. Embedded signer extraction does not assert Authenticode trust.
+
+Reproduced and repaired findings
+Owned fixtures ran on both Windows architectures before and after repairs.
+Baseline: 1 assertion passed; 6 failed. Hardened build: all 7 passed.
+Baseline evidence:
+https://github.com/Lugal-Byr/kisib.dub-sar/actions/runs/37676903719
+
+1. Archive link traversal. A preplaced journal hardlink changed an owned
+   outside sentinel; an archive directory symlink caused writes in its target.
+   Directory handles now pin ancestors without delete sharing. Opened files
+   are checked for object type, reparse/link attributes and final path before
+   reading/writing. Both exploit fixtures leave target data unchanged.
+2. Invalid pages. Negative and overflowing history page values were accepted.
+   They now fail explicitly instead of reading incorrect pages.
+3. Hostile retained schema. Hash-valid JSON with null reference entries was
+   accepted as normal evidence and could crash its detail formatter. It now
+   becomes a visible retained-evidence error, with defensive reference handling.
+4. Allocation attack. A 9 MiB malformed row was fully copied to the history
+   display. Oversized rows now produce a bounded visible marker, preserving
+   original bytes and the following record. Object/country/bookmark reads are
+   bounded before allocation; total certificate count is not truncated.
+
+Additional corrections and hardening
+The old Framework EventBookmark constructor/property calls did not compile.
+They now use fixed-type, size-bounded DataContract serialization, without
+BinaryFormatter. DTD/external resolution is prohibited.
+
+Adding the callback PREDEFINED flag to physical-store requests caused
+E_INVALIDARG throughout the machine. Requests now follow Microsoft's sample
+and pass location flags; callback flags still identify returned predefined stores.
+
+Dedicated system logging now lets ETW allocate its session GUID, avoiding the
+reserved NT Kernel Logger GUID. Native ETL reads are protected by validated
+archive handles. Existing/shared sessions are not commandeered.
+
+Event Viewer is opened through absolute system mmc.exe and console paths with
+shell execution disabled, avoiding current-directory search and .msc associations.
+CI actions are pinned to the exact revisions exercised and have read-only
+repository token permissions; checkout credentials are not persisted.
+
+Every ordinary journal row reaches the OS immediately. Outstanding rows sync
+on the next one-second timer tick under normal scheduling, and at close.
+CAPI2/label/scan commits synchronously flush before returning. This keeps the
+continuing per-event log; snapshots do not replace it. Measured initial GUI
+inventory improved from 161 seconds / a 180-second timeout to 29/34 seconds.
+Scheduling delays, storage failure and sudden power loss can still affect the
+latest ordinary rows. Crash/power-loss/race stress across all deployments is pending.
+
+Remaining boundaries
+Requested Enabled/Blocked groups are annotations, not OS trust enforcement.
+Native chain display, CTL policy/status, full CCADB ingestion/owner standings,
+DNSSEC, country-wide routing controls and universal browser/private verifier
+coverage remain planned functions. A certificate's country/owner label does
+not prove political control or active use.
+
+CAPI2 covers Windows diagnostics and available retained source logs. Syscall
+records do not themselves identify a certificate purpose or reliable whole
+application-to-authority chain. The app has no always-on service or gapless
+ETL rotation; a capture has a visible 512 MB sequential ceiling. Forced-kill
+orphan recovery, durable rotation and full long-run tracing stress remain pending.
+
+Local SHA hashes detect mismatched objects, not a malicious actor who rewrites
+both journal references and evidence. This is not a signed/tamper-proof archive.
+Only owned local fixtures and disposable runners were tested; no third-party
+systems were attacked. External professional audit, supply-chain signing,
+privileged boundary/race review and manual Home/Pro acceptance remain pending.
+
+Microsoft terms and primary documentation
+CertEnumPhysicalStore / PFN_CERT_ENUM_PHYSICAL_STORE [documented]
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certenumphysicalstore
+https://learn.microsoft.com/en-us/windows/win32/seccrypto/example-c-program-listing-system-and-physical-stores
+CreateFileW / GetFileInformationByHandle / GetFinalPathNameByHandleW [documented]
+https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
+https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileinformationbyhandle
+https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew
+EventBookmark / DataContractSerializer / XmlReaderSettings [documented]
+https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.eventing.reader.eventbookmark
+https://learn.microsoft.com/en-us/dotnet/framework/wcf/feature-details/types-supported-by-the-data-contract-serializer
+StartTraceW / EVENT_TRACE_SYSTEM_LOGGER_MODE [documented]
+https://learn.microsoft.com/en-us/windows/win32/api/evntrace/nf-evntrace-starttracew
+FileStream.Flush(Boolean) / Timer [documented]
+https://learn.microsoft.com/en-us/dotnet/api/system.io.filestream.flush
+https://learn.microsoft.com/en-us/dotnet/api/system.threading.timer
+Custom confinement, schema, grouping, correlation and sync behavior [to test]:
+hosted evidence covers the scenarios above; consumer/full threat-model gate is open.

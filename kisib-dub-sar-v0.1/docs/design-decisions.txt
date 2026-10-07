@@ -296,3 +296,26 @@ references at durable retention time. That time is distinct from the original
 source timestamp; replay cannot recreate old unobserved labels. Later edits
 leave those objects intact while the GUI explicitly shows current labels.
 Prepared tests verify changed labels cannot replace this pinned context.
+
+D026 — Native Windows verification and repaired defects, 2026-10-07 UTC
+Compiled and executed the native GUI and collectors on disposable Windows Server
+2022 x64 and Windows 11 Enterprise ARM64 GitHub runners. Baseline red-team fixtures
+reproduced journal hardlink writes, directory-link traversal, invalid page handling,
+hash-valid hostile activity records and oversized journal allocation. Hardened
+file handles, schema validation and bounded parsing pass those same fixtures.
+Corrected physical-store request flags: PREDEFINED describes returned callback
+siblings, and adding it to requests produced E_INVALIDARG. Native tests now require
+actual .Default Root siblings and all Found in values; empty loops cannot pass.
+Framework EventBookmark uses a bounded fixed-type DataContract transport. Owned
+system logging uses an ETW-allocated session GUID, not the reserved kernel GUID.
+F001-F135 are retained unchanged in identity. F136-F142 record these additions, including the explicit system Event Viewer launch.
+
+D027 — Continuing per-event journal with bounded ordinary disk-sync batching
+Every event remains appended individually and reaches the OS immediately. Ordinary
+rows sync at the next one-second timer tick under normal scheduling, and at close.
+CAPI2, label-version and scan commits sync synchronously before success/cursor
+advancement. This replaces expensive disk barriers on every ordinary observation
+without replacing logs with snapshots. Source-record loss on scheduling delays or
+power failure is still possible and is not claimed away. Measured first complete
+GUI inventory improved from 161 seconds (x64) and a 180-second timeout (ARM64) to
+29/34 seconds on the later hosted run. Native source access errors remain visible.

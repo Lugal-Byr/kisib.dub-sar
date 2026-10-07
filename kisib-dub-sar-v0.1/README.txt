@@ -5,7 +5,7 @@ Windows 11 Home / Pro. Classic native Explorer layout: tree left, list right, de
 Open the explorer
 
 Extract this folder. Double-click Start.cmd.
-It compiles the included C# source in Windows PowerShell and opens the native Windows window. No SDK download is required by this launch route. Compilation and execution on Windows are still to test.
+The source launcher compiles the included C# in Windows PowerShell and opens the native Windows window. For the compiled download, open kisib.dub-sar.exe directly. No SDK download is required. Hosted Windows tests passed; the Windows 11 Home/Pro acceptance gate remains pending. See docs/windows-verification-report.txt.
 
 The first scan runs automatically. Expand a location, a system store, and a physical store. Click a store to list its certificates. Click a certificate for details. Drag the dividers to resize the panes. Click a list heading to sort. View > History log shows retained dates and sessions. Certificate > Certificate history shows the selected certificate's retained events. The visible History log button opens the same journal. F5 refreshes the current view and adds to history; an automatic non-overlapping scan runs every 60 seconds while the explorer is open.
 
@@ -91,10 +91,25 @@ The country seed has 248 UN M49 country/area rows and 43 sourced positive
 monarchy classifications; the other 205 are unknown and editable. See per-row
 sources/dates in data/countries.json. Current labels cannot rewrite original
 event payloads. Full CA ownership/program data and universal verifier coverage
-remain required, separate work. No Windows execution has occurred here.
+remain required, separate work. Real Windows execution evidence is in docs/windows-verification-report.txt.
 
 Test.cmd also prepares synthetic CAPI2 XML/parser/correlation tests, PID reuse
 boundaries, exact DER name extraction, sourced country/tag rules, immutable
-label/replay history and 64-bit ETW ABI checks. These C# tests are not run in
-this development environment and do not enable a Windows diagnostic log or
-start kernel capture. Follow the added manual controls/tracing acceptance.
+label/replay history and 64-bit ETW ABI checks. Test.cmd runs the read-only suite and does not enable a Windows diagnostic log or
+start kernel capture. Hosted CI additionally exercised temporary diagnostic logging,
+owned kernel capture, the GUI and adversarial fixtures on disposable VMs. Follow the
+remaining manual Windows 11 Home/Pro acceptance.
+
+Security and archive handling — 2026-10-07
+
+History pins actual local directories and validates opened file handles before
+reading or writing. Reparse paths and multiply linked archive files are refused.
+Untrusted retained records get bounded parsing and explicit schema errors.
+Ordinary observation rows reach the OS immediately and sync on the next one-second
+timer tick under normal scheduling; CAPI2/label/scan commits sync before returning.
+Closing flushes outstanding rows. Scheduling delays, disk failures or sudden power
+loss can still interrupt the latest ordinary observations; gaps are not hidden.
+The full continuing journal remains per event, with every original source row.
+
+This is an unsigned tested preview, not a production security certification or
+Microsoft Store package. Source is on the repository verification branch.

@@ -44,4 +44,4 @@ assert base.subject == reissue.subject and base.subject != renamed.subject
 assert base.public_key().public_numbers() == reissue.public_key().public_numbers() == renamed.public_key().public_numbers()
 assert base.fingerprint(hashes.SHA256()) != reissue.fingerprint(hashes.SHA256())
 print("PASS: same-subject reissue and different-subject reuse fixtures share a key and have distinct certificates")
-print("NOT RUN: C# metadata/signal implementation; Windows APIs and GUI")
+print("Windows implementation evidence: docs/windows-verification-report.txt; this command independently validates fixture bytes only.")

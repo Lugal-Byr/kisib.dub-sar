@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
 using System.Drawing;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
@@ -95,7 +96,12 @@ namespace Kisib
             liveMenu.MenuItems.Add(new MenuItem("Replay available CAPI2 records", delegate { StartCertificateActivity(true); }));
             liveMenu.MenuItems.Add(new MenuItem("Stop certificate activity", delegate { Interlocked.Increment(ref activityRequestGeneration); activity.Stop(); UpdateLiveStatus(); }));
             liveMenu.MenuItems.Add(new MenuItem("Enable Windows CAPI2 logging", delegate { EnableCapi2(); }));
-            liveMenu.MenuItems.Add(new MenuItem("Open Windows Event Viewer", delegate { try { Process.Start("eventvwr.msc"); } catch (Exception ex) { ShowText("Event Viewer", ex.Message); } }));
+            liveMenu.MenuItems.Add(new MenuItem("Open Windows Event Viewer", delegate
+            {
+                try { Process.Start(new ProcessStartInfo { FileName = Path.Combine(Environment.SystemDirectory, "mmc.exe"),
+                    Arguments = "\"" + Path.Combine(Environment.SystemDirectory, "eventvwr.msc") + "\"", UseShellExecute = false }); }
+                catch (Exception ex) { ShowText("Event Viewer", ex.Message); }
+            }));
             liveMenu.MenuItems.Add(new MenuItem("Start / stop syscalls", delegate { ToggleSyscalls(); }));
             liveMenu.MenuItems.Add(new MenuItem("Capture coverage", delegate { ShowText("Capture coverage", Coverage()); }));
             liveMenu.MenuItems.Add(new MenuItem("Retained certificate activity", delegate { ShowActivityArchive(false); }));

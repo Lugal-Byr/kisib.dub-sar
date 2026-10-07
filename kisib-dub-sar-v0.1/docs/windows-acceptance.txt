@@ -1,3 +1,6 @@
+Hosted native inventory, GUI, CAPI2 and ETW evidence: windows-verification-report.txt.
+The checklist below is the remaining consumer Home/Pro acceptance gate.
+
 kisib.dub-sar v0.1 — Windows enumeration acceptance
 Status: to test
 
@@ -55,7 +58,7 @@ Capture before/after Windows store inventories independently. Creating the appli
 The catalog collector must eventually ingest every record of the complete CCADB source, retain invalid/missing metadata visibly, and verify full record/pagination counts and dated versions. No 10,000 cutoff or consumer filter may be applied. Today's full catalog is not loaded in this package.
 
 
-Application, issuer and trace acceptance — NOT RUN
+Application, issuer and trace acceptance — hosted subset passed; manual Home/Pro pending
 
 Run Test.cmd in 64-bit Windows PowerShell on Windows 11 Home and Pro. Added
 ControlVerification covers synthetic event source fields/ref parsing, refusal
