@@ -1,0 +1,241 @@
+kisib.dub-sar — application, issuer and syscall evidence
+Prepared source: 2026-10-07 UTC / 2026-10-06 PDT
+Windows 11 Home/Pro runtime: to test; not run in this environment.
+
+Purpose and actual evidence
+
+Expose the relationship between observed software activity, referenced public
+certificates and sourced issuer metadata. Original Windows evidence comes
+first. Country, corporation, monarchy and custom labels are separate mappings.
+No badge proves that a government directed issuance or an application's action.
+No stored certificate is labeled actively used merely because it is present.
+
+The permanent left Explorer tree keeps every discovered Windows store path.
+Find issuer / Group by / Sort by sit above it. Issuer, country, corporation,
+monarchy, independent tag and application branches share current certificate
+identities. Each category has Enabled, Blocked and Unassigned requested-policy
+children. Those labels are app-local policy previews; OS enforcement is not
+implemented. Native store paths remain location > system store > physical
+store, never replaced with virtual registry paths.
+
+Right-side native tabs show Certificates, Applications, Live activity and
+Countries. Lower tabs show Details, Issuer 🏛️, Activity evidence and an evidence
+relationship tree. Original 12 certificate list headers remain unchanged.
+The relationship tree follows source event -> emitter/lifetime -> reported
+hash reference -> current inventory candidates -> issuer/current label data.
+It does not substitute for CertGetCertificateChain or create parent links.
+
+Microsoft: TreeView, ListView, ColumnClick, TabControl [documented API basis]
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.treeview
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.listview
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.tabcontrol
+Grouping, linked selection, layouts and derived fields: to test.
+
+Application inventory and executable signer
+
+Process.GetProcesses supplies current process observations: process name/ID,
+start time, executable path and observation UTC. Read/access errors remain
+fields; protected or exited processes can be unresolved. PID plus start time
+is the application lifetime key. An event is associated only when its time
+falls between observed start and a later observation of that same process.
+Periodic inventory polling can miss short-lived processes. It is not an
+inventory of every installed application, every DLL or every executable file.
+Each process inventory is retained in a content-addressed evidence object.
+Later UI associations are explicitly labeled; original event fields remain
+unchanged. Full historical software queries remain a required next feature.
+
+The explicit embedded-signer action rechecks the selected live process key
+and path, opens a read-only executable handle that excludes writes/deletion,
+computes file SHA-256 and extracts a public certificate from the signed file.
+It retains file hash/size/time/path and signer DER/subject/issuer/hash.
+This is the current on-disk file observation, not proof of the exact bytes
+loaded earlier into process memory. Authenticode verification, catalog-only
+signatures, installed-software/version provenance, DLLs and signer-chain trust
+remain not evaluated. Extraction failures remain visible and are journaled.
+
+Microsoft: Process.GetProcesses / StartTime / MainModule [documented]
+https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.process.getprocesses
+https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.process.starttime
+https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.process.mainmodule
+X509Certificate.CreateFromSignedFile / GetRawCertData [documented]
+https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509certificate.createfromsignedfile
+https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509certificate.getrawcertdata
+File/lifetime binding, signed-file coverage and retention: to test.
+
+CAPI2 certificate diagnostics and continual retention
+
+EventLogWatcher follows Microsoft-Windows-CAPI2/Operational. If the channel
+is enabled, collection starts when the explorer opens. The collector replays
+records that Windows still retains and then follows new records. A disabled,
+denied, missing or failing channel is visible in live coverage and History.
+Live > Enable Windows CAPI2 logging explicitly sets IsEnabled and SaveChanges.
+It does not resize/clear existing logs, modify certificate stores or elevate
+automatically. Stop pauses this collector; the Windows log can continue.
+
+For each received event, retain EventRecord.ToXml exactly, provider/event ID,
+record ID, source timestamp, receipt timestamp, execution PID/TID, correlation
+activity ID, reported operation/result, explicit certificate references and
+actor/correlation evidence. Parse errors retain the original XML with an
+unparsed status. XML DTD/external-entity resolution is prohibited.
+
+Only Certificate/Cert fields with explicit SHA-1/SHA-256/thumbprint or a strict
+40/64-hex .cer fileRef become lookup candidates. Real Windows field/hash mapping
+is to test. The source payload always remains available. Names and unrelated
+hex text do not create a match. SHA-1 references preserve every distinct
+candidate; a collision never selects an arbitrary certificate. Matching occurs
+against current inventoried certificate bytes. Unmatched/browser/private-store
+identities stay unresolved rather than vanishing.
+
+System.Execution describes the CAPI2 emitter. It does not automatically name
+a broker's requesting client. Activity ID is preserved, not treated as proof
+of causation. CAPI2 diagnostics are observed certificate operations, not a
+complete record of every application's private TLS/crypto implementation.
+Windows chain diagnostics are original evidence; a separate typed chain view
+must still use returned Windows chain structures after its gate.
+
+Each CAPI2 evidence object pins the committed annotation and country catalog
+object references present when it was retained. That retention context is
+separate from the source event time, especially for replayed records, and
+does not reconstruct earlier unobserved labels. Those referenced versions
+remain immutable when current labels change.
+
+The evidence JSON object is committed and the UTC journal record flushed
+before advancing the app-local replay bookmark. Delivery/write/handler gaps
+hold the bookmark before the gap for later replay. Invalid checkpoint fallback is visible. A stale bookmark/source rollover can
+report a gap; Live > Replay available CAPI2 records explicitly ignores the old
+cursor and reads available records without deleting earlier evidence. A replay identity cache is bounded at 20,000 entries for
+memory use; it is not a limit on stored events. Duplicate replay attempts can
+share the original event ID/content object; journal attempts remain distinct.
+
+The live queue holds 2,000 rows and the current view 5,000; old display rows
+remain in retained evidence. Live > Retained certificate activity opens dated
+500-record pages with integrity-checked original XML and original attribution.
+Unreadable evidence produces a visible error row. Main History retains malformed
+journal originals. There is no source-event or certificate archive count cap.
+
+Logging while this app is closed is bounded by the independent Windows channel's
+enabled/retention state. Overwritten source records cannot be reconstructed.
+An always-on service and complete verifier coverage are required future work.
+Disk/write failures are visible; storage hashes do not provide authentication
+against a user or attacker who can alter the archive and its hash references.
+
+Microsoft: EventLogWatcher / EventLogQuery / EventBookmark [documented]
+https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.eventing.reader.eventlogwatcher
+https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.eventing.reader.eventlogquery
+https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.eventing.reader.eventbookmark
+EventRecord.ToXml / EventLogConfiguration.IsEnabled [documented]
+https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.eventing.reader.eventrecord.toxml
+https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.eventing.reader.eventlogconfiguration.isenabled
+https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.eventing.reader.eventlogconfiguration.savechanges
+CAPI2 operational diagnostics [documented source]
+https://learn.microsoft.com/en-us/troubleshoot/windows-server/certificates-and-public-key-infrastructure-pki/microsoft-trusted-root-store-removal-of-us-federal-common-policy
+Field interpretation, collection/correlation and recovery: to test.
+
+Optional syscall capture
+
+Start syscalls explicitly creates a unique kisib.dub-sar.Syscalls.<GUID>
+System Logger session with EVENT_TRACE_FLAG_SYSTEMCALL. The app never uses or
+stops the shared NT Kernel Logger and never probes other people's sessions.
+Only the successfully returned owned handle is stopped. Access/privilege and
+unsupported-ABI failures are visible; there is no automatic privilege change.
+The app checks 64-bit structure sizes before calling the controller/consumer.
+Layout checks are prepared code, not proof the native ABI has passed testing.
+
+Original sequential ETLs live in History\traces\<GUID>.etl. Each capture has a
+512 MB ceiling; no circular overwrite or automatic deletion occurs. The UI
+queries size/loss and shows when the session ceiling is near/reached. Stop and
+start another retained capture. Automatic rotation and background syscall
+capture are pending F135, so this increment does not claim gapless continuous
+kernel coverage. Each start/stop/error and final file hash/size is journaled.
+
+SysCallEnter opcode 51 exposes SysCallAddress; SysCallExit opcode 52 exposes
+SysCallNtStatus. Raw provider, opcode/version, timestamp, PID/TID, header flags
+and payload remain evidence. Addresses have unresolved symbols. Enter and exit
+are separate records; the app does not infer pairing, a certificate purpose,
+issuer lookup or ownership from a raw system call. PID/TID can be unspecified
+by a kernel event; those values remain unresolved. Full-ETL provenance stays
+available even if live decoding fails.
+
+Live syscall delivery has at most 500 examples per second to keep the GUI
+responsive; this does not sample the retained original ETL. Source EventsLost,
+LogBuffersLost, RealTimeBuffersLost, decoder errors, pending-queue omissions
+and retired display rows remain separate coverage facts. A full ETL contains
+only what ETW actually recorded; source loss is never disguised as completeness.
+
+Live > Retained syscall ETLs reads original files in 500 matching-event pages,
+without the live display budget. FILETIME conversion is requested rather than
+assuming raw QPC values are wall time. Symbols are still unresolved. A damaged,
+active/unfinalized, denied or unsupported ETL reports its read error.
+
+Normal close and process exit attempt to stop the owned capture. A forced kill
+can leave a kernel session alive; restart recovery for orphan sessions is not
+implemented. Retain its exact recorded session name/ETL and use Windows' own
+controller to inspect/stop that specific owned session if required. No blanket
+session cleanup or removal of evidence is authorized by this application.
+
+Microsoft: StartTraceW / ControlTraceW / OpenTraceW / ProcessTrace / CloseTrace
+[documented]; collector, x64 ABI and lifecycle [to test]
+https://learn.microsoft.com/en-us/windows/win32/api/evntrace/nf-evntrace-starttracew
+https://learn.microsoft.com/en-us/windows/win32/api/evntrace/nf-evntrace-controltracew
+https://learn.microsoft.com/en-us/windows/win32/api/evntrace/nf-evntrace-opentracew
+https://learn.microsoft.com/en-us/windows/win32/api/evntrace/nf-evntrace-processtrace
+https://learn.microsoft.com/en-us/windows/win32/api/evntrace/nf-evntrace-closetrace
+EVENT_TRACE_PROPERTIES / logging modes / EVENT_RECORD [documented]
+https://learn.microsoft.com/en-us/windows/win32/api/evntrace/ns-evntrace-event_trace_properties
+https://learn.microsoft.com/en-us/windows/win32/etw/logging-mode-constants
+https://learn.microsoft.com/en-us/windows/win32/api/evntcons/ns-evntcons-event_record
+SysCallEnter / SysCallExit [documented schema; actual decoding to test]
+https://learn.microsoft.com/en-us/windows/win32/etw/syscallenter
+https://learn.microsoft.com/en-us/windows/win32/etw/syscallexit
+
+Country, corporation and monarchy data
+
+data/countries.json retains the 248 English UN M49 country/area rows retrieved
+for this increment, including ISO-alpha2/alpha3 and original source/date. It is
+not an exhaustive ISO list: certificate country codes outside M49 stay unmapped.
+Positive monarchy classifications number 43 and retain per-row sources/dates.
+The other 205 remain unknown. Territory constitutional relationships, disputed
+entities and non-monarchy classification require additional sources; no implied
+inheritance from a territory's governing country occurs.
+
+The coronation-roll government source supplies its explicitly dated realm
+list; the current Crown Society directory is a curated nongovernmental source
+for named other reigning states. Additional Bahrain government and Australian
+DFAT country brief sources are recorded per row. Review date is not an assertion
+that every classification was legally audited or historically true forever.
+Positive seeds and resulting crown mapping remain to test. Users can save local
+country classification/tag overrides with source/date; old versions survive.
+
+Original BRIC BR/RU/IN/CN receive independent 🌿 and 🧱 per the user's rule;
+Russia also receives 🇷🇺. Expanded BRICS membership and disputes remain a
+pending separate dataset. Undefined badges retain user-defined meanings.
+
+Exact DER subject C, issuer C and issuer O are decoded as distinct declarations.
+Local owner/corporation/country mapping is source/date-stamped, not guessed from
+issuer text. Grouping uses local owner-country override when present, otherwise
+recorded issuer C. Current annotation ID/time and basis appear in details.
+Saving annotations retains immutable objects and journal entries. The package
+country catalog is itself retained as an immutable evidence version. Earlier
+source payloads and attribution are never replaced by today's labels.
+
+Microsoft underlying terms: X509Certificate2.IssuerName / SubjectName;
+X500DistinguishedName.RawData; DataContractJsonSerializer [documented]
+https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509certificate2.issuername
+https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509certificate2.subjectname
+https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x500distinguishedname.rawdata
+https://learn.microsoft.com/en-us/dotnet/api/system.runtime.serialization.json.datacontractjsonserializer
+External country/political taxonomy: no Microsoft certificate term; to test
+https://unstats.un.org/unsd/methodology/m49/overview/
+https://www.coronationroll.gov.uk/further_info/flags-realms/
+https://thecrownsociety.org/other-reigning-monarchies
+Additional original government URLs remain in each data row.
+
+Pending requirements retained
+
+Complete CCADB root/intermediate catalog/version ingestion remains the baseline,
+without a 10,000 cap. Native chain/CTL and per-purpose policy evaluation, CA
+owner-count standings, complete browser/private verifier coverage, persistent
+blocking/reconciliation, historical cross-source software/group queries,
+continuous ETL rotation and Microsoft Store packaging remain required.
+This increment adds prepared collectors and views; it does not claim to finish
+those functions. Test.cmd and manual acceptance are Windows checks, not run here.

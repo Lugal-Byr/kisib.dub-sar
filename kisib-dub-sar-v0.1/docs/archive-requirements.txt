@@ -1,0 +1,209 @@
+kisib.dub-sar — continuing certificate history and full CA baseline
+Recorded 2026-10-06, America/Los_Angeles
+Decisions D018/D019; stable functions F102–F111.
+
+Current requirement
+
+Logging is durable. A scan is a dated observation appended to continuing
+history; refreshing the current list must not erase earlier observations.
+Retain certificate public bytes even when a later scan no longer finds them.
+The complete CCADB CA catalog is the required reference baseline. Consumer
+software provenance adds evidence to that baseline and does not restrict it.
+10,000 is a scale reference, never a cap, sample size, or collection cutoff.
+
+Source prepared in this package, Windows runtime still to test
+
+Every scan note, native error, observed certificate occurrence and effective
+EKU observation is appended to a UTC JSON-lines journal with event, scan,
+session, computer and caller account identity. Events are flushed as they are
+written, rather than waiting for a completed scan or window shutdown.
+Certificate DER is stored as soon as it is observed. Exact public bytes are
+retained, including bytes that fail certificate decoding. No private keys are
+opened/exported and no Windows certificate store is modified.
+
+Public objects, inventory contents and membership indexes use SHA-256 lookup
+names. Existing bytes are compared before reuse. Conflicting bytes are
+preserved separately rather than overwritten. Temporary object bytes are
+flushed before a same-directory move; a journal commit is written only after
+the referenced inventory and index objects exist. The application never
+replaces an earlier certificate, inventory or journal record.
+
+Identical inventory content is stored once. Separate scan commit events retain
+observation dates and refer to it. Inventories preserve Subject/Issuer,
+validity, full certificate SHA-1/SHA-256, public-key/signature metadata,
+SPKI SHA-256, requested weak/collision/reuse signals, physical/logical store
+occurrences, EKU observations by source, native errors and incomplete coverage.
+Location flags and physical-store provider, flags, priority and predefined
+status remain the values actually returned by Windows.
+Signals retain their original inventory scope. Historical cross-inventory
+signals and historical Windows trust reconstruction need separate verification.
+
+Membership comparison uses each source's last successful uncanceled read.
+Added/removed occurrences and effective-EKU changes have observation times.
+An initial read establishes a baseline with earlier membership unknown.
+Denied, canceled, partially decoded or absent sources preserve prior baselines;
+they do not produce an invented empty-store/removal finding. A source not
+returned is logged with membership unknown. Missing or corrupt committed
+indexes cause an explicit history error; old files remain intact.
+
+An exclusive writer lock prevents concurrent archive writers. Reopening loads
+the last committed membership index and checks its object hash. A different
+computer/caller account establishes new baselines. Incomplete JSON tail
+records are retained and reported, followed by later records on new lines.
+Hashes detect mismatches against stored object names; they do not authenticate
+the archive against a person who can replace both data and its references.
+
+Collection runs on opening, manual Refresh and non-overlapping 60-second
+scans while the explorer is open. Selection and expanded tree branches survive
+refreshes when their objects still exist. No background service/task is
+installed. Closed periods, transitions between scans, unavailable stores and
+unsupported application trust stores remain observation gaps. Native store
+notifications are still a required later enhancement, not claimed here.
+
+View > History log selects stored UTC dates and reads all retained sessions.
+The visible History log button opens the same view. Certificate > Certificate
+history filters by the selected full-certificate SHA-256. The 500-event page
+size is a display limit, with Previous page/Next page; it never discards stored
+records. Issuer, group and software history scopes remain required functions.
+Storage failures are shown as HISTORY ERROR, with a failure count carried in
+later events. The program does not claim persistence after a failed write.
+
+The application archive is local to the caller:
+%LOCALAPPDATA%\kisib.dub-sar\History
+No automatic upload or publication is added. Live machine data is not included
+in this development source package.
+
+Verification status
+
+The Linux source audit passes. It checks lexical completeness, native API
+boundaries, read-only flags, original DER deduplication, specified controls,
+feature sources and launch restrictions. It is not C# compilation or execution.
+The prepared Windows tests cover restart retention, content deduplication,
+successful-source comparisons, denied/canceled reads, concurrent writers,
+interrupted records, explicit storage failures, altered committed-index
+refusal, original DER equality and history records beyond the 500-event page.
+A separate serializer test round-trips 10,025 synthetic reference records with
+large metadata arrays. This is a codec scale check, not a real CA collection or
+a measured performance result. The production serializer explicitly allows a
+large object graph; 10,000 is not a configured collection limit.
+These C# tests and the Windows 11 Home/Pro machine gate remain NOT RUN here.
+
+Complete CA catalog baseline — required, ingestion still after machine gate
+
+CCADB = Common CA Database. Its All Certificate Information report covers
+root and intermediate CA certificates. Preserve every source record and its
+actual fields, report/API version, source URL, fetch time, source/list date
+when known, original file hash, parsed record count and completeness checks.
+Do not apply a consumer-software filter, 10,000-row cutoff, or default exclusion
+of expired CA records. Invalid/missing metadata stays visible with evidence.
+Keep distinct certificates by exact DER identity where bytes are available;
+source record identity and certificate identity stay distinguishable.
+
+Store every complete source version, deduplicate unchanged content, and record
+membership/status/owner changes without rewriting past versions. A failed,
+partial or filtered fetch cannot become proof that an old CA record vanished.
+If using the REST API, retain its actual pagination metadata and finish every
+required page/partition before declaring a complete version. The API's
+NotBeforeYear/NotBeforeDecade filters concern certificate validity start, not
+the dates software shipped or a root program trusted a certificate.
+
+The public V5 CSV fetch timed out during this research. No current complete
+catalog was ingested, and no exact today count is claimed. The administrator's
+2026-04-13 message reports exceeding Salesforce's 10,000-record query limit;
+its temporary 9,991-record filter is not a complete catalog. That establishes
+a dated scale reference, not today's all-software or active/trusted count.
+Full catalog ingestion, CTL/CCADB status interpretation and chain rendering
+retain their machine-enumeration gate. Recording this required baseline does
+not claim those features have been implemented or passed.
+
+Software and historical evidence
+
+Catalog observed OS and software bundles as additional sources: product,
+version/build/channel/architecture, release date, source URL/package hash,
+bundle path, acquisition time, parser version and certificate occurrences.
+Distinguish bundle membership, observed Windows stores, file-signing chains,
+and certificates encountered during connections. Presence or a shipping
+manifest does not prove current use by a process.
+
+2025/2026 comparisons require preserved software releases, historical root
+bundles, publisher trust-list versions, dated source reports or earlier local
+observations. Today's scan cannot recreate unobserved machine history.
+Certificate NotBefore, release date, root-program inclusion date, fetch time
+and first local observation are separate facts. Historical Windows chain
+evaluation needs the historical trust configuration and policy; setting a
+past chain-evaluation time alone does not recreate them.
+
+All-application certificate search/use tracing remains required F092, with
+supported CAPI2/ETW and application-specific evidence. D020 now prepares
+CAPI2 replay/live diagnostics, observed process lifetimes, raw ETLs, labels and
+catalog versions alongside the continuing native observations. It does not yet observe
+every certificate operation by every process or private browser verifier.
+Keep all 15 proposed issuer tags and all previously recorded functions.
+
+Storage estimate — illustrative assumption, not measured catalog size
+
+10,000 unique public certificates averaging 2–5 kB would occupy about 20–50 MB
+of raw certificate bytes. Complete CSV/report versions, metadata, manifests,
+indexes and activity journals add storage and grow with time. Log repetition
+and event frequency must be measured separately. Deduplication helps retain
+unchanged content; it does not promise a permanently fixed archive size.
+The public website-certificate population is much larger than CA roots and
+intermediates: the CT project's home page displays over 2.5 billion logged
+certificates, without a displayed statistics date. Full CT mirroring is a
+separate scope; CA-catalog completeness does not mean worldwide leaf coverage.
+
+Microsoft terms, Learn URLs, tags
+
+FileStream / Flush(Boolean); FileShare; DataContractJsonSerializer
+https://learn.microsoft.com/en-us/dotnet/api/system.io.filestream.flush
+https://learn.microsoft.com/en-us/dotnet/api/system.io.fileshare
+https://learn.microsoft.com/en-us/dotnet/api/system.runtime.serialization.json.datacontractjsonserializer
+API basis documented; durable storage/recovery implementation to test.
+
+X509Certificate2.RawData; HashAlgorithm.ComputeHash; CERT_INFO
+https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509certificate2.rawdata
+https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.hashalgorithm.computehash
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_info
+API/data basis documented; archived identity/integrity mapping to test.
+
+CertEnumCertificatesInStore; CertControlStore / CERT_STORE_CTRL_NOTIFY_CHANGE
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certenumcertificatesinstore
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certcontrolstore
+API documented; source comparisons and future notification coverage to test.
+
+System.Windows.Forms.Timer / Tick; ComboBox; DateTimeOffset
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.timer
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.combobox
+https://learn.microsoft.com/en-us/dotnet/api/system.datetimeoffset
+API documented; timing/history presentation and year comparisons to test.
+
+External primary sources reviewed 2026-10-06
+https://www.ccadb.org/resources
+https://groups.google.com/a/ccadb.org/g/public/c/558WvzDQXwY
+https://github.com/mozilla/CCADB-Tools/blob/master/API_AllCertificateRecords/README.md
+https://learn.microsoft.com/en-us/windows-server/identity/ad-cs/certificate-trust
+https://certificate.transparency.dev/
+Report availability documented; fetched headers/count/completeness and
+historical software/program-status interpretation to test.
+
+D020-D024 application-evidence extension
+
+Retain original CAPI2 event XML/source fields in immutable evidence objects,
+process inventory versions, explicit executable public signer/file hashes,
+country catalog contents and prior issuer/country label versions. A durable
+CAPI2 commit precedes its replay checkpoint. Delivery/write gaps hold the cursor
+before the gap; storage errors are never labeled successful persistence.
+Current labels in GUI relationships do not replace original event attribution.
+
+Original owned syscall ETLs are retained separately from live display examples.
+The present explicit capture has a 512 MB sequential ceiling, with visible
+loss/size states; automatic continuous rotation remains required F135. Live
+queue/list limits do not trim retained XML or original ETLs. Original CAPI2 and
+ETL payloads have 500-record archive pages. Closed/disabled/inaccessible/provider
+unsupported periods remain coverage gaps. Event-emitter identity is not assumed
+to identify a broker's client; syscall payloads do not supply certificate purpose.
+
+Native certificate read boundaries and full CA baseline stay as specified.
+See live-control-layer.txt for sources, tags, precise coverage and the still
+unrun Windows collector/GUI/ABI tests. No certificate-store/private-key writes,
+backup/export/import action, full CA ingestion or universal tracing is claimed.

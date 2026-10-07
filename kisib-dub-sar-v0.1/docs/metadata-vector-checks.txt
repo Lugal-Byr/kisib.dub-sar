@@ -1,0 +1,15 @@
+Independent public fixture validation in Linux, 2026-10-06.
+Fixture keys were discarded; no private key is in this package.
+
+PASS: independent fixture metadata, SPKI, and signature: metadata/rsa1024.cer
+PASS: independent fixture metadata, SPKI, and signature: metadata/rsa2047.cer
+PASS: independent fixture metadata, SPKI, and signature: metadata/rsa2048.cer
+PASS: independent fixture metadata, SPKI, and signature: metadata/rsa2048-reissue.cer
+PASS: independent fixture metadata, SPKI, and signature: metadata/rsa2048-other-subject.cer
+PASS: independent fixture metadata, SPKI, and signature: metadata/rsa-sha1.cer
+PASS: independent fixture metadata, SPKI, and signature: metadata/rsa-md5.cer
+PASS: independent fixture metadata, SPKI, and signature: metadata/rsa-pss-sha1.cer
+PASS: independent fixture metadata, SPKI, and signature: metadata/rsa-pss-sha256.cer
+PASS: independent fixture metadata, SPKI, and signature: fixture.cer
+PASS: same-subject reissue and different-subject reuse fixtures share a key and have distinct certificates
+NOT RUN: C# metadata/signal implementation; Windows APIs and GUI

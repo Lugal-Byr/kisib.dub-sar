@@ -1,0 +1,137 @@
+kisib.dub-sar v0.1 — Windows enumeration acceptance
+Status: to test
+
+Run this on the Windows 11 machine whose stores the explorer must list.
+
+Extract the project. Double-click Start.cmd. Confirm that the window opens with a branching tree on the left, a list on the right, and details below. Resize both dividers. Confirm the window remains usable while it scans.
+
+After the scan, select the root node and View > Enumeration summary. Account for every location returned by CertEnumSystemStoreLocation. A documented location queried additionally must retain its not-returned/context-dependent label. CURRENT_SERVICE must retain any ordinary-desktop-context error.
+
+Expand LOCAL_MACHINE and CURRENT_USER. Compare the native results to MMC with its physical-store display enabled. certlm.msc is the local machine view; certmgr.msc is the current user view. Compare the certificate DER SHA-1 thumbprint in the same physical store, not just a subject name in a merged store. PowerShell Cert:\ is useful for these two common locations but is not a complete oracle for service/user/physical coverage.
+
+Verify Root, CA, Trust, MY, and CURRENT_USER UserDS when Windows returns them. Verify the actual Root sibling names rather than treating the documented baseline as this machine's observed output. Verify custom registered stores when present. Empty and access-denied stores must remain distinguishable; a failed scan must not look like an empty successful scan.
+
+Verify HKCU/HKLM policy scopes and LOCAL_MACHINE_ENTERPRISE when available. Verify SERVICES with a known installed service certificate store. Verify USERS for a Windows-discoverable SID. If access is denied, keep its name and exact error visible. Unloaded user profiles must not be claimed scanned. Smart card provider absence or failure must stay visible.
+
+Choose a certificate that occurs in multiple physical stores. Confirm Found in includes all observed occurrences, including inherited aliases, while the system-store list remains the actual native collection result. A collection certificate without a physical match must say unresolved. Duplicates must not inflate the distinct-certificate count. Manual Refresh and the 60-second scan append observations to durable history. Current view selection/expanded branches must survive unchanged inventory. Provider notifications are not yet implemented; verify and label between-scan/closed-period gaps.
+
+Confirm the list headers are Subject, Issuer, Not before, Not after, Found in, Key algorithm, Key size (bits), Signature algorithm, SPKI SHA-256, Weak tier, SHA-1 collision, Key reuse, with the added tags. Verify dates sort chronologically and key size sorts numerically. Scroll horizontally to the added columns. Confirm full subject/issuer strings and complete copyable certificate SHA-1/SHA-256 and SPKI SHA-256 values in Details. Check malformed/unsupported decoding remains an explicit error. Check effective EKU for a certificate with an extension, a store property, both, and neither. No chain trust status may be implied by EKU eligibility.
+
+Compare key algorithm OID, public-key bit size, signature OID, and full-DER SPKI SHA-256 against an independent decoder for known store certificates. In Test.cmd, RSA 1024 and 2047 must flag; RSA 2048 with SHA-256 must not match the requested weak rule. SHA-1 and MD5 signatures must flag even when the key is 2048. Test RSA-PSS explicit SHA-1, explicit SHA-256, valid default SHA-1 parameters, and unavailable parameters. An EC key of 256 bits must not be treated as an RSA-under-2048 match. An unsupported signature digest or key size must stay incomplete, not secure.
+
+The synthetic hash-label test must flag every same-SHA-1/different-SHA-256 record, retain duplicate DER as one certificate with occurrences, and clear stale flags on reevaluation. Public fixtures with the same key and distinct complete subjects must flag; the same subject's reissue alone must not. Do not install fixtures just to demonstrate signals. Confirm a folder selection preserves inventory-wide results and Details identifies the peer certificates. Exercise the red collision cell with a developer-injected synthetic display row; no actual hash collision is claimed. Confirm it stays red when selected, has explicit text, and is usable in high contrast and keyboard navigation.
+
+Open Issuer 🏛️. It must show the selected certificate's recorded issuer name. Issuer certificate, source store, and trust must remain not resolved. No issuer linkage or chain validation may be guessed. Check the temple glyph on Windows 11 Home and Pro at normal and high DPI.
+
+Open View > History log. Check that store observations, certificate occurrences, effective EKU, enumeration ends/counts and errors have full UTC timestamps and actual source paths. Close and reopen the explorer; the earlier session and public certificate bytes must remain. Check dates and Previous page/Next page, plus Certificate > Certificate history. Simulate a denied/partial read in the verification harness and confirm it never becomes a removal. Verify archive write failures remain visible and single-writer locking prevents concurrent writers. Copying a hash must not change a store. Help > Feature sources must show terms, Learn URLs, and documented/to test labels.
+
+Double-click Test.cmd. It checks native structure layout for the active process architecture, public fixture metadata and SPKI vectors, weak-rule boundaries, collision/reuse grouping, malformed DER rejection, exact DER identity, path formatting, missing-store OpenExisting behavior, and actual occurrence provenance. Preserve any failing test output. Its passing result is not a substitute for this manual coverage gate.
+
+Compare public-store certificate thumbprints/counts and registry store keys before and after a run. The explorer must create no system/physical store, certificate, trust setting, private-key container, or downloaded issuer/root. The OS may update stores independently; attribute differences before assigning them to this process. If chain support is added later, its cache/root auto-update behavior requires a separate before/after gate.
+
+Repeat in clean Windows 11 Home and Pro test machines before declaring general v0.1 support. Check ordinary-user access, other-user and service limitations, archived certificates, smart card failure, long names, high DPI, keyboard navigation, and high contrast. A complete inventory claim must state its process identity/access/context and any unavailable scope.
+
+Record date, Windows edition/build, process architecture and identity, location/store/physical counts, errors, unresolved source count, and comparison evidence in a local review note. Gate passes only when discovered scopes are accounted for and every exception is visible and explained. Do not mark the gate passed from a Linux source check.
+
+Microsoft terms and sources
+System Store Locations [documented]
+https://learn.microsoft.com/en-us/windows/win32/seccrypto/system-store-locations
+CertEnumSystemStoreLocation [documented]
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certenumsystemstorelocation
+CertEnumSystemStore [documented]
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certenumsystemstore
+CertEnumPhysicalStore [documented]
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certenumphysicalstore
+CertOpenStore [documented]
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certopenstore
+Certificate provider [documented; common-location comparison only]
+https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/about/about_certificate_provider
+
+Archive acceptance
+
+Run Test.cmd to verify persistence, duplicate-content reuse, restart baselines, denied/canceled sources, interrupted journal tails, pagination beyond 500 display rows, and storage faults in temporary test directories. This test does not install fixture certificates.
+Inspect %LOCALAPPDATA%\kisib.dub-sar\History: old journals/inventories/certificate bytes remain across Refresh and launches. Verify a successful external removal changes the current inventory and adds an occurrence_removed event while keeping old DER. Do not change a production trust store solely for this test; the temporary archive fixtures cover the comparison logic.
+Capture before/after Windows store inventories independently. Creating the application archive must not create, import, delete or change OS certificate entries/private keys. Inspect profiler/Process Monitor evidence if needed to confirm application file writes and source reads remain in the declared scopes.
+The catalog collector must eventually ingest every record of the complete CCADB source, retain invalid/missing metadata visibly, and verify full record/pagination counts and dated versions. No 10,000 cutoff or consumer filter may be applied. Today's full catalog is not loaded in this package.
+
+
+Application, issuer and trace acceptance — NOT RUN
+
+Run Test.cmd in 64-bit Windows PowerShell on Windows 11 Home and Pro. Added
+ControlVerification covers synthetic event source fields/ref parsing, refusal
+of DTD/foreign providers/incidental hex, SHA-1 ambiguous candidates, PID reuse
+bounds, exact DER country/organization attributes, sourced country/crown/tag
+rules, durable original XML paging, immutable annotation versions, restart
+checkpoint recovery, raw syscall pointer/NTSTATUS decoding and ETW ABI sizes.
+These automated tests do not enable CAPI2 or start an ETW session. Their passing
+would still not replace real source/privilege/lifecycle acceptance below.
+
+Verify the far-left Find issuer / Group by / Sort by controls, dotted/native
+store hierarchy, category Enabled/Blocked/Unassigned branches, all 15 retained
+badges, empty/unmapped countries and unknown classifications. Confirm labels
+show source/date and declared country basis. Save/change/restart local labels
+and inspect both immutable old/new objects. Independently compare before/after
+Windows stores: changing a requested-policy label must have no trust effect.
+Verify list selection/sorting, keyboard/high-DPI behavior, resizable dividers,
+raw evidence, relationship-tree source labels and all original columns.
+
+Start with CAPI2 disabled: opening must show disabled coverage and must not
+silently enable the channel. Only the explicit Live menu action may request
+IsEnabled/SaveChanges; access denial must be visible. Record channel state,
+permissions, size/retention policy and existing event IDs before/after. There
+must be no clear/resize or certificate-store writes. With logging enabled,
+trigger documented Windows certificate diagnostics in an isolated test setup
+and compare Event Viewer original XML against retained payloads field-by-field.
+Confirm actual fileRef/hash interpretation against the exact observed DER and
+mark mismatches/unrecognized schemas as unresolved, never a guessed chain.
+
+Compare actual event emitter/client behavior for a direct caller and brokered
+caller. Replay records whose PIDs have exited or been reused: they must not bind
+to a later process. Include protected/short-lived processes, source events with
+missing start/path/hash fields, foreign/private TLS stacks and browser stores.
+Verify absence of events is not shown as proof of no use. Match source times,
+record IDs/activity IDs, direct hash candidates and collisions to actual source
+samples. Retain original payloads even when interpretation fails.
+
+Stop/restart CAPI2 and close/reopen the app. Check replay before live delivery,
+bookmark recovery, stale/malformed bookmarks, Windows source rollover, and
+visible gaps. Test the explicit Replay available CAPI2 records action after
+a stale bookmark, and Stop while startup inventory is in flight. In temporary
+isolated app histories, simulate unavailable disk,
+failed evidence/journal/checkpoint writes and interrupted records. Check that
+bookmarks do not advance past an unsaved event and that errors are visible.
+Page beyond 500 and retire beyond 5000 display rows: original evidence must
+remain readable in archive pages and old UTC journals. Compare counts/hashes;
+do not declare completeness solely from the live list.
+
+Explicitly start syscall capture as an ordinary user and, separately, in an
+authorized elevated test instance. Denial must be visible without auto-elevation.
+Record exact owned session name/handle, flags, ETL path and architecture. Do not
+control the shared NT Kernel Logger or an unrelated session. Compare original
+ETL source events with Windows ETW inspection tooling: provider/opcode/version,
+FILETIME conversion, pointer widths, PID/TID and NTSTATUS must agree. Unspecified
+kernel process/thread fields must stay unresolved. Symbols, enter/exit pairing
+and certificate purpose are not inferred by this implementation.
+
+Exercise high-rate capture and inspect event/buffer loss, decode failures and
+live display omissions separately. Compare unsampled original ETL archive pages
+against live examples; omitted examples must not remove original ETL events.
+Verify the explicit 512 MB sequential ceiling, size warning and Stop/restart
+behavior. Continuous rotation is pending; record any ceiling/handoff gaps.
+Validate finalized ETL length/hash and stored start/stop metadata. Test repeated
+start/stop, consumer startup failure, session exhaustion, close during scan,
+close during replay and close during ETL reading. Observe owned-session cleanup
+with Windows tooling; retain exact failure evidence instead of asserting cleanup
+from source. In a disposable setup, force exit and record orphan-session recovery
+needs. Never use a blanket session stop command during these tests.
+
+Inspect selected current executable signer/hash behavior for embedded-signed,
+unsigned, catalog-signed, denied, exited, replaced and unsupported files. Compare
+file bytes/hash and extracted public DER independently. The displayed status
+must remain not evaluated for Authenticode/chain trust. Do not report the current
+on-disk file observation as proof of bytes originally loaded into memory.
+
+Record Windows edition/build/architecture, user/privilege scope, exact provider
+samples, store before/after data, original ETL/XML hashes, counts, gaps, all
+failures and manual UI outcomes. Windows source mappings and Home/Pro gates
+remain to test until that evidence is reviewed.

@@ -1,0 +1,165 @@
+{
+  "project": "kisib.dub-sar",
+  "recorded_date": "2026-10-06",
+  "timezone": "America/Los_Angeles",
+  "status": "proposed design palette; grouping implementation follows the enumeration gate",
+  "source_message": "🏛️🧱💃👑🌿🇷🇺🏴‍☠️🇨🇰🇲🇸🤡🇲🇾🇮🇱🦂👽",
+  "catalog_refs": [
+    "F082",
+    "F083",
+    "F085",
+    "F086",
+    "F087",
+    "F088",
+    "F090",
+    "F091"
+  ],
+  "microsoft_term": "CERT_INFO for underlying certificate data; TreeView for presentation. Emoji group meanings are user-defined.",
+  "learn_urls": [
+    "https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_info",
+    "https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.treeview?view=netframework-4.8.1"
+  ],
+  "tag": "to test",
+  "identity_rule": "Independent many-to-many labels reference the same certificate identity and observed store occurrences.",
+  "tree_rule": "Each category has Enabled and Blocked sibling policy branches; unresolved effective trust stays visible as Unknown/Not evaluated.",
+  "meaning_rule": "Undefined meanings remain editable; a symbol alone does not assign an issuer, a policy or a trust verdict.",
+  "country_symbol_rule": "Codes here are encoded by the regional-indicator symbols. Country/area names, status and grouping rules require the separately sourced directory.",
+  "history_rule": "Retain stable tag IDs and dated label/rule versions in future scoped history; shared events are deduplicated by event ID.",
+  "tags": [
+    {
+      "id": "tag-temple",
+      "symbol": "🏛️",
+      "meaning": "undefined",
+      "symbol_country_code": null,
+      "existing_decision_ref": null,
+      "source": "latest user symbol message",
+      "requested_policy": "unassigned"
+    },
+    {
+      "id": "tag-brick",
+      "symbol": "🧱",
+      "meaning": "user-defined BRIC/BRICS grouping label; membership basis pending",
+      "symbol_country_code": null,
+      "existing_decision_ref": "D007",
+      "source": "latest user symbol message",
+      "requested_policy": "unassigned"
+    },
+    {
+      "id": "tag-dancer",
+      "symbol": "💃",
+      "meaning": "undefined",
+      "symbol_country_code": null,
+      "existing_decision_ref": null,
+      "source": "latest user symbol message",
+      "requested_policy": "unassigned"
+    },
+    {
+      "id": "tag-crown",
+      "symbol": "👑",
+      "meaning": "user-requested monarchy-country grouping label; sourced classification pending",
+      "symbol_country_code": null,
+      "existing_decision_ref": "D008",
+      "source": "latest user symbol message",
+      "requested_policy": "unassigned"
+    },
+    {
+      "id": "tag-herb",
+      "symbol": "🌿",
+      "meaning": "user-defined grouping label associated with the requested BRIC/BRICS rule",
+      "symbol_country_code": null,
+      "existing_decision_ref": "D007",
+      "source": "latest user symbol message",
+      "requested_policy": "unassigned"
+    },
+    {
+      "id": "tag-ru",
+      "symbol": "🇷🇺",
+      "meaning": "country/area symbol; previous Russia three-tag rule retained",
+      "symbol_country_code": "RU",
+      "existing_decision_ref": "D007",
+      "source": "latest user symbol message",
+      "requested_policy": "unassigned"
+    },
+    {
+      "id": "tag-pirate",
+      "symbol": "🏴‍☠️",
+      "meaning": "undefined",
+      "symbol_country_code": null,
+      "existing_decision_ref": null,
+      "source": "latest user symbol message",
+      "requested_policy": "unassigned"
+    },
+    {
+      "id": "tag-ck",
+      "symbol": "🇨🇰",
+      "meaning": "country/area symbol; assignment rule undefined",
+      "symbol_country_code": "CK",
+      "existing_decision_ref": null,
+      "source": "latest user symbol message",
+      "requested_policy": "unassigned"
+    },
+    {
+      "id": "tag-ms",
+      "symbol": "🇲🇸",
+      "meaning": "country/area symbol; assignment rule undefined",
+      "symbol_country_code": "MS",
+      "existing_decision_ref": null,
+      "source": "latest user symbol message",
+      "requested_policy": "unassigned"
+    },
+    {
+      "id": "tag-clown",
+      "symbol": "🤡",
+      "meaning": "undefined",
+      "symbol_country_code": null,
+      "existing_decision_ref": null,
+      "source": "latest user symbol message",
+      "requested_policy": "unassigned"
+    },
+    {
+      "id": "tag-my",
+      "symbol": "🇲🇾",
+      "meaning": "country/area symbol; assignment rule undefined",
+      "symbol_country_code": "MY",
+      "existing_decision_ref": null,
+      "source": "latest user symbol message",
+      "requested_policy": "unassigned"
+    },
+    {
+      "id": "tag-il",
+      "symbol": "🇮🇱",
+      "meaning": "country/area symbol; assignment rule undefined",
+      "symbol_country_code": "IL",
+      "existing_decision_ref": null,
+      "source": "latest user symbol message",
+      "requested_policy": "unassigned"
+    },
+    {
+      "id": "tag-scorpion",
+      "symbol": "🦂",
+      "meaning": "undefined",
+      "symbol_country_code": null,
+      "existing_decision_ref": null,
+      "source": "latest user symbol message",
+      "requested_policy": "unassigned"
+    },
+    {
+      "id": "tag-alien",
+      "symbol": "👽",
+      "meaning": "undefined",
+      "symbol_country_code": null,
+      "existing_decision_ref": null,
+      "source": "latest user symbol message",
+      "requested_policy": "unassigned"
+    },
+    {
+      "id": "tag-skull",
+      "symbol": "💀",
+      "meaning": "undefined; retained from the earlier user request",
+      "symbol_country_code": null,
+      "existing_decision_ref": "D007",
+      "source": "earlier user request; retained",
+      "requested_policy": "unassigned"
+    }
+  ]
+}

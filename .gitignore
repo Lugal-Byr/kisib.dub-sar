@@ -1,0 +1,5 @@
+kisib-dub-sar-v0.1/bin/
+kisib-dub-sar-v0.1/test-results/
+*.zip
+__pycache__/
+*.pyc

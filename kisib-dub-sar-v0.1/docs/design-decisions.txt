@@ -1,0 +1,298 @@
+kisib.dub-sar — design decisions and retained functions
+Recorded: 2026-10-06, America/Los_Angeles
+Status: functional requirements recorded; visual direction awaiting selection.
+
+This journal preserves the decisions that drive the interface. A new visual
+option does not remove a function. Changes to a function must name the stable
+function ID in function-catalog.csv and record the replacement decision here.
+The catalog distinguishes prepared source, planned functions, and retained
+wishlist items. Documented means API documentation exists, not that the app
+has passed a Windows test. The source register retains the original feature identities and explicitly records later logging corrections and additions.
+
+D001 — Classic window
+Win95 Explorer appearance. Permanent branching tree on the far left, results
+on the right, details below. Native grey controls, square corners, dotted tree
+lines, plus/minus boxes, plain menus, sortable lists and resizable dividers.
+No backup or import controls are part of the current explorer.
+
+D002 — Enumeration gate
+v0.1 remains read-only. Open and account for the actual Windows 11 Home/Pro
+store inventory first. Store writes, blocking enforcement, chain construction,
+country/owner data ingestion, and software-use tracing require later gates.
+The generated pictures depict proposed views with sample data. Their chains,
+policy states and counts are illustrative, not observations from the PC.
+
+D003 — Issuer organizing controls belong on the far left
+Put Issuer explorer, Find issuer, Group by and Sort by above the Explorer tree.
+These controls drive the selected branches and all right-hand views. Issuer
+organization must not move into a separate dashboard on the right.
+Browsing modes retain Windows stores, issuer/CA owner, country and custom tag
+views. The real store view preserves location > system store > physical store.
+Virtual groups do not become fake registry paths.
+
+D004 — Search, group and sort
+Planned search covers complete subject/issuer strings, mapped CA owner,
+country name/code, tag and full certificate/SPKI hashes. Show matching evidence
+and unresolved mappings. Sorting is chosen on the left: issuer/owner name,
+country name/code, tag, observed store, policy state or expiry; ascending and
+descending where meaningful. Sort siblings without changing chain order or
+breaking the native location/system/physical hierarchy.
+One selected tree branch drives a sortable certificate grid, owner standings,
+the future playoff chain view, and the lower Details / Issuer 🏛️ pane.
+
+D005 — Enabled and Blocked within each group
+Each category, including 👑 Monarchy, has Enabled and Blocked sibling branches.
+Unresolved effective status stays Unknown/Not evaluated in the result fields.
+Record requested user policy separately from observed Windows trust, its store
+scope, user/machine identity, application verifier, purpose, time and evidence.
+A picture's Enabled/Blocked label is a proposed policy state, not proof that
+Windows or every application enforces it. No writes or enforcement are added
+to the read-only source while the machine gate is open.
+
+D006 — Persistent blocking requirement
+The goal is a retained blocking rule that survives a certificate returning
+through an update or another store source. Deleting a certificate is not the
+specified policy mechanism. Compare explicit Windows distrust, trusted roots,
+CTL membership, group policy and application-specific trust stores. Report
+unsupported scopes and conflicts; do not claim universal enforcement.
+Persistent policy storage, reconciliation and before/after application checks
+are future work, not implemented certificate-store changes.
+Proposed conflict rule: a matching block takes precedence within the same
+declared scope. This is a design proposal to test, not a Windows rule.
+
+D007 — Several categories on one issuer/certificate
+Categories are independent labels. Russia receives 🌿, 🧱 and 🇷🇺, displayed
+together as 🌿🧱🇷🇺, while remaining browsable in three separate groups.
+The requested BRIC/BRICS mapping assigns both 🌿 and 🧱; each is an independent
+tag, not a single combined category. Keep original BRIC and current BRICS
+membership fields separate until the user chooses which membership set drives
+the rule. Monarchy-country mappings assign 👑. Additional 🏛️, 💀 and 💃 groups
+are retained; meanings not supplied by the user stay undefined and editable.
+🌿 is user-defined; it must not be represented as documented Basel/BIS
+membership or proof of political control. One DER identity retains every
+observed store occurrence and every applicable tag; virtual views share it.
+
+D008 — Country directory and automatic labels
+Prepare a country/area reference with full name, ISO alpha-2, ISO alpha-3 and
+source date. Distinguish sovereign countries from territories/other areas.
+Include a sourced monarchy classification, original BRIC membership, current
+BRICS membership/status/source/date, editable user labels and separate notes.
+Unknown or disputed classifications remain visible. This reference is planned;
+no complete monarchy/BRICS classification table has been published in v0.1.
+The official country-code reference is UNSD M49:
+https://unstats.un.org/unsd/methodology/m49/
+The 2026 official BRICS chair site is a membership source to verify:
+https://www.brics2026.gov.in/
+As of the research for this design, the chair's indexed listing and reporting
+on Saudi Arabia's formal acceptance differ. Preserve that provenance instead
+of silently assigning a conclusive membership label.
+
+D009 — Country and ownership evidence
+Show subject C=, recorded issuer C= and sourced CA owner country separately.
+Choose and record the country field that drives each automatic grouping rule.
+An issuer C= in an unvalidated certificate is a recorded claim. Country,
+monarchy or BRICS tags are not proof of who controls a CA, a traffic route,
+certificate misuse, a signing instruction or an application's current use.
+Owner matching needs a sourced certificate/issuer mapping, not an assumed
+equivalence between a display name and a company or government.
+
+D010 — Playoff branch/grid
+Selecting an issuer/group can show an NFL-playoff-style view on the right.
+Certificate links come from CertGetCertificateChain return data after its gate.
+Retain every returned simple chain/context, incomplete endpoints and observed
+issuer-store evidence. Preserve the already specified SHA-1/SHA-256/SPKI
+metadata and signal rules. Hashes are lookup keys, not parent links.
+The rightmost software-scope area separates policy, trust evaluation and actual
+observed use. Inventory presence alone never becomes an Active-use event.
+
+D011 — History log button and stacked scopes
+Keep a visible History log button next to the grid/details. Scope it to a
+certificate, issuer/CA owner, selected category or software process. Permit
+switching between present and previous snapshots and dated rule versions.
+Preserve event time, snapshot/event ID, certificate identities, physical/logical
+store paths, rule ID/version, requested policy, observed result, verifier scope
+and the application's identity when genuinely observed. Unknown remains unknown.
+Scoped views reference the same events and deduplicate by event ID. They do not
+invent several separate copies of history. Retain labels as they were recorded
+at the event, with a clearly separate optional current-label view.
+Existing v0.1 logs contain this application's read actions and errors. They are
+not OS-wide software usage logs. Reading existing CAPI2 diagnostics is a future
+evidence source; disabled logs, gaps and unsupported crypto stacks stay visible.
+
+D012 — Trace coverage and browser reminder
+Windows trust, browser/private trust stores and actual software use require
+separate evidence. A Windows chain API evaluation means that this explorer
+evaluated a chain; it does not prove another process used the certificate.
+The desired application > leaf > issuer > root trace requires correlated,
+supported observations. CAPI2/ETW coverage, permissions and log retention need
+Windows testing. LibreWolf/browser-specific store coverage remains a separate
+planned function; do not claim all programs share the Windows stores.
+
+D013 — Visual options are comparisons
+Plain Explorer: compact conventional certificate list and lower details.
+Bracket Explorer: larger playoff chain area with the same permanent left tree.
+Issuer Standings: sortable owner/country standings with a smaller chain area.
+All three keep issuer search/group/sort on the far left, Enabled/Blocked group
+branches, independent emoji categories, history scopes and read-only v0.1.
+Selection changes visual emphasis, not the function catalog or scope gates.
+The actual generated prompts and returned image paths are recorded separately.
+
+D014 — Retained earlier wishlist
+Keep scheduled/time-based rules, DNSSEC checking, live inventory changes,
+software/issuer tracing, cable/satellite route research and Microsoft Store
+packaging as tagged backlog items. Certificate country metadata supplies no
+physical cable or satellite route. Route attribution needs an independent
+network evidence source before any feature is claimed. No backup/import/write
+function is activated by recording a backlog item.
+
+D015 — Save work while design changes
+function-catalog.csv is the stable functional inventory; this journal preserves
+the reasoning and corrections; specification.txt defines scope/gates;
+feature-sources.csv preserves the original API-to-term register. Add future
+decisions instead of silently rewriting their history. A catalog entry is not
+an implementation claim. Generated style directions remain pending until the
+user selects or combines them. Preserve the same saved project/plan identities.
+
+Microsoft data/UI sources, API documented; these planned functions to test
+TreeView / TreeViewNodeSorter / Sort
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.treeview?view=netframework-4.8.1
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.treeview.sort?view=netframework-4.8.1
+ListView / ColumnClick / Groups
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.listview?view=netframework-4.8.1
+TextBox / TextChanged
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.textbox?view=netframework-4.8.1
+CertGetNameString / CERT_INFO
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certgetnamestringw
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_info
+CertGetCertificateChain / CERT_TRUST_STATUS
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certgetcertificatechain
+Trusted CTL / Untrusted CTL / automatic root updates
+https://learn.microsoft.com/en-us/windows-server/identity/ad-cs/configure-trusted-roots-disallowed-certificates
+EventLogReader / CAPI2 Operational diagnostics
+https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.eventing.reader.eventlogreader?view=netframework-4.8.1
+https://learn.microsoft.com/en-us/troubleshoot/windows-server/certificates-and-public-key-infrastructure-pki/microsoft-trusted-root-store-removal-of-us-federal-common-policy
+
+D016 — Visual feedback retained
+2026-10-06: the user said the mockups look cool and understandable for humans.
+Retain the classic Explorer tree/list/details direction. No specific one of
+the three visual options was selected by that feedback.
+
+D017 — Additional proposed issuer badges
+2026-10-06 user symbol message:
+🏛️🧱💃👑🌿🇷🇺🏴‍☠️🇨🇰🇲🇸🤡🇲🇾🇮🇱🦂👽
+Save all 14 supplied symbols in order, plus the previously requested 💀.
+The machine-readable palette is docs/tag-palette.json. These extend the
+existing independent-group function F082; the stable 101-function catalog
+is retained. One issuer/certificate may appear under several tag branches.
+Every category keeps its proposed Enabled and Blocked siblings and scoped
+history. The same underlying identity and events are shared across views.
+
+Prior 🌿/🧱, 👑 and Russia 🌿🧱🇷🇺 rules remain as recorded in D007/D008.
+Additional flag symbols retain their encoded country/area codes; country
+names, constitutional classifications and issuer assignment require the
+separate sourced directory. Other symbols have undefined, editable meanings.
+No issuer assignment, distrust finding or policy follows merely from a badge.
+This is design documentation; the read-only source and enumeration gate stay
+unchanged. Microsoft data/UI basis: CERT_INFO and TreeView; planned grouping
+implementation and rule mapping are to test; the badge taxonomy is user-defined.
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_info
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.treeview?view=netframework-4.8.1
+
+D018 — Correct session-only logging
+The user clarified that continuing logging and certificate retention were
+required. Session messages and replacement-only current inventory were an
+incomplete implementation, not an accepted design decision. This supersedes
+D002/D011 language that left durable native observation history until later.
+Every scan must feed durable history; older records and certificate bytes
+remain when the current view refreshes. Source is prepared for UTC per-event
+journals, public DER retention, deduplicated immutable inventories/indexes,
+per-source membership comparisons, restart recovery and a dated history view.
+The explorer still uses Windows certificate stores read-only. Runtime and
+manual Home/Pro verification are to test; no finished executable is claimed.
+Collection gaps, storage failures and unsupported process observations remain
+visible. All-application certificate tracing stays required as F092.
+Stable functions F034/F090/F091/F094 have explicit state corrections, and
+F102-F107/F111 record the added implementation. No existing ID is removed.
+
+D019 — Complete CA catalog is the baseline
+The user rejected narrowing collection to a mainstream consumer-software
+subset. Track the entire Common CA Database root/intermediate catalog, with
+complete dated source versions and no 10,000-record cap. The dated >10,000
+scale reference is not today's audited count. Complete catalog ingestion
+remains after the actual Windows store gate; it is not represented as already
+loaded. Software/version/bundle evidence supplements the CA baseline.
+F108-F110 retain complete-catalog versions, historical year comparisons and
+software provenance. Historical inclusion must use preserved source evidence;
+NotBefore alone does not show shipping/inclusion in 2025 or 2026.
+The 101 earlier functions and 15 independent issuer tags remain recorded;
+there are now 111 stable function IDs. Classic Explorer layout and current
+certificate list columns remain unchanged. Scope and verification details are
+in archive-requirements.txt; publisher list interpretation stays to test.
+
+D020 — Continue the backend and GUI for application and issuer evidence
+2026-10-06 PDT / 2026-10-07 UTC: the user explicitly asked to keep coding the
+backend and GUI for apps, countries, corporations, monarchies, usages and
+syscalls. This authorizes preparing those read-only evidence sources and
+app-local label controls while native Windows verification is still pending.
+It supersedes D002/D011 language that postponed all grouping and software
+observations. Certificate-store writes, enforcement, chain construction and
+publisher-list interpretation remain separately gated. The function catalog
+keeps F001-F111, records partial progress for their existing requirements,
+and adds F112-F135. Prior 15 tags and three visual directions are unchanged.
+
+D021 — Original app evidence comes before interpretation
+Read available Windows CAPI2 Operational records with EventLogWatcher, retain
+original XML and source fields, then advance a replay bookmark after durable
+commit. System.Execution is the emitter; it is not automatically the broker's
+client. Process ID plus an observed start time identifies a lifetime. Missing
+identity, unparsed payloads, denied logs, unsupported verifiers and source/log
+loss remain explicit. Certificate references are hash lookup candidates, not
+parent links. Syscall enter/exit addresses and NTSTATUS are separate evidence;
+do not guess a certificate purpose, symbol name or paired operation.
+
+D022 — Sourced country classifications and retained local labels
+The prepared seed contains all 248 country/area rows retrieved from the UN
+M49 English reference, with source and review date. It is not a claim that
+M49 includes every ISO territory or disputed entity; unmapped codes stay
+visible. There are 43 sourced positive monarchy classifications. Remaining
+205 records, including unclassified territories, stay unknown rather than
+being silently classified as republics. Government references and a current
+curated monarchy directory are recorded per positive row; mappings are to
+test. Users can retain sourced/date-stamped country overrides and independent
+tags. Original BRIC BR/RU/IN/CN and expanded BRICS remain separate; only the
+four-code user rule is prepared. Subject C, issuer C, issuer O, local owner,
+corporation and owner-country mapping remain separate evidence. A crown or
+country/group badge does not prove that a state ordered issuance or an app's
+action. Immutable catalog/annotation versions preserve the history.
+
+D023 — Owned ETW capture, full ETL, explicit coverage limits
+Optional syscall capture creates a unique dedicated System Logger session,
+using documented ETW APIs; it never takes ownership of NT Kernel Logger or
+stops someone else's session. It retains an original sequential ETL (512 MB
+per-capture ceiling). Live display examples are bounded separately; archived
+ETL pages read original events without the live sampling budget. Event/buffer
+loss, decode errors, display omissions and collection gaps are different
+counters. Normal stop records final ETL SHA-256, bytes and counters. Privileged
+kernel capture is user-started, never auto-elevated. Windows ABI, shutdown,
+forced-exit recovery and provider coverage must be tested. Continuous ETL
+rotation/background capture remains required as F135; it is not implemented
+or claimed gapless by this increment.
+
+D024 — Control-layer presentation and signer provenance
+Keep native grey Explorer: issuer search/group/sort above the permanent left
+tree; certificate/application/activity/country lists right; details, issuer
+🏛️, raw activity evidence and relationship tree below. Categories contain
+Enabled, Blocked and Unassigned requested-policy branches; enforcement is
+not yet implemented. Actual source events, lookup matches and current labels
+are distinct nodes. A selected executable action hashes its current file and
+reads public embedded signer DER, with lifetime/path checks and read errors.
+That extraction is not Authenticode trust, catalog-signature coverage or a
+returned Windows chain. These features are prepared source, not a verified
+Windows release or proof of universal app observation.
+
+D025 — Pin retention context without rewriting source history
+CAPI2 evidence pins immutable committed annotation and country-catalog object
+references at durable retention time. That time is distinct from the original
+source timestamp; replay cannot recreate old unobserved labels. Later edits
+leave those objects intact while the GUI explicitly shows current labels.
+Prepared tests verify changed labels cannot replace this pinned context.

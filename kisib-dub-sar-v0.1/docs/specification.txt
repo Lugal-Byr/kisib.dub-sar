@@ -1,0 +1,198 @@
+kisib.dub-sar v0.1
+Read-only certificate explorer
+Authoritative scope: retained user specification, logging/catalog correction, and application/issuer continuation, 2026-10-06 PDT / 2026-10-07 UTC.
+
+Appearance
+
+Native classic Windows controls. Tree left, certificate list right, details below the list. Tree lines, root lines, and plus/minus boxes remain visible. Resizable dividers. Plain menus and sortable list headings. No dashboard cards or hidden tree.
+
+Latest design requirement, 2026-10-06: issuer search, grouping and sorting controls belong above the far-left Explorer tree. A selected issuer/country/tag branch drives the results, future playoff chain grid and lower Details / Issuer 🏛️ pane. Each category has Enabled and Blocked subgroups representing declared policy scope; effective enforcement and observed software use are separate evidence fields, still to test. Russia carries the independent 🌿, 🧱 and 🇷🇺 tags. Monarchy-country rules carry 👑; the requested BRIC/BRICS set carries 🌿 and 🧱. Country and membership classifications require sourced data and dates. Extra 🏛️, 💀 and 💃 groups remain user-defined. History log scopes cover certificate, issuer, group and software. Issuer/country/app views and requested-policy labels now have prepared source under D020-D024; effective enforcement remains pending. Durable native observation history is now prepared source in v0.1, as corrected in D018/D019; machine verification remains required.
+
+See docs/design-decisions.txt for the retained decisions and docs/function-catalog.csv for stable function IDs, source/tag/state and verification. Visual selection may change emphasis while preserving this inventory. A function recorded as planned is not implemented.
+
+Order
+
+First open the explorer and enumerate the actual machine, with durable logging and public-certificate retention active from the first scan. No backup, certificate import, or certificate-store write code belongs in this stage. Chain, CTL, complete CCADB catalog ingestion, CSV annotation, and owner grids follow the machine enumeration gate. The complete CA catalog is the required baseline; software-release evidence supplements it. Preparing source does not mean passing Windows verification.
+
+Tag meanings
+
+documented = the named behavior or term has a primary source.
+to test = the implementation, machine behavior, mapping, or report header is unverified.
+Documentation is not a claim that the program has passed Windows testing.
+Custom geo, alignment, and flags are explicitly user-defined. Microsoft has no certificate term for political alignment or local organization flags. The source register gives the Microsoft API for underlying certificate data or presentation, and identifies external labels as external.
+
+1. Real tree and certificate occurrences
+
+System store location > system store > physical store.
+System stores are native logical collections. Show the physical siblings actually returned by CertEnumPhysicalStore, including predefined and additionally registered siblings. Read the logical collection separately; its list is not fabricated by unioning physical-store results.
+
+The documented baseline is:
+LOCAL_MACHINE: HKLM\Software\Microsoft\SystemCertificates
+Root: .Default .AuthRoot .GroupPolicy .Enterprise .SmartCard
+CA and Trust: .Default .GroupPolicy .Enterprise
+MY: .Default
+CURRENT_USER: HKCU\Software\Microsoft\SystemCertificates
+Root: .Default .LocalMachine .SmartCard
+CA and Trust: .Default .GroupPolicy .LocalMachine
+MY: .Default
+UserDS: .UserCertificate
+
+Policy locations: HKCU and HKLM\Software\Policies\Microsoft\SystemCertificates.
+Also query CURRENT_SERVICE, SERVICES, USERS, and LOCAL_MACHINE_ENTERPRISE. Services use the named service registry scope; USERS uses the SID scope. A desktop application cannot invent a current service identity. User hives that Windows does not expose remain outside this read-only scan. The exact enterprise cache registry mapping is to test.
+
+List columns: Subject, Issuer, Not before, Not after, Found in, Key algorithm, Key size (bits), Signature algorithm, SPKI SHA-256, Weak tier, SHA-1 collision, Key reuse. These added columns were explicitly requested. No further columns are inferred.
+Found in contains every observed physical-store occurrence of identical certificate DER across the scanned scopes. SHA-256 indexes the DER; equal hashes are checked against full DER before merging. Provider aliases such as .LocalMachine remain visible. This is evidence of enumeration through those physical siblings, not a guessed backing registry path.
+
+Empty, unavailable, denied, partially decoded, and unresolved results stay distinguishable. Native errors appear in the tree/details and activity log. A certificate returned by a collection but not found in an accessible physical sibling stays visible with unresolved provenance.
+
+Microsoft term: System Store Locations; CertEnumSystemStoreLocation; CertEnumSystemStore; CertEnumPhysicalStore.
+https://learn.microsoft.com/en-us/windows/win32/seccrypto/system-store-locations
+Tag: documented. Windows 11 Home/Pro runtime and complete local coverage: to test.
+
+1a. Key metadata and inventory signals
+
+Key algorithm uses PublicKey.Oid, with the friendly name and the numeric OID shown [documented]. Signature algorithm uses X509Certificate2.SignatureAlgorithm, with the friendly name and OID [documented]. Neither depends on a guessed issuer.
+
+Key size is in bits [to test]. RSA size is the actual positive modulus bit length read from the public SubjectPublicKeyInfo; do not round 2047 up to 2048. EC and DSA use the decoded public key's AsymmetricAlgorithm.KeySize. Unsupported algorithms, provider errors, and failed decoding stay unavailable.
+
+SPKI SHA-256 [to test] hashes the complete original DER SubjectPublicKeyInfo sequence, including its algorithm identifier, parameters, and public-key bit string. It is not the certificate SHA-256 or a hash of raw key bits. Preserve original bytes instead of re-encoding. CERT_PUBLIC_KEY_INFO is the Microsoft data term; exact DER slicing is application code requiring verification.
+The metadata reader rejects truncated/noncanonical envelopes and differing inner/outer signature AlgorithmIdentifier encodings instead of mixing an OID from one field with parameters from another. These structural checks do not verify the certificate signature or replace Windows chain policy.
+
+Weak tier [to test] applies the requested local rule: RSA public key under 2048 bits OR certificate signature digest MD5 OR certificate signature digest SHA-1. Show every matched reason. The public-key algorithm and signature algorithm are assessed separately. RSA-PSS requires its signature parameters; a valid parameter sequence with an omitted hashAlgorithm uses the specified SHA-1 default. Missing or unclassified parameters/digest produce an incomplete assessment. The rule is user-defined, not a Microsoft trust or Root Program compliance verdict. No listed criterion is not a claim of secure cryptography.
+
+SHA-1 collision [to test]: across all certificate records in the observed snapshot, an identical full-certificate SHA-1 and more than one distinct full-certificate SHA-256 marks every affected row's collision cell red. Selection must not conceal that cell. Details show peer Subject, SHA-256, and observed physical sources. Never merge by SHA-1. Repeated occurrences of identical DER do not cause this signal.
+
+Key reuse [to test]: identical SPKI SHA-256 appearing under more than one distinct full displayed Subject DN (ordinal comparison) marks all affected records. Compare the complete subject, not only CN. Reissuance with the same subject and store duplicates do not trigger it. Key reuse is an observation, not a compromise verdict. Details show the differently named peers. A folder selection does not narrow either inventory check. Missing or inaccessible stores limit the observed inventory; a no-match cell does not establish worldwide uniqueness.
+
+Microsoft data terms: PublicKey.Oid; AsymmetricAlgorithm.KeySize; X509Certificate2.SignatureAlgorithm; CERT_PUBLIC_KEY_INFO; HashAlgorithm.ComputeHash.
+https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.publickey?view=netframework-4.8.1
+https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.asymmetricalgorithm.keysize?view=netframework-4.8.1
+https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509certificate2.signaturealgorithm?view=netframework-4.8.1
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_public_key_info
+https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.hashalgorithm.computehash?view=netframework-4.8.1
+Tags: documented API basis; size/SPKI extraction and the three local rules: to test.
+RSA-PSS parameter reference: https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-crypt_rsa_ssa_pss_parameters
+External signature encoding references: https://www.rfc-editor.org/rfc/rfc4055 and https://www.rfc-editor.org/rfc/rfc3279
+
+2. Windows chain view after the gate
+
+Call CertGetCertificateChain for the selected certificate. Render CERT_CHAIN_CONTEXT and its ordered CERT_SIMPLE_CHAIN element arrays from left to right. Draw every simple chain actually returned, and preserve which chain context owns it. Alternative lower-quality contexts require CERT_CHAIN_RETURN_LOWER_QUALITY_CONTEXTS; preserve their identity rather than flattening them into one guessed tree. This API does not promise every possible chain.
+
+Each hop links consecutive elements returned by Windows. Issuer name, Authority Key Identifier, Subject Key Identifier, signatures, and Windows chain rules identify/validate candidate parents; a matching name or identifier alone is not proof of a parent. Certificate hashes are lookup keys, not parent edges.
+
+Cards: CN when present; SHA-256 and SHA-1 with Copy; observed Found in occurrences; the element's CERT_TRUST_STATUS; Microsoft and Mozilla program-list results; C= when present; local tag and flag values. Show partial-chain endings explicitly. An issuer returned by Windows without an inventory match says not found in enumerated stores. Do not invent an origin. Windows element trust, chain policy results, and program inclusion are separate facts.
+
+Default chain construction must be cache-only and disable automatic root update/AIA retrieval so an inspection cannot silently populate persistent stores. Proposed flags include CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL, CERT_CHAIN_DISABLE_AUTH_ROOT_AUTO_UPDATE, and CERT_CHAIN_DISABLE_AIA. Revocation checks need their own cache-only flag and explicit coverage result. These effects require a Windows before/after test before the read-only claim extends to chain building.
+
+Microsoft term: CertGetCertificateChain; CERT_CHAIN_CONTEXT; CERT_SIMPLE_CHAIN; CERT_CHAIN_ELEMENT; CERT_TRUST_STATUS.
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certgetcertificatechain
+Tag: documented API; chain rendering and read-only side effects: to test.
+
+3. Hash strips after the gate
+
+Under each chain card, show key > list > value. Keep all hit, miss, unloaded, invalid, and unavailable results visible. Include the list's date and provenance; an unknown publisher date remains unknown.
+
+SHA-1 > Microsoft trusted CTL > membership and decoded usage/constraints.
+SHA-1 > Microsoft untrusted CTL > disallowed membership.
+SHA-256 > CCADB All Certificate Information CSV > CA Owner, Microsoft status, Mozilla status, using the actual source headers.
+SHA-256 or CA owner > local CSVs > geo, alignment, flag.
+
+A CTL hit does not by itself establish that this certificate is valid for this purpose on this machine. A miss does not by itself establish trust or distrust. Validate CTL structure/signature/date and decode its restrictions before interpreting it. The SHA-1 lookup mapping and constraint rendering are to test.
+
+Microsoft term: certificate trust list (CTL); Trusted CTL; Untrusted CTL; CTL_INFO.
+https://learn.microsoft.com/en-us/windows-server/identity/ad-cs/configure-trusted-roots-disallowed-certificates
+Tag: documented. Lookup/signature/constraint interpretation: to test.
+
+External term: CCADB All Certificate Information. CCADB currently lists V5 and V4 reports; actual supplied CSV headers and version must be recorded and verified before mapping. CCADB's own labels stay intact; they are not represented as Microsoft certificate fields.
+https://www.ccadb.org/resources
+Tag: documented report availability; actual CSV headers and data interpretation: to test.
+
+4. Local lists after the gate
+
+User-defined rows identify a certificate hash or CA owner and carry tag, source, and date. The eventual CSV schema is to test; none is imported by v0.1.
+
+Program status: preserve publisher labels and purpose/constraints.
+Geo: separate subject C=, issuer C=, and a sourced owner-country table. These are declarations/metadata, not a live traffic route or a verified organizational allegiance.
+Alignment: only user-defined labels with source and date.
+Flagged organizations: documented distrust and user flags remain separate fields. A personal flag never becomes a Windows trust verdict.
+
+Missing owners, countries, labels, dates, and report hits remain visible. Conflicting sources remain distinguishable instead of being silently combined into a new status.
+
+Microsoft data basis: CERT_INFO.Subject and Issuer; CertGetNameString.
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certgetnamestringw
+Tag: documented data API; CSV matching, owner table, geo/alignment/flag annotations: to test and user-defined.
+
+5. Owner grids after the gate
+
+Sortable standings-style list. Rows are CA owners grouped by sourced owner country. Unmatched owners/countries remain visible. Columns are exactly roots, intermediates, expiring in 12 months, Microsoft status, Mozilla status, geo, alignment, and flag, with CA owner as the row label. Status colors must also have text labels.
+
+Root/intermediate classification needs explicit report type or validated Windows chain evidence; do not classify roots merely because Subject equals Issuer. Counts cover distinct certificates, not repeated store occurrences. The 12-month interval uses the recorded snapshot time through that time plus twelve calendar months; already expired certificates do not count as future expirations. Multiple program statuses/constraints remain visible rather than being collapsed into one invented owner verdict.
+
+Selecting an owner opens chain results for that owner's matched certificates, once chain functionality has passed its gate.
+
+Microsoft presentation term: ListView, ColumnClick, Groups.
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.listview?view=netframework-4.8.1
+Tag: documented UI API; external owner grouping, classifications, counts, and colors: to test.
+
+6. Details pane
+
+Thumbprint (SHA-1), SHA-256, Subject, Issuer, NotBefore, NotAfter, Key algorithm, Key size (bits), Signature algorithm, SPKI SHA-256, the three inventory signals and their matching peers, Key Usage, Enhanced Key Usage per occurrence, and observed store sources. Certificate DER fields and store-specific properties are separated: identical DER may have different EKU properties in different stores. Copy buttons cover SHA-1, certificate SHA-256, and SPKI SHA-256.
+
+The lower pane contains native Details and Issuer 🏛️ tabs [TabControl documented; label/rendering to test]. The Issuer tab shows the issuer name recorded in the selected certificate [X509Certificate2.Issuer documented] plus the selected certificate's subject and SHA-256 for context. An issuer certificate, its source store, and chain trust remain not resolved [to test] until the native chain gate; matching names or hashes do not create a parent link.
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.tabcontrol?view=netframework-4.8.1
+https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509certificate2.issuer?view=netframework-4.8.1
+
+CertGetEnhancedKeyUsage with dwFlags=0 supplies the effective intersection of extension/property uses. Usage eligibility is not a trust verdict. In this stage per-purpose chain-policy status is explicitly not evaluated. Later CertVerifyCertificateChainPolicy must inspect CERT_CHAIN_POLICY_STATUS.dwError; API success alone does not mean the policy passes.
+
+Microsoft term: X509Certificate2; CertGetEnhancedKeyUsage; CertVerifyCertificateChainPolicy.
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certgetenhancedkeyusage
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certverifycertificatechainpolicy
+Tag: documented. Per-purpose policy tests: to test.
+
+Logging and read-only boundary
+
+View > History log and Certificate > Certificate history read durable UTC journals across scans and launches. Each observed certificate occurrence and EKU observation is recorded; public DER is retained immediately. Immutable inventory/index objects preserve prior metadata and source evidence, with identical contents deduplicated. A 60-second non-overlapping scan while the explorer runs appends observations instead of replacing history. Per-source successful baselines support additions/removals/usage changes; inaccessible, missing or canceled sources remain unknown. Storage faults stay visible. See docs/archive-requirements.txt and F102-F111 for source, format, recovery and coverage. No private keys are opened or exported. The explorer opens existing stores using CERT_STORE_READONLY_FLAG and CERT_STORE_OPEN_EXISTING_FLAG. CERT_STORE_ENUM_ARCHIVED_FLAG includes archived certificates. No OS store mutation, registry editing, or certificate auto-download API is called. Supported CAPI2 replay/live collection and optional owned ETW syscall capture now have prepared source; complete application/verifier coverage remains required, with source gaps explicit.
+
+Microsoft term: CertOpenStore read-only/open-existing flags; CertEnumCertificatesInStore.
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certopenstore
+Tag: documented. Machine side-effect verification: to test.
+
+Delivery status
+
+Source and launch commands are prepared. Source checks can run in the development workspace; native compilation, GUI execution, and store enumeration require Windows. No Windows machine gate, release-signing gate, or Microsoft Store certification has been claimed. No code has been pushed to GitHub in this step.
+
+7. Application and issuer evidence continuation (D020-D024)
+
+The latest instruction authorizes continuing source for the control-layer
+Explorer views: process lifetimes, supported certificate diagnostic events,
+optional syscalls, local owner/corporation/country/tag annotations and sourced
+country classifications. Native chains, CTL/program interpretation, full CA
+catalog ingestion and policy enforcement keep their separate gates.
+
+Far-left search/group/sort, actual native store paths, application/live/country
+lists and lower raw evidence/relationship tree use native controls. Original
+certificate list headers are unchanged. Enabled/Blocked/Unassigned are requested
+policy labels. Source observations and current annotations remain distinct.
+Country C/O attributes are decoded from exact DER names; ownership is an
+explicit mapping, never assumed from a formatted issuer name.
+
+EventLogWatcher follows Microsoft-Windows-CAPI2/Operational and replays what
+Windows still retains. EventRecord.ToXml original payloads and source fields
+are durable before replay bookmarks advance. Missing/disabled/access-denied
+logs and write/delivery errors are coverage states. Explicit hash/fileRef
+fields are lookup candidates, with SHA-1 ambiguity retained. Emitter PID/TID
+does not establish a broker's requesting client. Process lifetime associations
+require observed start/time coverage and cannot cross PID reuse.
+
+An explicit syscall action owns a unique System Logger ETW session and
+retains full sequential ETLs within the 512 MB per-capture ceiling. Display
+examples, source event/buffer loss and decoder errors are distinct. Raw
+addresses and NTSTATUS are retained without guessed symbols, pairing or
+certificate purpose. Original ETL paging has no live sampling budget.
+Continuous rotation/background service capture remains required, not built.
+
+See docs/live-control-layer.txt, F112-F135 and the updated feature register
+for Microsoft terms, Learn URLs, documented bases and to-test implementations.
+Windows 11 Home/Pro, privilege boundaries, real event mappings and GUI tests
+remain unrun. No backup, import, OS certificate write, private-key handling,
+all-app coverage claim or Microsoft Store release is introduced.

@@ -1,0 +1,48 @@
+Source/data audit completed in Linux; not C# compilation, behavior testing or a Windows API test.
+
+PASS: Activity.cs complete lexical delimiters
+PASS: ActivityArchive.cs complete lexical delimiters
+PASS: ApplicationSigner.cs complete lexical delimiters
+PASS: CertificateSignals.cs complete lexical delimiters
+PASS: ControlExplorer.cs complete lexical delimiters
+PASS: ExplorerForm.cs complete lexical delimiters
+PASS: HistoryArchive.cs complete lexical delimiters
+PASS: IssuerLabels.cs complete lexical delimiters
+PASS: Models.cs complete lexical delimiters
+PASS: Native.cs complete lexical delimiters
+PASS: Program.cs complete lexical delimiters
+PASS: Scanner.cs complete lexical delimiters
+PASS: SyscallTrace.cs complete lexical delimiters
+PASS: ArchiveVerification.cs complete lexical delimiters
+PASS: ControlVerification.cs complete lexical delimiters
+PASS: Verification.cs complete lexical delimiters
+PASS: Certificate native boundary stays restricted to the original read/enumerate/cleanup calls
+PASS: Only five documented ETW controller/consumer imports extend the native boundary
+PASS: No certificate mutation, private-key acquisition, or registry-write APIs
+PASS: Single production store-open boundary
+PASS: All production store opens use read-only existing archived flags
+PASS: Previous context ownership passes to the enumerator
+PASS: Outstanding certificate context freed on early exit
+PASS: Native Explorer tree connectors explicitly enabled
+PASS: Only specified certificate list headers with new tags
+PASS: Native Details and Issuer temple tabs below list
+PASS: Hash match checked against full DER before deduplication
+PASS: All 103 registered features have an underlying term/source/tag
+PASS: Gated views stay to test
+PASS: Derived metadata and local inspection rules stay to test
+PASS: All 135 stable function IDs retain source/tag fields
+PASS: New application/issuer/ETW implementations remain to test
+PASS: CAPI2 parser prohibits DTD/external resolution and bounds interpreted XML
+PASS: CAPI2 source declares durable-before-checkpoint ordering and visible gap handling
+PASS: PID correlation declares observed lifetime checks rather than name/PID-only identity
+PASS: Syscall controller declares unique ownership and the documented system-call provider flag
+PASS: ETL ceiling and separate live display budget are explicit; original archive pager declared
+PASS: Application signer declares lifetime/file-read boundaries and leaves signature trust unevaluated
+PASS: Country seed preserves 248 unique sourced UN rows and valid code fields
+PASS: Positive monarchy mappings are sourced/to-test; remaining statuses are explicitly unknown
+PASS: Original BRIC and Russia use independent requested tags
+PASS: Optional executable manifest requests ordinary user privilege
+PASS: No private-key file in package
+PASS: Launcher has no policy bypass, elevation, or download
+
+NOT RUN: C# compilation; Windows GUI; native enumeration; CAPI2/ETW collection; archive runtime; manual Home/Pro gate.

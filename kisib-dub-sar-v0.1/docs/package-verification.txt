@@ -1,0 +1,19 @@
+kisib.dub-sar — package verification, 2026-10-07 UTC
+
+PASS: 135 unique stable function IDs F001-F135; every prior F001-F111 retained.
+PASS: Every original function name, Microsoft term, Learn URL, tag, external source and layout constraint retained. Progress changes recorded in D020-D024; retention context in D025.
+PASS: 103 feature-source entries; all new implementations remain to test.
+PASS: All 15 earlier issuer tags and all three visual variants byte-identical to prior package; palette catalog references resolve.
+PASS: Native.cs and CertificateSignals.cs byte-identical to prior package; original certificate native read boundary unchanged.
+PASS: 44 Linux source/data declarations and structure checks; not compilation, native execution or behavior tests.
+PASS: Independent public certificate metadata/SPKI/signature fixture validation; C# implementation unrun.
+PASS: Country seed validates 248 unique UN rows with code/source/date fields, 43 sourced positive monarchy classifications; remaining 205 statuses unknown.
+PASS: All earlier package files retained; no executable/private key/live machine archive or ETL included.
+
+Prepared, NOT RUN: C# archive/restart/deduplication/10025 synthetic-record codec tests; metadata/signal/native inventory checks; synthetic CAPI2/XML/PID reuse/collision/name-attribute/country/label/context/replay tests; 64-bit ETW ABI and payload decoder tests.
+NOT RUN: C# compilation, Windows GUI, native store enumeration, archive runtime, real CAPI2/ETW capture, signed-file extraction and Windows 11 Home/Pro acceptance.
+
+Source additions: native far-left grouping/search/sort, observed application grids, CAPI2 retained-log replay/live payloads and durable checkpoints, owned optional syscall ETLs, raw archive paging, sourced country seed, immutable issuer/country label versions, retention-context pointers and explicit executable signer/file-hash observation.
+PENDING: Native chains/CTL/per-purpose policy; full CCADB ownership/program catalog ingestion; owner-count standings; full historical group/software querying; continuous ETL rotation/background service; complete browser/private verifier coverage; OS policy enforcement and Microsoft Store packaging.
+
+Current limits are explicit: CAPI2 covers its Windows diagnostics and source retention; PID correlation requires observed lifetime; raw syscalls do not provide certificate purpose. Original ETL is retained within the 512 MB per-capture sequential ceiling, with separate source-loss/display-omission counters. Enabled/Blocked are requested labels only. No universal use/control/trust conclusion is claimed.
