@@ -61,9 +61,10 @@ namespace Kisib
             organize.Controls.Add(new Label { Text = "Sort by", AutoSize = true }, 0, 3);
             sortBy.DropDownStyle = ComboBoxStyle.DropDownList; sortBy.Dock = DockStyle.Fill;
             sortBy.Items.AddRange(new object[] { "Name", "Name descending", "Certificate count" }); sortBy.SelectedIndex = 0; organize.Controls.Add(sortBy, 1, 3);
+            sortBy.Enabled = false; // Store view preserves the native path order; this control sorts grouped categories.
             outer.Panel1.Controls.Add(organize);
             findIssuer.TextChanged += delegate { RebuildControlBranches(); };
-            groupBy.SelectedIndexChanged += delegate { RebuildControlBranches(); };
+            groupBy.SelectedIndexChanged += delegate { sortBy.Enabled = Convert.ToString(groupBy.SelectedItem) != "Store"; RebuildControlBranches(); };
             sortBy.SelectedIndexChanged += delegate { RebuildControlBranches(); };
 
             right.Panel1.Controls.Remove(list);
