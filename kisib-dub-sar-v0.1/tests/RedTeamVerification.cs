@@ -72,7 +72,7 @@ namespace Kisib
                         File.AppendAllText(journal, Encoding.UTF8.GetString(HistoryArchive.Encode(row)) + "\n", Encoding.UTF8);
                         ActivityPage page = ActivityArchive.Certificates(history, journal, 0);
                         bool safe = page.Records.Length == 1 && page.Records[0].Operation == "Retained evidence unavailable";
-                        try { page.Records[0].Description(new Snapshot()); } catch (NullReferenceException) { safe = false; }
+                        try { page.Records[0].Description(); page.Records[0].Match(new Snapshot()).ToArray(); } catch (NullReferenceException) { safe = false; }
                         Check(safe, "hash-valid evidence with null references becomes a visible schema error instead of a GUI crash");
                         bool more;
                         Check(history.ReadPage(journal, new string('A', 64), 0, out more).Length > 0, "malformed references cannot crash filtered history");
