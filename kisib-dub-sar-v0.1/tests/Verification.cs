@@ -118,14 +118,10 @@ namespace Kisib
                     SystemStore root = snapshot.Locations.Single(l => l.Flags == scope).Stores.Single(s => s.Name.Equals("Root", StringComparison.OrdinalIgnoreCase));
                     Check(root.PhysicalEnumerationError == null && root.PhysicalStores.Any(p => p.Name == ".Default" && p.ReadSucceeded), "Root physical enumeration and .Default read succeed in location " + scope);
                 }
-                foreach (StoreLocation location in snapshot.Locations)
-                    foreach (SystemStore store in location.Stores)
-                        foreach (PhysicalStore physical in store.PhysicalStores)
-                            foreach (string key in physical.Certificates)
-                                Check(snapshot.Certificates[key].FoundIn.Contains(physical.Path), "Observed physical occurrence retained: " + physical.Path);
-                foreach (CertificateRecord cert in snapshot.Certificates.Values)
-                    foreach (string path in cert.FoundIn)
-                        Check(snapshot.Locations.SelectMany(item => item.Stores).SelectMany(item => item.PhysicalStores).Any(item => item.Path == path && item.Certificates.Contains(cert.Identity)), "Found in is backed by an actual physical enumeration");
+                PhysicalStore[] physicalStores = snapshot.Locations.SelectMany(l => l.Stores).SelectMany(s => s.PhysicalStores).ToArray();
+                Check(physicalStores.All(p => p.Certificates.All(key => snapshot.Certificates[key].FoundIn.Contains(p.Path))), "Every physical certificate occurrence is retained on its certificate record");
+                Check(snapshot.Certificates.Values.All(c => c.FoundIn.All(path => physicalStores.Any(p => p.Path == path && p.Certificates.Contains(c.Identity)))), "Every Found in value is backed by an actual native physical occurrence");
+                Console.WriteLine("Windows inventory: locations=" + snapshot.Locations.Count + "; stores=" + snapshot.StoreCount + "; physical=" + snapshot.PhysicalCount + "; certificates=" + snapshot.Certificates.Count);
                 Console.WriteLine("Windows inventory errors: " + snapshot.Errors.Count + "; unresolved physical sources: " + snapshot.UnresolvedCount);
                 foreach (string error in snapshot.Errors) Console.WriteLine("TO TEST: " + error);
                 Console.WriteLine(checks + " checks passed. This does not pass the manual Home/Pro enumeration gate.");

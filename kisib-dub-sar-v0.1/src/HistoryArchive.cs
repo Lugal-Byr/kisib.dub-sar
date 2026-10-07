@@ -24,6 +24,9 @@ namespace Kisib
         private HistoryIndex index;
         private string activeAnnotationObject, activeCountryCatalogObject;
         private bool disposed;
+        private long nextJournalSync;
+        private readonly HashSet<string> pendingJournalSync = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private readonly System.Threading.Timer journalSyncTimer;
         internal readonly string DirectoryPath;
         internal string LastError { get; private set; }
         internal int FailedWrites { get; private set; }
@@ -43,11 +46,12 @@ namespace Kisib
                 files.PinDirectory(Path.Combine(DirectoryPath, "logs"));
                 writerLock = files.Open(Path.Combine(DirectoryPath, "writer.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
                 index = ReadCommittedIndex();
-                Append(NewEvent(null, "session_opened", DirectoryPath, "Durable public-certificate history; Windows stores remain read-only."));
+                Append(NewEvent(null, "session_opened", DirectoryPath, "Public-certificate history; ordinary observations sync to disk at most one second apart; activity/label/scan commits sync before returning. Windows stores remain read-only."), true);
                 foreach (string warning in RecoveryWarnings)
                     Append(NewEvent(null, "history_recovery_warning", DirectoryPath, warning));
             }
             catch { if (writerLock != null) writerLock.Dispose(); files.Dispose(); throw; }
+            journalSyncTimer = new System.Threading.Timer(delegate { Attempt(FlushPendingJournals); }, null, 1000, 1000);
         }
 
         internal void Note(string scanId, string action, string source, string outcome)
@@ -67,7 +71,7 @@ namespace Kisib
                 entry.EvidenceObject = activity.EvidenceObject; entry.ProcessId = activity.ProcessId; entry.ThreadId = activity.ThreadId;
                 entry.ActivityId = activity.ActivityId; entry.ApplicationKey = activity.ApplicationKey; entry.EventUtc = activity.Utc;
                 entry.References = activity.References;
-                Append(entry); saved = true;
+                Append(entry, true); saved = true;
             });
             return saved;
         }
@@ -106,7 +110,7 @@ namespace Kisib
             Attempt(delegate
             {
                 HistoryEvent entry = NewEvent(null, "issuer_annotation_version", "User-defined issuer labels", "Label version retained; requested policy is not OS enforcement.");
-                entry.EvidenceObject = SaveObject("labels", ".json", Encode(annotations)); Append(entry); activeAnnotationObject = entry.EvidenceObject; saved = true;
+                entry.EvidenceObject = SaveObject("labels", ".json", Encode(annotations)); Append(entry, true); activeAnnotationObject = entry.EvidenceObject; saved = true;
             });
             return saved;
         }
@@ -248,7 +252,7 @@ namespace Kisib
                     "Started " + scan.Started.ToString("o", CultureInfo.InvariantCulture) + "; finished " + scan.Finished.ToString("o", CultureInfo.InvariantCulture) +
                     "; " + scan.Certificates.Count + " certificates; " + scan.Errors.Count + " errors; canceled=" + scan.Canceled + "; failed archive writes=" + FailedWrites);
                 committed.InventoryObject = inventoryObject; committed.IndexObject = indexObject;
-                Append(committed);
+                Append(committed, true);
                 index = nextIndex;
             });
         }
@@ -290,7 +294,7 @@ namespace Kisib
             }
         }
 
-        private void Append(HistoryEvent entry)
+        private void Append(HistoryEvent entry, bool durable = false)
         {
             string path = Path.Combine(DirectoryPath, "logs", DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ".jsonl");
             byte[] bytes = Encode(entry);
@@ -303,7 +307,20 @@ namespace Kisib
                     file.Seek(-1, SeekOrigin.End);
                     if (file.ReadByte() != 10) { file.Seek(0, SeekOrigin.End); file.WriteByte(10); }
                 }
-                file.Seek(0, SeekOrigin.End); file.Write(bytes, 0, bytes.Length); file.WriteByte(10); file.Flush(true);
+                file.Seek(0, SeekOrigin.End); file.Write(bytes, 0, bytes.Length); file.WriteByte(10);
+                long now = System.Diagnostics.Stopwatch.GetTimestamp();
+                bool sync = durable || now >= nextJournalSync;
+                file.Flush(sync); // every row reaches the OS; committed CAPI2 evidence is synchronously flushed before its bookmark
+                if (sync) { nextJournalSync = now + System.Diagnostics.Stopwatch.Frequency; pendingJournalSync.Remove(path); }
+                else pendingJournalSync.Add(path);
+            }
+        }
+        private void FlushPendingJournals()
+        {
+            foreach (string path in pendingJournalSync.ToArray())
+            {
+                using (FileStream file = files.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite)) file.Flush(true);
+                pendingJournalSync.Remove(path);
             }
         }
 
@@ -472,13 +489,13 @@ namespace Kisib
             lock (gate)
             {
                 if (disposed) return;
-                try { Append(NewEvent(null, "session_closed", DirectoryPath, "Explorer closed; collection resumes on the next launch. Failed archive writes=" + FailedWrites + "; " + LastError)); }
+                try { FlushPendingJournals(); Append(NewEvent(null, "session_closed", DirectoryPath, "Explorer closed; collection resumes on the next launch. Failed archive writes=" + FailedWrites + "; " + LastError), true); }
                 catch (Exception ex)
                 {
                     if (!(ex is IOException || ex is UnauthorizedAccessException || ex is SerializationException)) throw;
                     LastError = ex.Message; FailedWrites++;
                 }
-                finally { disposed = true; writerLock.Dispose(); files.Dispose(); }
+                finally { disposed = true; journalSyncTimer.Dispose(); writerLock.Dispose(); files.Dispose(); }
             }
         }
     }

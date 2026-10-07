@@ -22,10 +22,10 @@ $result = [Kisib.Verification]::Run($Project)
 if ($result -ne 0) { throw 'Windows verification suite failed.' }
 $redTeam = [Kisib.RedTeamVerification]::Run($Project)
 if ($redTeam -ne 0) { throw 'Adversarial verification failed.' }
-$gui = [Kisib.GuiVerification]::Run($Project, $resultDirectory)
-if ($gui -ne 0) { throw 'Native GUI smoke verification failed.' }
 $nativeActivity = [Kisib.NativeActivityVerification]::Run($Project, $resultDirectory)
 if ($nativeActivity -ne 0) { throw 'Native collector verification failed.' }
+$gui = [Kisib.GuiVerification]::Run($Project, $resultDirectory)
+if ($gui -ne 0) { throw 'Native GUI smoke verification failed.' }
 $binary = Join-Path $resultDirectory 'kisib.dub-sar.exe'
 & $compiler /nologo /target:winexe /platform:anycpu /optimize+ /warn:4 "/win32manifest:$(Join-Path $Project 'app.manifest')" "/out:$binary" @references @sources
 if ($LASTEXITCODE -ne 0) { throw 'Application executable compilation failed.' }

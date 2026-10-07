@@ -11,11 +11,16 @@ namespace Kisib
         private static HistoryEvent[] Events(string directory)
         {
             return Directory.GetFiles(Path.Combine(directory, "logs"), "*.jsonl").OrderBy(x => x)
-                .SelectMany(File.ReadAllLines).Where(x => x.Length > 0).Select(line =>
+                .SelectMany(ReadJournal).Where(x => x.Length > 0).Select(line =>
                 {
                     using (MemoryStream stream = new MemoryStream(Encoding.UTF8.GetBytes(line)))
                         return (HistoryEvent)new DataContractJsonSerializer(typeof(HistoryEvent)).ReadObject(stream);
                 }).ToArray();
+        }
+        private static string[] ReadJournal(string path)
+        {
+            using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (StreamReader reader = new StreamReader(file, Encoding.UTF8)) return reader.ReadToEnd().Split('\n');
         }
 
         private static Snapshot Inventory(byte[] der, bool present, bool readable, bool canceled)
