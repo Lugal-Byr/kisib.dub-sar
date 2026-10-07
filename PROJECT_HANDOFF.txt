@@ -1,0 +1,73 @@
+kisib.dub-sar — saved project checkpoint
+2026-10-07, after the Screen 1 build and design discussion
+
+START HERE WHEN RESUMING
+Repository: https://github.com/Lugal-Byr/kisib.dub-sar
+Working branch: codex/windows-verification-2026-10-07
+Project directory: kisib-dub-sar-v0.1/
+Last tested code commit: f3c9fdbaf497c1ff86168342004ee5a24e8fc8c2
+Passing Windows run: https://github.com/Lugal-Byr/kisib.dub-sar/actions/runs/37689601311
+This checkpoint adds handoff documentation; it does not change the tested application.
+The user's instruction to save does not authorize deploying, merging to main, changing Windows trust, or expanding the current screen scope.
+
+WHAT WE AGREED
+Keep the window boring and make the evidence excellent.
+Use a plain Win95 Explorer layout: branching tree left, certificate list right, details below. Familiar folders, readable names and simple controls; no modern dashboard redesign.
+Keep each feature's Microsoft term, Learn URL and documented/to test tag. Distinguish documented API behavior, custom app behavior, hosted test evidence and user-PC acceptance.
+Keep three separate observations: certificate exists; an application used it; a policy actually stopped it. Never infer one from another.
+The larger evidence path is certificate > issuing authority > organization > country/affiliation > observed application use > enforcement result.
+Each connection requires evidence and a visible source. Unresolved connections stay unknown.
+Tags stack: an issuer/certificate can belong to several groups at once.
+Separate the user's requested policy from verified Windows enforcement. A requested block is not a verified block; a stored certificate is not proof of active use or universal software usability.
+The user wants configurable country, monarchy, organizational and other tag groups. C= is a certificate declaration, not proof of ownership, political control or compromise.
+Do not promise universal application/browser capture or infer certificate purpose from an arbitrary syscall.
+
+CURRENT WORKING APPLICATION
+C#/.NET Framework native Windows Forms, intended for Windows 11 Home/Pro.
+Screen 1 default is Store: location > system store > physical store.
+All reported physical siblings have separate nodes and observed counts, including zero. Failed reads identify partial observations.
+Missing Microsoft-documented siblings appear only as grey documentation references, with a separate type excluded from native store counts. Failed/canceled enumeration remains unknown, not absent.
+Certificate row labels are CN with O fallback. Country is a separate small code. Full DNs are in Details.
+The eight columns are Subject CN, Issuer CN, C=, found in (physical stores), not-before, not-after, SHA-1, SHA-256.
+Find filters rows while preserving native store branches and counts.
+The status-bar error link opens the exact Store/Error list.
+Key algorithm/size, signature algorithm, SPKI hash, weak-tier, hash-collision and key-reuse evidence remain in Details.
+Grouped-category sorting is disabled in Store view; the existing grouped views retain their sort control.
+Journal, public-certificate archive, 60-second automatic scan, CAPI2 and syscall capture start OFF each launch. Default opening creates no history directory or automatic capture.
+Journal can log observations without archiving public DER. Archive is a separate opt-in that requires Journal; retained CAPI2/ETL capture requires Archive. Recording switches change between scans with collectors stopped. Existing records are kept when disabled.
+Previous application/country/evidence panels remain optional. No certificate store import/delete/purpose/trust write is implemented.
+
+VERIFICATION AND DOWNLOAD
+Both hosted Windows jobs passed: Windows Server 2022 x64 and Windows 11 ARM64.
+Each passed 159 core assertions, 7 exploit regressions, 16 native collector checks, 26 Screen 1 GUI checks and 2 actual EXE checks: 210 each, 420 combined.
+The delivered ZIP is kisib-dub-sar-screen1.zip, unsigned preview.
+ZIP SHA-256: 73e8f82d5f2e910dbfbc2bc6c710469f0a35e828f1ba242a0d3322777d9cbe7f
+Included x64-tested AnyCPU EXE SHA-256: ADE7CDE5FF83DCA723E72B7EE94F0DCE9882C4F85687625DB3294F830B5683E4
+The same source was separately compiled and tested on ARM64. Compiler output hashes differ.
+The companion report is kisib-dub-sar-screen1-verification.txt.
+Hosted tests do not establish safety against every exploit, Microsoft Store readiness, or acceptance on the user's PC.
+
+NEXT STEP — STILL PENDING
+Screen 1 acceptance must come from the user's own Windows 11 PC, not CI.
+Extract the whole ZIP; open kisib.dub-sar.exe; leave Optional features off.
+Expand LOCAL_MACHINE > Root; type FNMT into Find.
+.Default, .AuthRoot, .GroupPolicy, .Enterprise and other siblings must reflect Windows enumeration. Unreturned documented siblings are grey references only.
+Obtain the screenshot from that PC. No access to the user's PC was available in this session.
+Review that result before moving beyond the Screen 1 gate. If the user later changes the gate/scope, follow the new instruction and record the decision.
+
+PARKED ROADMAP — PRESERVED, NOT IMPLEMENTED BY THIS CHECKPOINT
+S2: Enabled/Blocked groups with actual purpose/store enforcement validation; never implement a requested block as certificate deletion. Proposed Disallowed/purpose changes require Windows chain-policy and reboot checks. Exact mechanics and software coverage remain to test.
+S2 history: continuing append-only time/hash/old-state/new-state/change-source records and scope across retained dates. Do not replace event history with fresh inventories; inventories may index observations.
+S3: switchable country, tag group, store, verified status, key/signature strength and expiry views; multiple independent tags; zero country/root counts included.
+S3 country data: data/countries_monarchy_bric.csv is preserved byte-for-byte for later integration. Join on the certificate's own C= and CSV iso2. It is user draft data, with source marked draft from memory, Claude; do not present classifications as verified facts.
+S4: left-to-right playoff grid, issuers > category > Enabled/Blocked > evidence of software use/enforcement.
+Further chain bracket: use Windows CertGetCertificateChain output, support multiple simple chains, preserve trust status and issuer-source uncertainty.
+CTL/CCADB lookup, owner standings, browser-store distinction, wider application evidence, DNSSEC and Microsoft Store packaging remain recorded requirements; do not claim they are complete.
+
+PROJECT REGISTERS
+kisib-dub-sar-v0.1/docs/screen1-scope.txt is the current screen scope and roadmap boundary.
+docs/function-catalog.csv has 151 stable feature IDs; docs/feature-sources.csv has 119 term/source/tag rows.
+docs/specification.txt, design-decisions.txt, archive-requirements.txt, live-control-layer.txt, tag-palette.json and style-options.json retain the broader requirements and choices.
+The package's screen1-verification.txt is current Screen 1 evidence; the earlier windows-verification-report.txt is historical preview evidence.
+Read the current repository files before editing; preserve existing requirements across GUI revisions.
+The user prefers plain text, concise progress, no trailing questions, and literal short Windows click instructions.
