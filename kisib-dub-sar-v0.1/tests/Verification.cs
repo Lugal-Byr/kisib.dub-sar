@@ -112,6 +112,12 @@ namespace Kisib
                 Check(snapshot.Locations.Any(item => item.Flags == Native.CERT_SYSTEM_STORE_LOCAL_MACHINE && item.Enumerated), "LOCAL_MACHINE returned by Windows");
                 Check(snapshot.Locations.Where(item => item.Flags == Native.CERT_SYSTEM_STORE_CURRENT_USER || item.Flags == Native.CERT_SYSTEM_STORE_LOCAL_MACHINE).All(item => item.Error == null && item.Stores.Count > 0), "User and machine system-store enumerations completed");
                 Check(snapshot.Certificates.Count > 0, "Native inventory contains certificates");
+                Check(snapshot.PhysicalCount > 0, "Native inventory contains actual returned physical stores; occurrence tests are not vacuous");
+                foreach (uint scope in new uint[] { Native.CERT_SYSTEM_STORE_CURRENT_USER, Native.CERT_SYSTEM_STORE_LOCAL_MACHINE })
+                {
+                    SystemStore root = snapshot.Locations.Single(l => l.Flags == scope).Stores.Single(s => s.Name.Equals("Root", StringComparison.OrdinalIgnoreCase));
+                    Check(root.PhysicalEnumerationError == null && root.PhysicalStores.Any(p => p.Name == ".Default" && p.ReadSucceeded), "Root physical enumeration and .Default read succeed in location " + scope);
+                }
                 foreach (StoreLocation location in snapshot.Locations)
                     foreach (SystemStore store in location.Stores)
                         foreach (PhysicalStore physical in store.PhysicalStores)

@@ -3,6 +3,12 @@ $ErrorActionPreference = 'Stop'
 $Project = [IO.Path]::GetFullPath($Project)
 $resultDirectory = Join-Path $Project 'test-results'
 New-Item -ItemType Directory -Force -Path $resultDirectory | Out-Null
+$sdk = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\Include'
+if (Test-Path -LiteralPath $sdk) {
+  $sdkVersion = Get-ChildItem -LiteralPath $sdk -Directory | Sort-Object Name -Descending | Select-Object -First 1
+  $header = Join-Path $sdkVersion.FullName 'um\wincrypt.h'
+  if (Test-Path -LiteralPath $header) { Select-String -LiteralPath $header -SimpleMatch 'CERT_PHYSICAL_STORE_PREDEFINED_ENUM_FLAG' | ForEach-Object { Write-Host $_.Line.Trim() } }
+}
 $compiler = Join-Path $env:SystemRoot 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (-not (Test-Path -LiteralPath $compiler)) { throw '64-bit .NET Framework compiler is unavailable.' }
 $references = @('/reference:System.dll','/reference:System.Core.dll','/reference:System.Security.dll','/reference:System.Runtime.Serialization.dll','/reference:System.Xml.dll','/reference:System.Drawing.dll','/reference:System.Windows.Forms.dll')

@@ -186,8 +186,10 @@ namespace Kisib
                 }
                 catch (Exception ex) { snapshot.Fail("Physical callback", store.Path, ex.Message); return false; }
             };
-            bool success = Native.CertEnumPhysicalStore(store.Name,
-                location.Flags | Native.CERT_PHYSICAL_STORE_PREDEFINED_ENUM_FLAG, IntPtr.Zero, callback);
+            // Microsoft's enumeration sample passes location flags. The
+            // PREDEFINED flag describes a returned sibling in the callback;
+            // adding it to the request caused E_INVALIDARG on both runners.
+            bool success = Native.CertEnumPhysicalStore(store.Name, location.Flags, IntPtr.Zero, callback);
             int error = Marshal.GetLastWin32Error();
             GC.KeepAlive(callback);
             if (!success && !canceled())
