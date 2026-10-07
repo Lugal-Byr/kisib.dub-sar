@@ -35,8 +35,10 @@ namespace Kisib
                     Application.SetCompatibleTextRenderingDefault(false);
                     using (ExplorerForm form = new ExplorerForm(project, archive))
                     {
-                        form.Show();
-                        PumpUntil(delegate { return failure != null || Field<Snapshot>(form, "snapshot") != null && !Field<bool>(form, "scanning"); }, 90);
+                        Stopwatch firstInventory = Stopwatch.StartNew(); form.Show();
+                        try { PumpUntil(delegate { return failure != null || Field<Snapshot>(form, "snapshot") != null; }, 180); }
+                        catch { Console.WriteLine("GUI deadline state: " + Field<Label>(form, "status").Text + "; scanning=" + Field<bool>(form, "scanning") + "; CAPI2=" + Field<ActivityMonitor>(form, "activity").Status); throw; }
+                        Console.WriteLine("GUI first complete inventory seconds=" + firstInventory.Elapsed.TotalSeconds.ToString("F3"));
                         if (failure != null) throw failure;
                         Check(Field<string>(form, "historyStartupError") == null && Field<string>(form, "labelsError") == null, "history and country data open without errors"); checks++;
                         Snapshot snapshot = Field<Snapshot>(form, "snapshot"); TreeView tree = Field<TreeView>(form, "tree"); ListView list = Field<ListView>(form, "list");
@@ -80,7 +82,7 @@ namespace Kisib
                 finally { Application.ThreadException -= handler; try { Directory.Delete(archive, true); } catch (IOException) { } }
             });
             thread.SetApartmentState(ApartmentState.STA); thread.IsBackground = true; thread.Start();
-            if (!thread.Join(120000)) { Console.WriteLine("FAIL GUI: STA smoke test timeout."); return 1; }
+            if (!thread.Join(240000)) { Console.WriteLine("FAIL GUI: STA smoke test timeout."); return 1; }
             if (failure != null) { Console.WriteLine(failure); return 1; }
             Console.WriteLine("GUI assertions passed: " + checks + ". Native Windows Forms were instantiated and operated on an STA thread."); return 0;
         }

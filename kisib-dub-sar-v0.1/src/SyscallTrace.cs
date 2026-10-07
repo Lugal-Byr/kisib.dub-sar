@@ -56,7 +56,7 @@ namespace Kisib
                 int size = Marshal.SizeOf(typeof(EtwNative.Properties)), total = size + (Name.Length + Path.Length + 2) * 2;
                 properties = Marshal.AllocHGlobal(total); Marshal.Copy(new byte[total], 0, properties, total);
                 EtwNative.Properties settings = new EtwNative.Properties();
-                settings.Wnode.BufferSize = (uint)total; settings.Wnode.Guid = EtwNative.SystemTraceControlGuid;
+                settings.Wnode.BufferSize = (uint)total; settings.Wnode.Guid = Guid.Empty; // ETW allocates an owned session GUID; do not reuse the reserved NT Kernel Logger GUID
                 settings.Wnode.ClientContext = 1; settings.Wnode.Flags = 0x00020000; // WNODE_FLAG_TRACED_GUID; QPC clock
                 settings.BufferSize = 64; settings.MinimumBuffers = (uint)Math.Max(16, Environment.ProcessorCount * 2);
                 settings.MaximumBuffers = Math.Max(settings.MinimumBuffers, 128); settings.FlushTimer = 1;
@@ -176,7 +176,7 @@ namespace Kisib
             }
             if (oldWorker != null && oldWorker != Thread.CurrentThread) oldWorker.Join(2000);
             string digest = "unavailable"; long bytes = 0;
-            try { using (FileStream file = new FileStream(tracePath, FileMode.Open, FileAccess.Read, FileShare.Read)) using (SHA256 hash = SHA256.Create()) { bytes = file.Length; digest = CertificateRecord.Hex(hash.ComputeHash(file)); } }
+            try { using (FileStream file = history.OpenArchiveRead(tracePath)) using (SHA256 hash = SHA256.Create()) { bytes = file.Length; digest = CertificateRecord.Hex(hash.ComputeHash(file)); } }
             catch (Exception ex) { Status += "; final ETL integrity read failed: " + ex.Message; }
             if (history != null) history.Note(null, "syscall_capture_stopped", Name, tracePath + "; bytes=" + bytes + "; SHA-256=" + digest +
                 "; received=" + Interlocked.Read(ref EventsReceived) + "; UI samples omitted=" + Interlocked.Read(ref DisplaySamplesSkipped) +

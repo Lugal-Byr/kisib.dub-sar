@@ -529,7 +529,7 @@ namespace Kisib
                     ThreadPool.QueueUserWorkItem(delegate
                     {
                         ActivityPage result = null; string error = null;
-                        try { result = syscallArchive ? ActivityArchive.Syscalls(directory, chosen, target) : ActivityArchive.Certificates(history, chosen, target); }
+                        try { result = syscallArchive ? ActivityArchive.Syscalls(history, chosen, target) : ActivityArchive.Certificates(history, chosen, target); }
                         catch (Exception ex) { error = ex.Message; }
                         if (Interlocked.CompareExchange(ref ended, 0, 0) != 0) return;
                         try { dialog.BeginInvoke((Action)delegate

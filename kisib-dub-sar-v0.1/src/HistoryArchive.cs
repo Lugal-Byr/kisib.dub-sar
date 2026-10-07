@@ -414,6 +414,8 @@ namespace Kisib
         { return files.ReadBytes(path, limit); }
         internal void PinArchiveDirectory(string path)
         { files.PinDirectory(path); }
+        internal FileStream OpenArchiveRead(string path)
+        { return files.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read); }
         internal IEnumerable<string> Lines(string path)
         {
             using (FileStream file = files.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))

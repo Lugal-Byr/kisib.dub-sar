@@ -49,10 +49,13 @@ namespace Kisib
             return new ActivityPage { Records = rows.ToArray(), More = more, Coverage = "Archived CAPI2 evidence; 500 records per page, all retained dates. Raw source XML and original attribution remain available." };
         }
 
-        internal static ActivityPage Syscalls(string directory, string path, int page)
+        internal static ActivityPage Syscalls(HistoryArchive history, string path, int page)
         {
+            string directory = Path.Combine(history.DirectoryPath, "traces");
             if (IntPtr.Size != 8 || Marshal.SizeOf(typeof(EtwNative.Logfile)) != 448) throw new NotSupportedException("ETL paging requires the verified 64-bit Windows ABI.");
             if (page < 0 || !Directory.GetFiles(directory, "*.etl").Contains(path, StringComparer.Ordinal)) throw new InvalidOperationException("Select a retained original ETL.");
+            using (FileStream pinnedFile = history.OpenArchiveRead(path))
+            {
             List<ActivityRecord> rows = new List<ActivityRecord>(); int skip = checked(page * 500), matched = 0; bool more = false; uint lost = 0;
             EtwNative.EventCallback callback = delegate(IntPtr pointer)
             {
@@ -81,6 +84,7 @@ namespace Kisib
             finally { EtwNative.CloseTrace(handle); GC.KeepAlive(callback); GC.KeepAlive(buffer); }
             return new ActivityPage { Records = rows.ToArray(), More = more,
                 Coverage = "Original ETL page, without live display sampling; source reported events lost=" + lost + "; enter/exit remain separate records. Symbol names unresolved [to test]." };
+            }
         }
     }
 }
