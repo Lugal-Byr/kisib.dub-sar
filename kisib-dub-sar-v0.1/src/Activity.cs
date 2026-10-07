@@ -119,11 +119,24 @@ namespace Kisib
         [DataMember] internal string TracePath;
         [DataMember] internal CertificateReference[] References = new CertificateReference[0];
 
+        internal void ValidateRetained()
+        {
+            if (String.IsNullOrEmpty(Id) || Id.Length > 256 || Payload == null || Payload.Length > 4 * 1024 * 1024)
+                throw new InvalidOperationException("Retained activity schema is incomplete or exceeds its size limit.");
+            foreach (CertificateReference reference in References ?? new CertificateReference[0])
+            {
+                int length = reference == null ? 0 : reference.Algorithm == "SHA-1" ? 40 : reference.Algorithm == "SHA-256" ? 64 : 0;
+                if (length == 0 || reference.Value == null || reference.Value.Length != length || reference.Value.Any(c => c < '0' || c > '9' && c < 'A' || c > 'F') ||
+                    reference.Field == null || reference.Field.Length > 1024)
+                    throw new InvalidOperationException("Retained activity contains an invalid certificate reference.");
+            }
+        }
+
         internal CertificateRecord[] Match(Snapshot snapshot)
         {
             if (snapshot == null || References == null) return new CertificateRecord[0];
             return snapshot.Certificates.Values.Where(c => References.Any(r =>
-                r.Algorithm == "SHA-256" && r.Value == c.Sha256 || r.Algorithm == "SHA-1" && r.Value == c.Sha1)).ToArray();
+                r != null && (r.Algorithm == "SHA-256" && r.Value == c.Sha256 || r.Algorithm == "SHA-1" && r.Value == c.Sha1))).ToArray();
         }
         internal string Description()
         {
@@ -142,7 +155,7 @@ namespace Kisib
             if (TracePath != null) text.AppendLine("Original ETL: " + TracePath);
             text.AppendLine("Certificate references (lookup evidence, not parent links):");
             foreach (CertificateReference reference in References ?? new CertificateReference[0])
-                text.AppendLine("  " + reference.Algorithm + " " + reference.Value + " | " + reference.Field);
+                text.AppendLine(reference == null ? "  [Invalid reference retained]" : "  " + reference.Algorithm + " " + reference.Value + " | " + reference.Field);
             text.AppendLine("CAPI2 records cover Windows certificate diagnostics. Other application verifiers have separate coverage.");
             text.AppendLine("Syscall rows describe kernel calls; their certificate purpose is not supplied by this provider.");
             text.AppendLine("Implementation/correlation: to test. Original payload follows."); text.AppendLine(); text.Append(Payload);

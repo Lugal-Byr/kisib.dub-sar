@@ -50,8 +50,9 @@ namespace Kisib
                 if (history == null || history.LastError != null) throw new InvalidOperationException("Persistent history must be available before starting syscall capture.");
                 string id = Guid.NewGuid().ToString("N");
                 Name = "kisib.dub-sar.Syscalls." + id;
-                string directory = System.IO.Path.Combine(history.DirectoryPath, "traces"); Directory.CreateDirectory(directory);
+                string directory = System.IO.Path.Combine(history.DirectoryPath, "traces"); history.PinArchiveDirectory(directory);
                 Path = System.IO.Path.Combine(directory, id + ".etl");
+                if (File.Exists(Path) || Directory.Exists(Path)) throw new IOException("A new syscall capture path already exists; start refused.");
                 int size = Marshal.SizeOf(typeof(EtwNative.Properties)), total = size + (Name.Length + Path.Length + 2) * 2;
                 properties = Marshal.AllocHGlobal(total); Marshal.Copy(new byte[total], 0, properties, total);
                 EtwNative.Properties settings = new EtwNative.Properties();

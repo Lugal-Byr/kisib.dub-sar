@@ -33,10 +33,11 @@ namespace Kisib
         private bool ascending = true;
         private string nodeDetails = "Select a system store location, system store, or physical store.";
 
-        internal ExplorerForm(string sourceDirectory)
+        internal ExplorerForm(string sourceDirectory) : this(sourceDirectory, HistoryArchive.DefaultDirectory) { }
+        internal ExplorerForm(string sourceDirectory, string archiveDirectory)
         {
             this.sourceDirectory = sourceDirectory;
-            try { history = new HistoryArchive(HistoryArchive.DefaultDirectory); }
+            try { history = new HistoryArchive(archiveDirectory); }
             catch (Exception ex) { historyStartupError = ex.GetType().Name + ": " + ex.Message; }
             Text = "kisib.dub-sar v0.1 — read-only certificate explorer";
             Icon = SystemIcons.Application;

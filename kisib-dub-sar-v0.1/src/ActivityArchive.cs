@@ -22,11 +22,8 @@ namespace Kisib
         {
             if (!history.JournalFiles().Contains(journal, StringComparer.Ordinal) || page < 0) throw new InvalidOperationException("Select a retained activity date and page.");
             List<ActivityRecord> rows = new List<ActivityRecord>(); int skip = checked(page * 500), matched = 0; bool more = false;
-            using (FileStream file = new FileStream(journal, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            using (StreamReader reader = new StreamReader(file, Encoding.UTF8))
             {
-                string line;
-                while ((line = reader.ReadLine()) != null)
+                foreach (string line in history.Lines(journal))
                 {
                     HistoryEvent entry;
                     try { entry = HistoryArchive.Decode<HistoryEvent>(Encoding.UTF8.GetBytes(line)); }
@@ -38,10 +35,11 @@ namespace Kisib
                     {
                         if (entry.EvidenceObject == null || !System.Text.RegularExpressions.Regex.IsMatch(entry.EvidenceObject, "^[A-F0-9]{64}(?:-[A-F0-9]{128})?$"))
                             throw new InvalidOperationException("Invalid retained activity reference.");
-                        byte[] bytes = File.ReadAllBytes(Path.Combine(history.DirectoryPath, "evidence", entry.EvidenceObject + ".json"));
+                        byte[] bytes = history.ReadObjectBytes(Path.Combine(history.DirectoryPath, "evidence", entry.EvidenceObject + ".json"), HistoryArchive.EvidenceByteLimit);
                         using (SHA256 hash = SHA256.Create()) if (CertificateRecord.Hex(hash.ComputeHash(bytes)) != entry.EvidenceObject.Substring(0, 64)) throw new InvalidOperationException("Retained activity integrity mismatch.");
                         ActivityRecord activity = HistoryArchive.Decode<ActivityRecord>(bytes);
-                        if (activity == null || activity.Id == null || activity.Payload == null) throw new InvalidOperationException("Retained activity schema is incomplete.");
+                        if (activity == null) throw new InvalidOperationException("Retained activity schema is incomplete.");
+                        activity.ValidateRetained();
                         activity.EvidenceObject = entry.EvidenceObject; rows.Add(activity);
                     }
                     catch (Exception ex) { rows.Add(new ActivityRecord { Id = entry.EventId, Operation = "Retained evidence unavailable", Result = ex.Message, Source = journal,

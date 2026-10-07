@@ -16,6 +16,10 @@ namespace Kisib
     {
         private readonly object gate = new object();
         private readonly FileStream writerLock;
+        private readonly ArchiveFileSystem files;
+        internal const int ObjectByteLimit = 256 * 1024 * 1024;
+        internal const int EvidenceByteLimit = 32 * 1024 * 1024;
+        internal const int JournalCharacterLimit = 8 * 1024 * 1024;
         private readonly string sessionId = Guid.NewGuid().ToString("N");
         private HistoryIndex index;
         private string activeAnnotationObject, activeCountryCatalogObject;
@@ -33,17 +37,17 @@ namespace Kisib
         internal HistoryArchive(string directory)
         {
             DirectoryPath = Path.GetFullPath(directory);
-            Directory.CreateDirectory(DirectoryPath);
-            Directory.CreateDirectory(Path.Combine(DirectoryPath, "logs"));
-            writerLock = new FileStream(Path.Combine(DirectoryPath, "writer.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            files = new ArchiveFileSystem(DirectoryPath);
             try
             {
+                files.PinDirectory(Path.Combine(DirectoryPath, "logs"));
+                writerLock = files.Open(Path.Combine(DirectoryPath, "writer.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
                 index = ReadCommittedIndex();
                 Append(NewEvent(null, "session_opened", DirectoryPath, "Durable public-certificate history; Windows stores remain read-only."));
                 foreach (string warning in RecoveryWarnings)
                     Append(NewEvent(null, "history_recovery_warning", DirectoryPath, warning));
             }
-            catch { writerLock.Dispose(); throw; }
+            catch { if (writerLock != null) writerLock.Dispose(); files.Dispose(); throw; }
         }
 
         internal void Note(string scanId, string action, string source, string outcome)
@@ -117,7 +121,7 @@ namespace Kisib
                     catch (SerializationException) { }
                 if (latest == null) continue;
                 if (!ValidObjectName(latest.EvidenceObject)) throw new InvalidOperationException("Invalid issuer annotation object reference.");
-                byte[] bytes = File.ReadAllBytes(Path.Combine(DirectoryPath, "labels", latest.EvidenceObject + ".json"));
+                byte[] bytes = files.ReadBytes(Path.Combine(DirectoryPath, "labels", latest.EvidenceObject + ".json"), EvidenceByteLimit);
                 if (Digest(bytes) != latest.EvidenceObject.Substring(0, 64)) throw new InvalidOperationException("Issuer annotation integrity check failed.");
                 AnnotationSet result = Decode<AnnotationSet>(bytes); result.Validate(); lock (gate) activeAnnotationObject = latest.EvidenceObject; return result;
             }
@@ -128,7 +132,7 @@ namespace Kisib
         {
             if (name != "capi2-bookmark") throw new InvalidOperationException("Unknown application checkpoint.");
             string path = Path.Combine(DirectoryPath, name + ".xml");
-            return File.Exists(path) ? File.ReadAllText(path, Encoding.UTF8) : null;
+            return File.Exists(path) ? Encoding.UTF8.GetString(files.ReadBytes(path, 65536)) : null;
         }
 
         internal void SaveCheckpoint(string name, string contents)
@@ -140,9 +144,10 @@ namespace Kisib
                 try
                 {
                     byte[] bytes = Encoding.UTF8.GetBytes(contents);
-                    using (FileStream file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                    if (bytes.Length > 65536) throw new InvalidOperationException("CAPI2 bookmark exceeds the byte size limit.");
+                    using (FileStream file = files.Open(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                     { file.Write(bytes, 0, bytes.Length); file.Flush(true); }
-                    if (File.Exists(path)) File.Replace(temporary, path, null); else File.Move(temporary, path);
+                    if (File.Exists(path)) { using (FileStream existing = files.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read)) { } File.Replace(temporary, path, null); } else File.Move(temporary, path);
                 }
                 finally { if (File.Exists(temporary)) File.Delete(temporary); }
             });
@@ -289,7 +294,8 @@ namespace Kisib
         {
             string path = Path.Combine(DirectoryPath, "logs", DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ".jsonl");
             byte[] bytes = Encode(entry);
-            using (FileStream file = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read))
+            if (bytes.Length > JournalCharacterLimit) throw new InvalidOperationException("History record exceeds the byte size limit; write refused explicitly.");
+            using (FileStream file = files.Open(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read))
             {
                 // Preserve a torn final line as evidence, then start a fresh record.
                 if (file.Length > 0)
@@ -305,17 +311,18 @@ namespace Kisib
         {
             if (bytes == null) throw new InvalidOperationException("Archive object bytes are unavailable.");
             string name = Digest(bytes);
-            string directory = Path.Combine(DirectoryPath, folder); Directory.CreateDirectory(directory);
+            if (bytes.Length > ObjectByteLimit) throw new InvalidOperationException("Archive object exceeds the byte size limit; write refused explicitly.");
+            string directory = Path.Combine(DirectoryPath, folder); files.PinDirectory(directory);
             string path = Path.Combine(directory, name + extension);
             if (File.Exists(path))
             {
-                if (File.ReadAllBytes(path).SequenceEqual(bytes)) return name;
+                if (files.ReadBytes(path, ObjectByteLimit).SequenceEqual(bytes)) return name;
                 // Preserve hash collisions or altered objects without overwriting evidence.
                 using (SHA512 hash = SHA512.Create()) name += "-" + CertificateRecord.Hex(hash.ComputeHash(bytes));
                 path = Path.Combine(directory, name + extension);
                 if (File.Exists(path))
                 {
-                    if (File.ReadAllBytes(path).SequenceEqual(bytes)) return name;
+                    if (files.ReadBytes(path, ObjectByteLimit).SequenceEqual(bytes)) return name;
                     throw new InvalidOperationException("An existing archive object has conflicting bytes; no object was overwritten.");
                 }
                 Append(NewEvent(null, "archive_object_conflict", folder, "Different bytes at a SHA-256 object name were preserved separately."));
@@ -323,7 +330,7 @@ namespace Kisib
             string temporary = Path.Combine(directory, ".pending-" + Guid.NewGuid().ToString("N"));
             try
             {
-                using (FileStream file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                using (FileStream file = files.Open(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                 { file.Write(bytes, 0, bytes.Length); file.Flush(true); }
                 File.Move(temporary, path);
             }
@@ -362,6 +369,7 @@ namespace Kisib
             foreach (string path in JournalFiles().Reverse())
             {
                 HistoryEvent latest = null;
+                int unreadable = 0;
                 foreach (string line in Lines(path))
                 {
                     try
@@ -369,12 +377,13 @@ namespace Kisib
                         HistoryEvent entry = ReadEvent(line);
                         if (entry.Action == "scan_archive_committed" && entry.IndexObject != null) latest = entry;
                     }
-                    catch (SerializationException) { RecoveryWarnings.Add(Path.GetFileName(path) + ": unreadable journal record retained; history coverage incomplete."); }
+                    catch (SerializationException) { unreadable++; }
                 }
+                if (unreadable > 0) RecoveryWarnings.Add(Path.GetFileName(path) + ": " + unreadable + " unreadable journal records retained; history coverage incomplete.");
                 if (latest == null) continue;
                 string objectName = latest.IndexObject;
                 if (!ValidObjectName(objectName)) throw new InvalidOperationException("Invalid committed archive index reference.");
-                byte[] bytes = File.ReadAllBytes(Path.Combine(DirectoryPath, "indexes", objectName + ".json"));
+                byte[] bytes = files.ReadBytes(Path.Combine(DirectoryPath, "indexes", objectName + ".json"), ObjectByteLimit);
                 if (Digest(bytes) != objectName.Substring(0, 64)) throw new InvalidOperationException("Committed archive index integrity check failed; membership comparisons disabled.");
                 HistoryIndex restored = Decode<HistoryIndex>(bytes);
                 if (restored == null || restored.Version != 1 || restored.Stores == null || restored.Stores.Any(x => x == null || x.Kind == null || x.Source == null || x.Members == null ||
@@ -401,18 +410,37 @@ namespace Kisib
         internal string[] JournalFiles()
         { return Directory.GetFiles(Path.Combine(DirectoryPath, "logs"), "*.jsonl").OrderBy(x => x, StringComparer.Ordinal).ToArray(); }
 
-        private static IEnumerable<string> Lines(string path)
+        internal byte[] ReadObjectBytes(string path, int limit)
+        { return files.ReadBytes(path, limit); }
+        internal void PinArchiveDirectory(string path)
+        { files.PinDirectory(path); }
+        internal IEnumerable<string> Lines(string path)
         {
-            using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (FileStream file = files.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (StreamReader reader = new StreamReader(file, Encoding.UTF8))
-            { string line; while ((line = reader.ReadLine()) != null) if (line.Length > 0) yield return line; }
+            {
+                StringBuilder line = new StringBuilder(); bool oversized = false; int value;
+                while ((value = reader.Read()) >= 0)
+                {
+                    if (value == 10)
+                    {
+                        if (oversized) yield return "[retained record exceeds the explicit character size limit; original bytes remain in the journal]";
+                        else if (line.Length > 0) yield return line.ToString().TrimEnd('\r');
+                        line.Clear(); oversized = false;
+                    }
+                    else if (!oversized) { if (line.Length == JournalCharacterLimit) { oversized = true; line.Clear(); } else line.Append((char)value); }
+                }
+                if (oversized) yield return "[retained record exceeds the explicit character size limit; original bytes remain in the journal]";
+                else if (line.Length > 0) yield return line.ToString();
+            }
         }
 
         internal string ReadPage(string journal, string sha256, int page, out bool more, string sha1 = null)
         {
             if (!JournalFiles().Contains(journal, StringComparer.Ordinal)) throw new InvalidOperationException("Select an archived journal date.");
+            if (page < 0 || page > Int32.MaxValue / 500) throw new ArgumentOutOfRangeException("page");
             const int pageSize = 500;
-            int skip = page * pageSize, matched = 0, shown = 0; more = false;
+            int skip = checked(page * pageSize), matched = 0, shown = 0; more = false;
             StringBuilder text = new StringBuilder();
             foreach (string line in Lines(journal))
             {
@@ -421,7 +449,7 @@ namespace Kisib
                 catch (SerializationException)
                 { if (sha256 != null) continue; entry = new HistoryEvent { Action = "[unreadable retained record]", Outcome = line }; }
                 if (sha256 != null && !String.Equals(entry.Sha256, sha256, StringComparison.Ordinal) &&
-                    !(entry.References ?? new CertificateReference[0]).Any(r => r.Algorithm == "SHA-256" && r.Value == sha256 || sha1 != null && r.Algorithm == "SHA-1" && r.Value == sha1)) continue;
+                    !(entry.References ?? new CertificateReference[0]).Any(r => r != null && (r.Algorithm == "SHA-256" && r.Value == sha256 || sha1 != null && r.Algorithm == "SHA-1" && r.Value == sha1))) continue;
                 if (matched++ < skip) continue;
                 if (shown++ == pageSize) { more = true; break; }
                 text.AppendLine(entry.Utc + "\t" + entry.Action + "\t" + entry.Source);
@@ -448,7 +476,7 @@ namespace Kisib
                     if (!(ex is IOException || ex is UnauthorizedAccessException || ex is SerializationException)) throw;
                     LastError = ex.Message; FailedWrites++;
                 }
-                finally { disposed = true; writerLock.Dispose(); }
+                finally { disposed = true; writerLock.Dispose(); files.Dispose(); }
             }
         }
     }

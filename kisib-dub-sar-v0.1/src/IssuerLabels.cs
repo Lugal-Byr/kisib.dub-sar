@@ -33,7 +33,14 @@ namespace Kisib
         private Dictionary<string, CountryRecord> byCode;
         internal static CountryCatalog Read(string directory)
         {
-            CountryCatalog result = HistoryArchive.Decode<CountryCatalog>(File.ReadAllBytes(Path.Combine(directory, "data", "countries.json")));
+            byte[] bytes;
+            using (FileStream file = new FileStream(Path.Combine(directory, "data", "countries.json"), FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                if (file.Length > 1024 * 1024) throw new InvalidOperationException("Country catalog exceeds its explicit byte size limit.");
+                bytes = new byte[(int)file.Length]; int offset = 0;
+                while (offset < bytes.Length) { int count = file.Read(bytes, offset, bytes.Length - offset); if (count == 0) throw new EndOfStreamException("Country catalog changed during read."); offset += count; }
+            }
+            CountryCatalog result = HistoryArchive.Decode<CountryCatalog>(bytes);
             if (result == null || result.Version != 1 || String.IsNullOrEmpty(result.Source) || String.IsNullOrEmpty(result.RetrievedUtc) || result.Countries == null || result.Countries.Any(c => c == null ||
                 !Regex.IsMatch(c.Code ?? "", "^[A-Z]{2}$") || !Regex.IsMatch(c.Alpha3 ?? "", "^[A-Z]{3}$") || !Regex.IsMatch(c.M49 ?? "", "^[0-9]{3}$") ||
                 String.IsNullOrEmpty(c.Name) || String.IsNullOrEmpty(c.Source) || String.IsNullOrEmpty(c.Date) ||
