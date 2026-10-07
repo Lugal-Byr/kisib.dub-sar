@@ -17,6 +17,7 @@ namespace Kisib
         private readonly object gate = new object();
         private readonly FileStream writerLock;
         private readonly ArchiveFileSystem files;
+        private readonly bool archiveCertificates;
         internal const int ObjectByteLimit = 256 * 1024 * 1024;
         internal const int EvidenceByteLimit = 32 * 1024 * 1024;
         internal const int JournalCharacterLimit = 8 * 1024 * 1024;
@@ -37,8 +38,11 @@ namespace Kisib
             get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "kisib.dub-sar", "History"); }
         }
 
-        internal HistoryArchive(string directory)
+        internal HistoryArchive(string directory) : this(directory, true) { }
+
+        internal HistoryArchive(string directory, bool archiveCertificates)
         {
+            this.archiveCertificates = archiveCertificates;
             DirectoryPath = Path.GetFullPath(directory);
             files = new ArchiveFileSystem(DirectoryPath);
             try
@@ -165,7 +169,7 @@ namespace Kisib
         {
             Attempt(delegate
             {
-                string objectName = SaveObject("certificates", ".cer", cert.Der);
+                string objectName = archiveCertificates ? SaveObject("certificates", ".cer", cert.Der) : null;
                 HistoryEvent entry = NewEvent(scan.ScanId, "certificate_observed", source, usage);
                 entry.CertificateObject = objectName;
                 entry.Sha256 = cert.Sha256; entry.Sha1 = cert.Sha1;
@@ -176,6 +180,7 @@ namespace Kisib
 
         internal void CaptureBytes(string scanId, byte[] der, string source)
         {
+            if (!archiveCertificates) return;
             Attempt(delegate
             {
                 string objectName = SaveObject("certificates", ".cer", der);
@@ -189,6 +194,16 @@ namespace Kisib
         // last successful baseline and are never reported as emptied.
         internal void Commit(Snapshot scan)
         {
+            if (!archiveCertificates)
+            {
+                Attempt(delegate
+                {
+                    FlushPendingJournals();
+                    Append(NewEvent(scan.ScanId, "scan_completed_without_archive", Environment.MachineName,
+                        scan.Certificates.Count + " certificates; " + scan.Errors.Count + " errors. Journal enabled; public-certificate archive disabled [to test]."), true);
+                });
+                return;
+            }
             Attempt(delegate
             {
                 Dictionary<string, string> objects = new Dictionary<string, string>(StringComparer.Ordinal);

@@ -51,12 +51,13 @@ namespace Kisib
 
             TableLayoutPanel organize = new TableLayoutPanel { Dock = DockStyle.Top, Height = 111, ColumnCount = 2, RowCount = 4, Padding = new Padding(4) };
             organize.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 65)); organize.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            Label title = new Label { Text = "Issuer explorer 🏛️", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+            Label title = new Label { Text = "Certificate explorer", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
             organize.Controls.Add(title, 0, 0); organize.SetColumnSpan(title, 2);
-            organize.Controls.Add(new Label { Text = "Find issuer", AutoSize = true }, 0, 1); findIssuer.Dock = DockStyle.Fill; organize.Controls.Add(findIssuer, 1, 1);
-            organize.Controls.Add(new Label { Text = "Group by", AutoSize = true }, 0, 2);
+            organize.Controls.Add(new Label { Text = "Find", AutoSize = true }, 0, 1); findIssuer.Dock = DockStyle.Fill; organize.Controls.Add(findIssuer, 1, 1);
+            findIssuer.AccessibleName = "Find certificates without changing store paths";
+            organize.Controls.Add(new Label { Text = "View", AutoSize = true }, 0, 2);
             groupBy.DropDownStyle = ComboBoxStyle.DropDownList; groupBy.Dock = DockStyle.Fill;
-            groupBy.Items.AddRange(new object[] { "Issuer", "Country", "Corporation", "Monarchy", "Tags", "Applications" }); groupBy.SelectedIndex = 0; organize.Controls.Add(groupBy, 1, 2);
+            groupBy.Items.AddRange(new object[] { "Store", "Issuer", "Country", "Corporation", "Monarchy", "Tags", "Applications" }); groupBy.SelectedIndex = 0; organize.Controls.Add(groupBy, 1, 2);
             organize.Controls.Add(new Label { Text = "Sort by", AutoSize = true }, 0, 3);
             sortBy.DropDownStyle = ComboBoxStyle.DropDownList; sortBy.Dock = DockStyle.Fill;
             sortBy.Items.AddRange(new object[] { "Name", "Name descending", "Certificate count" }); sortBy.SelectedIndex = 0; organize.Controls.Add(sortBy, 1, 3);
@@ -94,7 +95,7 @@ namespace Kisib
             MenuItem liveMenu = new MenuItem("&Live");
             liveMenu.MenuItems.Add(new MenuItem("Start certificate activity", delegate { StartCertificateActivity(); }));
             liveMenu.MenuItems.Add(new MenuItem("Replay available CAPI2 records", delegate { StartCertificateActivity(true); }));
-            liveMenu.MenuItems.Add(new MenuItem("Stop certificate activity", delegate { Interlocked.Increment(ref activityRequestGeneration); activity.Stop(); UpdateLiveStatus(); }));
+            liveMenu.MenuItems.Add(new MenuItem("Stop certificate activity", delegate { StopCertificateActivity(); }));
             liveMenu.MenuItems.Add(new MenuItem("Enable Windows CAPI2 logging", delegate { EnableCapi2(); }));
             liveMenu.MenuItems.Add(new MenuItem("Open Windows Event Viewer", delegate
             {
@@ -110,8 +111,8 @@ namespace Kisib
             menu.MenuItems.Add(liveMenu);
 
             PopulateCountries(); UpdateLiveStatus();
-            Shown += delegate { StartCertificateActivity(); };
-            activityTimer.Interval = 1000; activityTimer.Tick += delegate { ActivityTick(); }; activityTimer.Start();
+            activityTimer.Interval = 1000; activityTimer.Tick += delegate { ActivityTick(); };
+            InitializeScreenOneOptions(right, toolbar, detailTabs, viewMenu(menu), liveMenu);
         }
 
         private static void SetupGrid(ListView grid, string[] names, int[] widths)
@@ -136,6 +137,9 @@ namespace Kisib
         }
         private void StartCertificateActivity(bool replayAvailable = false)
         {
+            if (!archiveToggle.Checked || history == null)
+            { ShowText("Certificate activity", "Enable Journal and Archive in View > Optional features before collecting retained CAPI2 evidence [to test]."); return; }
+            capi2Toggle.Checked = true; activityTimer.Start(); liveStatus.Visible = true;
             if (closed || Interlocked.CompareExchange(ref activityStartInProgress, 1, 0) != 0) return;
             int generation = Interlocked.Increment(ref activityRequestGeneration);
             ThreadPool.QueueUserWorkItem(delegate
@@ -163,8 +167,13 @@ namespace Kisib
         }
         private void ToggleSyscalls()
         {
+            if (!syscalls.Running && (!archiveToggle.Checked || history == null))
+            { ShowText("Syscall capture", "Enable Journal and Archive in View > Optional features before starting an original ETL capture [to test]."); return; }
             try { if (syscalls.Running) syscalls.Stop(); else syscalls.Start(); }
             catch (Exception ex) { ShowText("Syscall capture", ex.Message + "\r\n\r\n" + syscalls.Status); if (history != null) history.Note(null, "syscall_capture_error", syscalls.Name, ex.ToString()); }
+            syscallToggle.Checked = syscalls.Running;
+            if (syscalls.Running) { activityTimer.Start(); liveStatus.Visible = true; }
+            else if (!capi2Toggle.Checked) activityTimer.Stop();
             syscallButton.Text = syscalls.Running ? "Stop syscalls" : "Start syscalls"; UpdateLiveStatus();
         }
         private void ActivityTick()
@@ -231,6 +240,7 @@ namespace Kisib
         private void AddControlBranches(TreeNode root)
         {
             if (snapshot == null || labels == null) return;
+            if (Convert.ToString(groupBy.SelectedItem) == "Store") return;
             string query = findIssuer.Text.Trim();
             CertificateRecord[] all = snapshot.Certificates.Values.Where(c => labels.Matches(c, query)).ToArray();
             string mode = Convert.ToString(groupBy.SelectedItem); List<TreeNode> nodes = new List<TreeNode>();
@@ -238,7 +248,8 @@ namespace Kisib
             Func<CertificateRecord, string> grouping;
             if (mode == "Corporation") grouping = c => labels.Label(c) == null || String.IsNullOrWhiteSpace(labels.Label(c).Corporation) ? "Unassigned corporation" : labels.Label(c).Corporation;
             else if (mode == "Monarchy") grouping = c => labels.Monarchy(labels.Country(c)) == "monarchy" ? "👑 Monarchy" : labels.Monarchy(labels.Country(c)) == "not monarchy" ? "Other classified" : "Classification unknown";
-            else grouping = c => labels.Label(c) != null && !String.IsNullOrWhiteSpace(labels.Label(c).Owner) ? labels.Label(c).Owner : "Issuer DN: " + c.Issuer;
+            else grouping = c => labels.Label(c) != null && !String.IsNullOrWhiteSpace(labels.Label(c).Owner) ? labels.Label(c).Owner :
+                c.IssuerShortName + "  C=" + (c.IssuerCountry ?? "—");
             if (mode == "Country")
             {
                 Dictionary<string, CertificateRecord[]> countryMembers = all.GroupBy(c => labels.Country(c) ?? "").ToDictionary(g => g.Key, g => g.ToArray(), StringComparer.Ordinal);

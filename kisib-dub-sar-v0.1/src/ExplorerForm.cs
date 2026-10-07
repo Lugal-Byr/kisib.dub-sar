@@ -18,12 +18,14 @@ namespace Kisib
         private readonly TextBox issuerDetails = new TextBox();
         private readonly TextBox address = new TextBox();
         private readonly Label status = new Label();
+        private readonly LinkLabel errorsLink = new LinkLabel();
         private readonly Button refresh = new Button();
         private readonly MenuItem refreshMenu;
         private readonly List<string> sessionLog = new List<string>();
         private readonly string sourceDirectory;
-        private readonly HistoryArchive history;
-        private readonly string historyStartupError;
+        private HistoryArchive history;
+        private string historyStartupError;
+        private readonly string archiveDirectory;
         private readonly System.Windows.Forms.Timer historyTimer = new System.Windows.Forms.Timer();
         private Snapshot snapshot;
         private volatile bool closed;
@@ -37,8 +39,7 @@ namespace Kisib
         internal ExplorerForm(string sourceDirectory, string archiveDirectory)
         {
             this.sourceDirectory = sourceDirectory;
-            try { history = new HistoryArchive(archiveDirectory); }
-            catch (Exception ex) { historyStartupError = ex.GetType().Name + ": " + ex.Message; }
+            this.archiveDirectory = archiveDirectory;
             Text = "kisib.dub-sar v0.1 — read-only certificate explorer";
             Icon = SystemIcons.Application;
             Font = new Font("Tahoma", 9F);
@@ -57,6 +58,7 @@ namespace Kisib
             view.MenuItems.Add(new MenuItem("Activity &log", delegate { ShowLog(); }));
             view.MenuItems.Add(new MenuItem("&History log", delegate { ShowLog(); }));
             view.MenuItems.Add(new MenuItem("Enumeration &summary", delegate { ShowSummary(); }));
+            view.MenuItems.Add(new MenuItem("Store &errors", delegate { ShowStoreErrors(); }));
             MenuItem certificate = new MenuItem("&Certificate");
             certificate.MenuItems.Add(new MenuItem("Copy SHA-&1", delegate { CopyHash(false); }));
             certificate.MenuItems.Add(new MenuItem("Copy SHA-&256", delegate { CopyHash(true); }));
@@ -82,9 +84,10 @@ namespace Kisib
 
             SplitContainer outer = new SplitContainer { Dock = DockStyle.Fill, Size = new Size(1150, 680),
                 Orientation = Orientation.Vertical, SplitterWidth = 5, BorderStyle = BorderStyle.Fixed3D };
-            outer.Panel1MinSize = 180; outer.Panel2MinSize = 260; outer.SplitterDistance = 440;
+            outer.Panel1MinSize = 180; outer.Panel2MinSize = 260; outer.SplitterDistance = 340;
             tree.Dock = DockStyle.Fill; tree.ShowLines = true; tree.ShowRootLines = true; tree.ShowPlusMinus = true;
             tree.HideSelection = false; tree.HotTracking = false; tree.FullRowSelect = false;
+            tree.ShowNodeToolTips = true;
             tree.AfterSelect += TreeSelected;
             tree.AccessibleName = "System store locations, system stores, and physical stores";
             outer.Panel1.Controls.Add(tree);
@@ -95,15 +98,10 @@ namespace Kisib
             list.Dock = DockStyle.Fill; list.View = View.Details; list.FullRowSelect = true;
             list.MultiSelect = false; list.HideSelection = false; list.GridLines = false;
             list.AccessibleName = "Certificates in the selected store";
-            list.Columns.Add("Subject", 235); list.Columns.Add("Issuer", 225);
-            list.Columns.Add("Not before", 165); list.Columns.Add("Not after", 165); list.Columns.Add("Found in", 440);
-            list.Columns.Add("Key algorithm [documented]", 260);
-            list.Columns.Add("Key size (bits) [to test]", 170);
-            list.Columns.Add("Signature algorithm [documented]", 285);
-            list.Columns.Add("SPKI SHA-256 [to test]", 470);
-            list.Columns.Add("Weak tier [to test]", 300);
-            list.Columns.Add("SHA-1 collision [to test]", 320);
-            list.Columns.Add("Key reuse [to test]", 250);
+            list.Columns.Add("Subject CN", 215); list.Columns.Add("Issuer CN", 215);
+            list.Columns.Add("C=", 48); list.Columns.Add("found in (physical stores)", 330);
+            list.Columns.Add("not-before", 165); list.Columns.Add("not-after", 165);
+            list.Columns.Add("SHA-1", 305); list.Columns.Add("SHA-256", 460);
             list.OwnerDraw = true;
             list.DrawColumnHeader += delegate(object sender, DrawListViewColumnHeaderEventArgs e) { e.DrawDefault = true; };
             list.DrawSubItem += DrawCertificateCell;
@@ -144,16 +142,20 @@ namespace Kisib
             outer.Panel2.Controls.Add(right);
             InitializeControlLayer(outer, right, toolbar, detailTabs, menu);
 
-            status.Dock = DockStyle.Bottom; status.Height = 25; status.BorderStyle = BorderStyle.Fixed3D;
+            Panel statusBar = new Panel { Dock = DockStyle.Bottom, Height = 25, BorderStyle = BorderStyle.Fixed3D };
+            status.Dock = DockStyle.Fill;
             status.TextAlign = ContentAlignment.MiddleLeft; status.Padding = new Padding(4, 0, 0, 0);
             status.Text = "Read-only | Windows verification: to test";
-            Controls.Add(outer); Controls.Add(addressPanel); Controls.Add(toolbar); Controls.Add(status);
+            errorsLink.Dock = DockStyle.Right; errorsLink.Width = 100; errorsLink.TextAlign = ContentAlignment.MiddleLeft;
+            errorsLink.Text = "0 errors"; errorsLink.AccessibleName = "Open the list of store errors";
+            errorsLink.LinkClicked += delegate { ShowStoreErrors(); };
+            statusBar.Controls.Add(status); statusBar.Controls.Add(errorsLink);
+            Controls.Add(outer); Controls.Add(addressPanel); Controls.Add(toolbar); Controls.Add(statusBar);
             TreeNode initial = new TreeNode(Environment.MachineName + " — Certificates");
             initial.Nodes.Add("Enumeration starts when this window opens."); tree.Nodes.Add(initial); initial.Expand();
             Shown += delegate { StartScan(); };
             historyTimer.Interval = 60000;
             historyTimer.Tick += delegate { if (!scanning && !closed) StartScan(); };
-            historyTimer.Start();
             FormClosed += delegate
             {
                 closed = true; historyTimer.Stop(); historyTimer.Dispose();
@@ -179,7 +181,7 @@ namespace Kisib
                 try
                 {
                     scanner = new Scanner(delegate(string message) { Post(delegate { status.Text = HistoryStatus() + " | " + message; }); }, delegate { return closed; }, history);
-                    if (activity != null) activity.RefreshApplications();
+                    if (activity != null && activityTimer.Enabled) activity.RefreshApplications();
                     Snapshot result = scanner.Run();
                     if (history != null) history.Commit(result);
                     Post(delegate { Display(result); scanning = false; refresh.Enabled = true; refreshMenu.Enabled = true; });
@@ -217,12 +219,17 @@ namespace Kisib
                 root.Nodes.Add(locationNode);
                 foreach (SystemStore system in location.Stores)
                 {
-                    string merge = system.PhysicalStores.Count == 0 ? "" : " = " + String.Join(" ", system.PhysicalStores.Select(item => item.Name).ToArray());
-                    TreeNode systemNode = new TreeNode(system.Name + merge + (system.Error == null && system.PhysicalEnumerationError == null ? "" : " [error]")) { Tag = system };
+                    TreeNode systemNode = new TreeNode(system.Name + " (" + system.Certificates.Count + (system.ReadSucceeded ? "" : " observed") + ")" +
+                        (system.Error == null && system.PhysicalEnumerationError == null ? "" : " [error]")) { Tag = system,
+                        ToolTipText = Source("CertEnumSystemStore / CertEnumPhysicalStore", Sources.Physical) };
                     locationNode.Nodes.Add(systemNode);
                     foreach (PhysicalStore physical in system.PhysicalStores)
-                        systemNode.Nodes.Add(new TreeNode(physical.Name + (physical.Error == null ? "" : " [error]")) { Tag = physical });
+                        systemNode.Nodes.Add(new TreeNode(physical.Name + " (" + physical.Certificates.Count + (physical.ReadSucceeded ? "" : " observed") + ")" +
+                            (physical.Error == null ? "" : " [error]")) { Tag = physical,
+                            ToolTipText = physical.Path + "\r\n" + Source("CertEnumPhysicalStore", Sources.Physical) });
+                    AddDocumentedPhysicalReferences(location, system, systemNode);
                 }
+                AddDocumentedSystemReferences(location, locationNode);
             }
             AddControlBranches(root);
             root.Expand();
@@ -234,17 +241,21 @@ namespace Kisib
                 foreach (ListViewItem row in list.Items)
                     if (((CertificateRecord)row.Tag).Der.SequenceEqual(selectedCertificate.Der)) { row.Selected = true; row.EnsureVisible(); break; }
             status.Text = HistoryStatus() + " | " + result.StoreCount + " system / " + result.PhysicalCount + " physical stores | " + result.Certificates.Count +
-                " certificates | " + result.Errors.Count + " errors | Windows verification: to test";
+                " certificates | PC acceptance: to test";
+            errorsLink.Text = result.Errors.Count + " errors";
         }
 
         private string HistoryStatus()
         {
-            string error = historyStartupError ?? (history == null ? "History unavailable" : history.LastError);
-            return error == null ? "Read-only stores | Persistent history" + (history.RecoveryWarnings.Count == 0 ? "" : " | Recovery warnings: " + history.RecoveryWarnings.Count) : "Read-only stores | HISTORY ERROR: " + error;
+            string error = historyStartupError ?? (history == null ? null : history.LastError);
+            return error != null ? "Read-only stores | HISTORY ERROR: " + error : history == null ? "Read-only stores | Recording off" :
+                "Read-only stores | Journal on | Archive " + (archiveToggle.Checked ? "on" : "off");
         }
         private static string NodeKey(TreeNode node)
         {
             if (node == null) return null;
+            DocumentedStoreReference reference = node.Tag as DocumentedStoreReference;
+            if (reference != null) return "documented:" + reference.Path;
             ExplorerScope scope = node.Tag as ExplorerScope; if (scope != null) return scope.Key;
             StoreLocation location = node.Tag as StoreLocation;
             SystemStore store = node.Tag as SystemStore;
@@ -272,11 +283,17 @@ namespace Kisib
             SystemStore system = selected as SystemStore;
             PhysicalStore physical = selected as PhysicalStore;
             ExplorerScope scope = selected as ExplorerScope;
+            DocumentedStoreReference reference = selected as DocumentedStoreReference;
             if (scope != null)
             {
                 keys.UnionWith(scope.CertificateKeys);
                 address.Text = "Grouped views\\" + args.Node.FullPath;
                 nodeDetails = scope.Description;
+            }
+            else if (reference != null)
+            {
+                address.Text = reference.Path;
+                nodeDetails = reference.Description;
             }
             else if (selected is Snapshot)
             {
@@ -317,9 +334,9 @@ namespace Kisib
             foreach (string key in keys)
             {
                 CertificateRecord record = snapshot.Certificates[key];
-                ListViewItem row = new ListViewItem(new string[] { record.Subject, record.Issuer, CertificateRecord.Time(record.NotBefore), CertificateRecord.Time(record.NotAfter), record.FoundInText,
-                    record.KeyAlgorithm, record.KeySize.HasValue ? record.KeySize.Value.ToString() : "[unavailable]", record.SignatureAlgorithm,
-                    record.SpkiSha256 ?? "[unavailable]", record.WeakTierText, record.CollisionText, record.KeyReuseText });
+                if (!MatchesFind(record)) continue;
+                ListViewItem row = new ListViewItem(new string[] { record.SubjectShortName, record.IssuerShortName, record.SubjectCountry ?? "—", record.FoundInText,
+                    CertificateRecord.Time(record.NotBefore), CertificateRecord.Time(record.NotAfter), record.Sha1, record.Sha256 });
                 row.Tag = record; list.Items.Add(row);
             }
             list.ListViewItemSorter = new CertificateComparer(sortColumn, ascending); list.Sort(); list.EndUpdate();
@@ -331,8 +348,8 @@ namespace Kisib
         private void DrawCertificateCell(object sender, DrawListViewSubItemEventArgs e)
         {
             CertificateRecord cert = e.Item.Tag as CertificateRecord;
-            bool collision = cert != null && e.ColumnIndex == 10 && cert.CollisionPeers.Count > 0;
-            bool warning = cert != null && (e.ColumnIndex == 9 && cert.WeakReasons.Count > 0 || e.ColumnIndex == 11 && cert.KeyReusePeers.Count > 0);
+            bool collision = cert != null && e.ColumnIndex == 6 && cert.CollisionPeers.Count > 0;
+            bool warning = false;
             bool selected = e.Item.Selected;
             Color background = collision ? Color.Firebrick : selected ? SystemColors.Highlight : warning ? SystemColors.Info : SystemColors.Window;
             Color foreground = collision ? Color.White : selected ? SystemColors.HighlightText : warning ? SystemColors.InfoText : SystemColors.WindowText;
@@ -353,6 +370,13 @@ namespace Kisib
             if (cert == null) { details.Text = nodeDetails; issuerDetails.Text = "Select a certificate to inspect its recorded issuer name."; return; }
             StringBuilder text = new StringBuilder();
             text.AppendLine("Subject: " + cert.Subject); text.AppendLine("Issuer: " + cert.Issuer);
+            text.AppendLine("Subject CN: " + (cert.SubjectCn ?? "[absent or ambiguous]"));
+            text.AppendLine("Issuer CN: " + (cert.IssuerCn ?? "[absent or ambiguous]"));
+            text.AppendLine("Short-name fallback: O when CN is absent; a full DN is never used as a row label [to test].");
+            text.AppendLine("Subject C=: " + (cert.SubjectCountry ?? "[unavailable]") + "; issuer C=: " + (cert.IssuerCountry ?? "[unavailable]") + " [documented attribute; extraction to test].");
+            text.AppendLine("C= is the certificate's own declaration. Country affiliation verification: to test.");
+            if (cert.DisplayNameError != null) text.AppendLine("Name attribute read: " + cert.DisplayNameError);
+            text.AppendLine(Source("CERT_RDN_ATTR / commonName / organizationName / countryName", Sources.NameAttributes));
             text.AppendLine("Thumbprint (SHA-1): " + cert.Sha1); text.AppendLine("SHA-256: " + cert.Sha256);
             text.AppendLine("Not before: " + CertificateRecord.Time(cert.NotBefore)); text.AppendLine("Not after: " + CertificateRecord.Time(cert.NotAfter));
             text.AppendLine("Key algorithm [documented]: " + cert.KeyAlgorithm);
@@ -443,10 +467,10 @@ namespace Kisib
             text.AppendLine("Physical stores: " + snapshot.PhysicalCount); text.AppendLine("Distinct certificates: " + snapshot.Certificates.Count);
             text.AppendLine("Unresolved physical sources: " + snapshot.UnresolvedCount); text.AppendLine("Errors: " + snapshot.Errors.Count);
             text.AppendLine("Canceled: " + snapshot.Canceled); text.AppendLine();
-            text.AppendLine("Every scan feeds the persistent journal and public-certificate archive.");
-            text.AppendLine("Automatic scan interval: 60 seconds while this explorer runs; scans do not overlap.");
+            text.AppendLine("Journal: " + (journalToggle.Checked ? "on" : "off") + "; public-certificate archive: " + (archiveToggle.Checked ? "on" : "off") + " [to test].");
+            text.AppendLine("60-second automatic scan: " + (historyTimer.Enabled ? "on" : "off") + "; scans do not overlap [to test].");
             text.AppendLine("Reads are not atomic. Changes between scans, while closed, and outside accessible stores require additional observations.");
-            text.AppendLine("History: " + HistoryArchive.DefaultDirectory);
+            text.AppendLine("Optional history directory: " + archiveDirectory);
             text.AppendLine(HistoryStatus());
             text.AppendLine("USERS covers Windows-discoverable user stores; unloaded user hives are not loaded.");
             text.AppendLine("CURRENT_SERVICE depends on the calling service context; this desktop process does not invent one.");
@@ -470,7 +494,8 @@ namespace Kisib
             string sha1 = sha256 != null && selected != null && selected.Sha256 == sha256 ? selected.Sha1 : null;
             if (history == null)
             {
-                ShowText("History unavailable", historyStartupError + "\r\n\r\nUnsaved current-session records:\r\n" + String.Join(Environment.NewLine, sessionLog.ToArray()));
+                ShowText("History log", "Journal is off. View > Optional features > Journal enables continuing records [to test].\r\n" +
+                    (historyStartupError ?? "") + "\r\n\r\nCurrent-session observations (memory only):\r\n" + String.Join(Environment.NewLine, sessionLog.ToArray()));
                 return;
             }
             try
@@ -535,8 +560,7 @@ namespace Kisib
             {
                 ListViewItem left = (ListViewItem)x, right = (ListViewItem)y;
                 CertificateRecord a = (CertificateRecord)left.Tag, b = (CertificateRecord)right.Tag;
-                int comparison = column == 2 ? Nullable.Compare(a.NotBefore, b.NotBefore) : column == 3 ? Nullable.Compare(a.NotAfter, b.NotAfter) :
-                    column == 6 ? Nullable.Compare(a.KeySize, b.KeySize) :
+                int comparison = column == 4 ? Nullable.Compare(a.NotBefore, b.NotBefore) : column == 5 ? Nullable.Compare(a.NotAfter, b.NotAfter) :
                     StringComparer.OrdinalIgnoreCase.Compare(left.SubItems[column].Text, right.SubItems[column].Text);
                 return ascending ? comparison : -comparison;
             }
@@ -554,5 +578,6 @@ namespace Kisib
         internal const string Signature = "https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509certificate2.signaturealgorithm?view=netframework-4.8.1";
         internal const string Spki = "https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_public_key_info";
         internal const string Issuer = "https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509certificate2.issuer?view=netframework-4.8.1";
+        internal const string NameAttributes = "https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_rdn_attr";
     }
 }

@@ -1,3 +1,27 @@
+SCREEN 1 UPDATE — 2026-10-07
+
+The current default is Store: location > system store > physical store.
+Find filters the certificate rows while all native paths remain visible.
+Subject/Issuer row labels are CN with O fallback; C= is subject country.
+There are exactly eight columns. Existing key/security metadata stays in Details.
+Click the errors link at the bottom for Store/Error rows.
+
+View > Optional features contains switches that start OFF on every launch.
+Opening the explorer creates no history directory, repeated scan or trace.
+Journal opt-in logs observations without archiving public DER.
+Archive requires Journal and separately enables public certificate retention.
+CAPI2/syscalls require Archive. Stop collectors and finish a scan before changing recording settings.
+The additional panels switch restores existing application/country/evidence panels.
+
+USER-PC ACCEPTANCE: still to test. Expand LOCAL_MACHINE then Root and type FNMT into Find.
+Grey not-present entries are documentation references, never observed stores.
+If Windows does not report a sibling, its documentation reference stays grey.
+Send a screenshot from that PC; a hosted test screenshot is not acceptance.
+S2/S3/S4 remain parked; see docs/screen1-scope.txt.
+
+The older release notes below describe previously implemented optional functions.
+The Screen 1 startup settings above supersede their automatic-start statements.
+
 kisib.dub-sar v0.1 — read-only certificate explorer
 
 Windows 11 Home / Pro. Classic native Explorer layout: tree left, list right, details below.

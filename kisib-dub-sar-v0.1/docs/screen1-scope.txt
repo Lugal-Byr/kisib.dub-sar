@@ -1,0 +1,55 @@
+kisib.dub-sar — Screen 1 scope, 2026-10-07
+
+IMPLEMENT THIS SCREEN ONLY
+Default Store view: actual Windows location > system store > physical store.
+Every native physical sibling stays separate, including observed zero counts.
+Grey reference: a predefined store documented by Microsoft but not returned.
+References are typed separately and never included in observed counts.
+A failed/canceled enumeration is unknown, not evidence of absence.
+CN then O for certificate names; C= as a separate short code. Full DNs only in Details.
+List: Subject CN | Issuer CN | C= | found in (physical stores) | not-before | not-after | SHA-1 | SHA-256.
+All former key size/algorithm/signature/SPKI and weakness fields remain in Details.
+The status-bar error link opens source store and original Windows error.
+Journal, public archive, 60-second scan, CAPI2 and syscall capture are off each launch.
+No automatic recording directory is created. Existing logs are never deleted.
+A Journal-only session appends observations without saving public certificates or inventories.
+Archive requires Journal; CAPI2/ETL collectors require Archive for retained evidence.
+Record switches change only between scans while capture is stopped.
+
+FEATURE REGISTER
+F143-F151 in function-catalog.csv and feature-sources.csv give Microsoft terms, Learn URLs and documented/to test tags.
+Microsoft documents the underlying APIs. Custom display/filter/count/reference behavior and user-PC acceptance are to test.
+System Store Locations: https://learn.microsoft.com/en-us/windows/win32/seccrypto/system-store-locations [documented]
+CERT_RDN_ATTR: https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_rdn_attr [documented]
+
+ACCEPTANCE — USER PC, NOT CI [to test]
+Run the updated EXE on the user's Windows 11 machine.
+Leave Optional features off. Expand LOCAL_MACHINE > Root.
+Type FNMT into Find. Physical siblings must follow Windows enumeration.
+.Default, .AuthRoot, .GroupPolicy and .Enterprise are separate if Windows reports them.
+Unreturned documented names appear only as grey not-present references.
+Capture the whole window on this PC. No remote access to that PC is available in this session.
+Hosted Windows test evidence may validate compilation/runtime behavior, never this acceptance requirement.
+
+PARKED ROADMAP — NO IMPLEMENTATION IN THIS CHANGE
+S2: ENABLED/BLOCKED under category branches; BLOCKED never means certificate deletion.
+Proposed Disallowed store/purpose changes require chain-policy and reboot checks [to test].
+Current labels are user requests, not proof that software can or cannot use a cert.
+Microsoft term: Disallowed system store / CertSetCertificateContextProperty / CERT_ENHKEY_USAGE_PROP_ID [documented API; enforcement to test].
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certsetcertificatecontextproperty
+https://learn.microsoft.com/en-us/windows-server/identity/ad-cs/configure-trusted-roots-disallowed-certificates
+History: append-only time/hash/old-state/new-state/change-source, with prior-date scope [to test].
+Microsoft term: FileStream; custom state-history schema [to test].
+https://learn.microsoft.com/en-us/dotnet/api/system.io.filestream
+S3: switch country | tag group | store | status | key/signature strength | expiry; stacked tags [to test].
+Country rows include zero roots-in-store. Join C= to iso2 of data/countries_monarchy_bric.csv [to test].
+The provided CSV is preserved byte-for-byte; source says draft from memory, Claude. These classifications are user draft data, not verified facts.
+Subject and issuer C= are certificate declarations, not verified political affiliation.
+CSV integration replaces no live classification in this Screen 1 change.
+Microsoft term: TreeView / CERT_RDN_ATTR; custom grouping [to test].
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.treeview
+S4: playoff grid issuers > category > Enabled/Blocked > software on PC [to test].
+Microsoft term: CertGetCertificateChain / CertVerifyCertificateChainPolicy; OS chain/purpose checks pending.
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certgetcertificatechain
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certverifycertificatechainpolicy
+No enforcement, chain build, country-data substitution, purpose write, certificate import/delete, or reboot action is implemented here.

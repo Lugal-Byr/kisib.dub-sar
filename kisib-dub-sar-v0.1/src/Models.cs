@@ -14,6 +14,16 @@ namespace Kisib
         internal byte[] Der;
         internal string Subject;
         internal string Issuer;
+        internal string SubjectCn, SubjectOrganization, SubjectCountry;
+        internal string IssuerCn, IssuerOrganization, IssuerCountry;
+        internal string DisplayNameError;
+        internal string SubjectShortName { get { return ShortName(SubjectCn, SubjectOrganization); } }
+        internal string IssuerShortName { get { return ShortName(IssuerCn, IssuerOrganization); } }
+        private static string ShortName(string cn, string organization)
+        {
+            string name = !String.IsNullOrWhiteSpace(cn) ? cn : !String.IsNullOrWhiteSpace(organization) ? organization : "[no CN or O]";
+            return name.Replace('\r', ' ').Replace('\n', ' ').Replace('\t', ' ');
+        }
         internal string Sha1;
         internal string Sha256;
         internal DateTime? NotBefore;
@@ -56,6 +66,8 @@ namespace Kisib
                 {
                     result.Subject = cert.Subject;
                     result.Issuer = cert.Issuer;
+                    ReadDisplayAttributes(result, cert.SubjectName.RawData, false);
+                    ReadDisplayAttributes(result, cert.IssuerName.RawData, true);
                     result.NotBefore = cert.NotBefore.ToUniversalTime();
                     result.NotAfter = cert.NotAfter.ToUniversalTime();
                     CertificateSignals.ReadMetadata(result, cert);
@@ -75,6 +87,26 @@ namespace Kisib
             }
             catch (CryptographicException ex) { result.ParseError = ex.Message; }
             return result;
+        }
+
+        private static void ReadDisplayAttributes(CertificateRecord record, byte[] name, bool issuer)
+        {
+            foreach (byte attribute in new byte[] { 3, 10, 6 })
+            {
+                try
+                {
+                    string value = NameAttributes.Single(name, attribute);
+                    if (issuer)
+                    { if (attribute == 3) record.IssuerCn = value; else if (attribute == 10) record.IssuerOrganization = value; else record.IssuerCountry = value; }
+                    else
+                    { if (attribute == 3) record.SubjectCn = value; else if (attribute == 10) record.SubjectOrganization = value; else record.SubjectCountry = value; }
+                }
+                catch (Exception ex)
+                {
+                    if (!(ex is InvalidOperationException || ex is System.Text.DecoderFallbackException)) throw;
+                    record.DisplayNameError = (record.DisplayNameError ?? "") + (issuer ? "Issuer" : "Subject") + " attribute 2.5.4." + attribute + ": " + ex.Message + "; ";
+                }
+            }
         }
 
         internal static string Hex(byte[] bytes) { return BitConverter.ToString(bytes).Replace("-", ""); }
@@ -125,6 +157,7 @@ namespace Kisib
         internal readonly Dictionary<string, CertificateRecord> Certificates = new Dictionary<string, CertificateRecord>(StringComparer.Ordinal);
         internal readonly List<string> Log = new List<string>();
         internal readonly List<string> Errors = new List<string>();
+        internal readonly List<StoreError> StoreErrors = new List<StoreError>();
         internal DateTime Started = DateTime.UtcNow;
         internal DateTime Finished;
         internal bool Canceled;
@@ -140,6 +173,7 @@ namespace Kisib
         internal void Fail(string action, string path, string message)
         {
             Errors.Add(action + " | " + path + " | " + message);
+            StoreErrors.Add(new StoreError { Store = path, Error = action + " | " + message });
             Note(action, path, message);
         }
         internal CertificateRecord Add(byte[] der)
@@ -162,6 +196,11 @@ namespace Kisib
         {
             return "0x" + unchecked((uint)code).ToString("X8", CultureInfo.InvariantCulture) + " — " + new Win32Exception(code).Message;
         }
+    }
+
+    internal sealed class StoreError
+    {
+        internal string Store, Error;
     }
 
     internal static class StorePaths

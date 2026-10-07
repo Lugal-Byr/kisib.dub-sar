@@ -13,6 +13,7 @@ PASS: Models.cs complete lexical delimiters
 PASS: Native.cs complete lexical delimiters
 PASS: Program.cs complete lexical delimiters
 PASS: Scanner.cs complete lexical delimiters
+PASS: ScreenOne.cs complete lexical delimiters
 PASS: SyscallTrace.cs complete lexical delimiters
 PASS: ArchiveVerification.cs complete lexical delimiters
 PASS: ControlVerification.cs complete lexical delimiters
@@ -28,13 +29,13 @@ PASS: All production store opens use read-only existing archived flags
 PASS: Previous context ownership passes to the enumerator
 PASS: Outstanding certificate context freed on early exit
 PASS: Native Explorer tree connectors explicitly enabled
-PASS: Only specified certificate list headers with new tags
+PASS: Exactly the eight Screen 1 certificate columns
 PASS: Native Details and Issuer temple tabs below list
 PASS: Hash match checked against full DER before deduplication
-PASS: All 110 registered features have an underlying term/source/tag
+PASS: All 119 registered features have an underlying term/source/tag
 PASS: Gated views stay to test
 PASS: Derived metadata and local inspection rules stay to test
-PASS: All 142 stable function IDs retain source/tag fields
+PASS: All 151 stable function IDs retain source/tag fields
 PASS: New application/issuer/ETW implementations remain to test
 PASS: CAPI2 parser prohibits DTD/external resolution and bounds interpreted XML
 PASS: CAPI2 source declares durable-before-checkpoint ordering and visible gap handling
@@ -49,5 +50,10 @@ PASS: Optional executable manifest requests ordinary user privilege
 PASS: No private-key file in package
 PASS: Launcher has no policy bypass, elevation, or download
 PASS: Event Viewer uses an explicit system executable with shell execution disabled
+PASS: Native store paths are the default view
+PASS: Default GUI creates no persistent archive writer
+PASS: Default window does not start the repeating scan timer
+PASS: Error UI is bound to structured observed source errors
+PASS: Absent documentation references remain separate and incomplete reads stay unknown
 
 Runtime evidence: docs/windows-verification-report.txt. Manual Windows 11 Home/Pro gate remains pending.
