@@ -63,7 +63,7 @@ Disposable hosted Windows adds a temporary self-signed TLS server and checks tha
 The temporary private key is created/deleted only in the CI VM and never enters a download or Test.cmd.
 GUI tests verify the optional tree, bounded misses, invalid-host rejection, chain rendering and return to unchanged Screen 1.
 The actual production EXE and all prior native, security and GUI checks run on x64 and ARM64.
-Record passing run details in incident-verification.txt after execution; source preparation alone is not runtime verification.
+Passing run 37713284933: 251 checks on each of Windows Server 2022 x64 and Windows 11 ARM64. See incident-verification.txt; user-PC acceptance remains to test.
 
 PARKED
 Certificate blocking/purpose changes, user-PC acceptance, country CSV integration, syscall expansion, real browser decisions, full-chain bracket, CT monitoring and CTL/CCADB refresh remain separate tasks.

@@ -1,0 +1,37 @@
+kisib.dub-sar — optional incident/TLS evidence verification
+2026-10-07 user date / hosted checks completed 2026-10-08 UTC
+
+Tested application source: ae832e29389e8a67619dc00abd994a3874cb7605
+Working branch: codex/windows-verification-2026-10-07
+Passing run: https://github.com/Lugal-Byr/kisib.dub-sar/actions/runs/37713284933
+Windows Server 2022 x64 job: 113103907809 — SUCCESS
+Windows 11 Enterprise ARM64 job: 113103908186 — SUCCESS
+
+Each job passed 194 core assertions, 7 prior exploit regressions, 16 real native collector checks, 31 GUI checks, one real TLS rejection check and two actual compiled-EXE checks: 251 each, 502 combined.
+Both independently compiled the production WinForms app, opened its actual native window and closed it successfully. Hosted Screen 1 first-inventory timing is an observation of the hosted VM, not a prediction for the user's PC.
+
+New evidence coverage:
+- Sourced incident catalog retains dates and exact hash uncertainty; malformed data and unsafe source URLs rejected.
+- Exact certificate SHA-256 lookup; visible misses; 10025 synthetic hash records handled without truncation. This is a scale fixture, not a live incident collection.
+- Canonical DNS/IDN hostname input rejects URLs, IPs, ports, wildcards, invalid labels and multiple trailing dots with a useful message.
+- Actual Windows SslStream rejected an owned temporary self-signed TLS server, while retaining the exact peer certificate DER and actual returned chain errors.
+- Owned silent peers exercise timeout and cancellation; canceled/failed connections never become proof of a blocked certificate.
+- Per-element revoked, unknown/offline and no reported revocation error remain distinct. No-error flags do not prove fresh online revocation data.
+- Journal-only manual checks append time/hash/outcome without public DER; Archive opt-in retains original public peer and chain evidence.
+- Optional classic dialog opens without connecting or recording, handles invalid input, shows bounded misses and chain evidence, and returns to unchanged default Screen 1.
+- All previous store, GUI, native collector and owned red-team checks passed again.
+
+Included production AnyCPU EXE (x64-tested compiler output) SHA-256:
+5268FDE071D61AAAEC7F7A01D1D4843A6D18EE9B448AC9C7341F737F3F7ACCAA
+Separately compiled/tested ARM64-host output SHA-256:
+B5D1186102FFDCD23EF21E930F419798CCB00DACE6EBBAE482FFF11DFA1A823A
+The compiler outputs differ; both derive from the same tested source.
+
+The preview is unsigned. These checks do not establish resistance to every exploit or Microsoft Store readiness.
+The user's own Windows 11 Home/Pro execution and required Screen 1 screenshot remain TO TEST.
+Local browser decisions are unknown. A manual Windows TLS check is evidence for this app's connection only.
+The initial Google incident source does not publish individual fingerprints, so its bundled hash list is empty. Namespace history is not proof of unauthorized certificate identity.
+No automatic website checks, live threat-feed update, trust-store writes, certificate blocking, country-CSV runtime integration or full multiple-chain bracket was added.
+The hosted TLS fixture's temporary private key was removed from the VM and is absent from the download.
+
+Use View > Optional features > TLS and incident evidence. Find hash is local. Inspect TLS explicitly connects to the entered hostname on port 443 and may cause Windows chain/revocation retrieval. Journal and Archive remain off until explicitly enabled.

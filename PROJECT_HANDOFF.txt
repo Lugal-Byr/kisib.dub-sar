@@ -4,7 +4,16 @@ This authorizes the separate optional TLS/incident dialog (F152-F158), while pre
 Read kisib-dub-sar-v0.1/docs/incident-evidence.txt and the scope update in docs/screen1-scope.txt.
 Current change: dated local incident catalog; exact certificate hash lookup; manual validated host:443 TLS check; actual returned peer/chain and revocation errors; vendor reports separate from local browser decisions; optional append-only TLS history.
 No automatic network checks, live threat-feed refresh, trust-store changes or real browser-verifier capture. Country/blocking/playoff roadmap remains parked.
-New code verification is in progress. The last completed tested build below remains the Screen 1 build until a new passing run is recorded.
+Current tested application source: ae832e29389e8a67619dc00abd994a3874cb7605.
+Passing run: https://github.com/Lugal-Byr/kisib.dub-sar/actions/runs/37713284933
+Both hosted Windows jobs passed 251 checks each (502 combined). Exact peer DER capture and rejection of a real untrusted TLS peer were verified.
+Delivered preview: kisib-dub-sar-incident-preview.zip (unsigned).
+ZIP SHA-256: bdde6d8272a628a67c588f0513e571684ff155476e8dabe4994cb04f4215cfa2
+Included x64-tested AnyCPU EXE SHA-256: 5268FDE071D61AAAEC7F7A01D1D4843A6D18EE9B448AC9C7341F737F3F7ACCAA
+Open View > Optional features > TLS and incident evidence; only Inspect TLS contacts a manually entered host.
+Read docs/incident-verification.txt for the current runtime evidence. Registers now contain 158 stable function IDs and 126 source rows.
+The records below preserve the previous Screen 1 checkpoint and earlier download; they are historical.
+Next broader acceptance still requires the user-PC Screen 1 screenshot. Local browser decisions and complete incident hashes remain unknown.
 
 kisib.dub-sar — saved project checkpoint
 2026-10-07, after the Screen 1 build and design discussion
