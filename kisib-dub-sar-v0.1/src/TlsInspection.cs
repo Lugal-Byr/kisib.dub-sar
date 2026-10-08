@@ -66,7 +66,13 @@ namespace Kisib
         internal static string NormalizeHost(string value)
         {
             if (value == null || value.Length > 253 || value.Any(c => Char.IsWhiteSpace(c) || Char.IsControl(c))) throw new ArgumentException("Enter a DNS hostname only, such as example.com.");
-            string host = new IdnMapping { UseStd3AsciiRules = true }.GetAscii(value.TrimEnd('.')).ToLowerInvariant();
+            string host;
+            try
+            {
+                string name = value.EndsWith(".", StringComparison.Ordinal) ? value.Substring(0, value.Length - 1) : value;
+                host = new IdnMapping { UseStd3AsciiRules = true }.GetAscii(name).ToLowerInvariant();
+            }
+            catch (ArgumentException) { throw new ArgumentException("Enter a complete DNS hostname; URLs, IP addresses, ports and wildcards are not accepted."); }
             IPAddress address;
             if (host.Length == 0 || host.Length > 253 || IPAddress.TryParse(host, out address) || host.IndexOf('.') < 0 ||
                 host.Split('.').Any(label => label.Length < 1 || label.Length > 63 || label[0] == '-' || label[label.Length - 1] == '-' ||

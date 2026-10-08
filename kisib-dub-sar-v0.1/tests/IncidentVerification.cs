@@ -23,7 +23,7 @@ namespace Kisib
             check(catalog.NamespaceMatches("google.com.gh").Length == 1 && catalog.NamespaceMatches("GOOGLE.SL.").Length == 1 && catalog.NamespaceMatches("google.as").Length == 1, "Incident context matches exact DNS label suffixes with canonical casing");
             check(catalog.NamespaceMatches("google.gh.example.com").Length == 0 && catalog.NamespaceMatches("google.ghx").Length == 0 && catalog.NamespaceMatches("google.so").Length == 0, "Namespace matches reject lookalikes and do not confuse American Samoa with Somalia");
             check(TlsInspection.NormalizeHost("B\u00dcCHER.example.") == "xn--bcher-kva.example", "TLS hostname normalizes international DNS names for SNI and connection");
-            foreach (string invalid in new string[] { "https://example.com", "example.com:443", "*.example.com", "127.0.0.1", "[::1]", "example.com/path", "example.com\r\nother", "-bad.example", "a..example", new string('a', 64) + ".example" })
+            foreach (string invalid in new string[] { "https://example.com", "example.com:443", "*.example.com", "127.0.0.1", "[::1]", "example.com/path", "example.com\r\nother", "-bad.example", "a..example", "example.com..", new string('a', 64) + ".example" })
                 Reject(delegate { TlsInspection.NormalizeHost(invalid); }, check, "TLS input rejects " + invalid.Replace('\r', ' ').Replace('\n', ' '));
             string digest = new string('A', 64);
             check(IncidentCatalog.NormalizeHash(String.Join(":", Enumerable.Repeat("aa", 32).ToArray())) == digest && catalog.HashMatches(digest).Length == 0, "Complete certificate hash normalization keeps catalog misses visible");
