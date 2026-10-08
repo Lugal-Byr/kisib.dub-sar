@@ -1,3 +1,10 @@
+OPTIONAL TLS / INCIDENT EVIDENCE — 2026-10-07
+View > Optional features > TLS and incident evidence.
+Find hash is local. Enter a DNS hostname and click Inspect TLS for one connection to port 443.
+This checks Windows TLS for this app; browser decisions remain unknown.
+Journal retains results only when explicitly enabled; Archive separately retains public certificate evidence.
+See docs/incident-evidence.txt. Default Screen 1 and the user-PC screenshot gate are retained.
+
 SCREEN 1 UPDATE — 2026-10-07
 
 The current default is Store: location > system store > physical store.

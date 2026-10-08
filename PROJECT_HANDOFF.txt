@@ -1,3 +1,11 @@
+LATEST WORK — OPTIONAL INCIDENT EVIDENCE, 2026-10-07
+The user said “start!” after reviewing the October ccTLD certificate incident and our proposed evidence work.
+This authorizes the separate optional TLS/incident dialog (F152-F158), while preserving the default Screen 1 and its pending user-PC acceptance.
+Read kisib-dub-sar-v0.1/docs/incident-evidence.txt and the scope update in docs/screen1-scope.txt.
+Current change: dated local incident catalog; exact certificate hash lookup; manual validated host:443 TLS check; actual returned peer/chain and revocation errors; vendor reports separate from local browser decisions; optional append-only TLS history.
+No automatic network checks, live threat-feed refresh, trust-store changes or real browser-verifier capture. Country/blocking/playoff roadmap remains parked.
+New code verification is in progress. The last completed tested build below remains the Screen 1 build until a new passing run is recorded.
+
 kisib.dub-sar — saved project checkpoint
 2026-10-07, after the Screen 1 build and design discussion
 

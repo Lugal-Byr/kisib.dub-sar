@@ -22,6 +22,14 @@ if ($LASTEXITCODE -ne 0) { throw 'C# verification compilation failed.' }
 Add-Type -Path $testAssembly
 $result = [Kisib.Verification]::Run($Project)
 if ($result -ne 0) { throw 'Windows verification suite failed.' }
+$tlsCertificate = New-SelfSignedCertificate -Subject 'CN=kisib-untrusted.example' -DnsName 'kisib-untrusted.example' -CertStoreLocation 'Cert:\CurrentUser\My' -KeyAlgorithm RSA -KeyLength 2048 -NotAfter ([DateTime]::UtcNow.AddDays(1))
+try {
+  if ([Kisib.TlsPeerVerification]::Run($tlsCertificate) -ne 0) { throw 'Owned native TLS rejection verification failed.' }
+} finally {
+  # Only this disposable hosted VM creates this test key. Never included in a package.
+  Remove-Item -LiteralPath ('Cert:\CurrentUser\My\' + $tlsCertificate.Thumbprint) -DeleteKey -ErrorAction Stop
+  $tlsCertificate.Dispose()
+}
 $redTeam = [Kisib.RedTeamVerification]::Run($Project)
 if ($redTeam -ne 0) { throw 'Adversarial verification failed.' }
 $nativeActivity = [Kisib.NativeActivityVerification]::Run($Project, $resultDirectory)

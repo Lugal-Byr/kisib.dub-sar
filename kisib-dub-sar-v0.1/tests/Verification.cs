@@ -85,6 +85,7 @@ namespace Kisib
             {
                 ArchiveVerification.Run(directory, Check);
                 ControlVerification.Run(directory, Check);
+                IncidentVerification.Run(directory, Check);
                 VerifyMetadata(directory);
                 Check(Marshal.SizeOf(typeof(Native.CERT_CONTEXT)) == (IntPtr.Size == 8 ? 40 : 20), "CERT_CONTEXT size for this architecture");
                 Check(Marshal.OffsetOf(typeof(Native.CERT_CONTEXT), "hCertStore").ToInt32() == (IntPtr.Size == 8 ? 32 : 16), "CERT_CONTEXT hCertStore offset");

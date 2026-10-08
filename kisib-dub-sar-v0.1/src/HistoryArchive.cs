@@ -80,6 +80,27 @@ namespace Kisib
             return saved;
         }
 
+        internal bool RecordTlsObservation(TlsObservation observation)
+        {
+            bool saved = false;
+            Attempt(delegate
+            {
+                CertificateRecord leaf = observation.Leaf;
+                HistoryEvent entry = NewEvent(null, "manual_tls_observation", observation.Host + ":443",
+                    observation.Outcome + "; SslPolicyErrors=" + (observation.PolicyErrors ?? "not returned") + "; browser acceptance unknown; catalog=" + observation.CatalogSha256);
+                entry.EventUtc = observation.FinishedUtc;
+                if (leaf != null) { entry.Sha256 = leaf.Sha256; entry.Subject = leaf.Subject; entry.Issuer = leaf.Issuer; }
+                if (archiveCertificates)
+                {
+                    byte[] bytes = Encode(observation);
+                    if (bytes.Length > EvidenceByteLimit) throw new InvalidOperationException("TLS evidence exceeds the archive byte limit.");
+                    entry.EvidenceObject = SaveObject("evidence", ".json", bytes);
+                }
+                Append(entry, true); saved = true;
+            });
+            return saved;
+        }
+
         internal void RecordApplicationInventory(ApplicationRecord[] applications)
         {
             Attempt(delegate

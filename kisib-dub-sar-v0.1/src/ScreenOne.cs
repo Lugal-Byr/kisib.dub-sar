@@ -29,6 +29,7 @@ namespace Kisib
         {
             MenuItem options = new MenuItem("Optional &features");
             options.MenuItems.AddRange(new MenuItem[] { journalToggle, archiveToggle, autoScanToggle, capi2Toggle, syscallToggle, additionalViewsToggle });
+            options.MenuItems.Add(new MenuItem("TLS and incident evidence [to test]", delegate { ShowIncidentEvidence(); }));
             view.MenuItems.Add(options);
             archiveToggle.Enabled = false; capi2Toggle.Enabled = false; syscallToggle.Enabled = false;
             journalToggle.Click += delegate { ChangeRecording(false); };
@@ -171,5 +172,17 @@ namespace Kisib
 
         private void ShowStoreErrors()
         { using (Form dialog = CreateStoreErrorsDialog()) dialog.ShowDialog(this); }
+
+        internal IncidentForm CreateIncidentEvidenceDialog()
+        {
+            return new IncidentForm(sourceDirectory, snapshot == null ? new CertificateRecord[0] : snapshot.Certificates.Values.ToArray(), SelectedCertificate(),
+                delegate(TlsObservation observation)
+                {
+                    if (history == null) return "Session evidence only; Journal is off. [to test]";
+                    return history.RecordTlsObservation(observation) ? "TLS observation appended to History. [to test]" : "History write failed: " + history.LastError + " [to test]";
+                });
+        }
+        private void ShowIncidentEvidence()
+        { using (IncidentForm dialog = CreateIncidentEvidenceDialog()) dialog.ShowDialog(this); }
     }
 }

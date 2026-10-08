@@ -1,0 +1,69 @@
+kisib.dub-sar — optional TLS and incident evidence
+Scope authorized by the user's “start!” after the ccTLD incident discussion, 2026-10-07.
+F152-F158 are custom functions [to test], with Microsoft terms and Learn URLs in both registers.
+
+OPEN
+View > Optional features > TLS and incident evidence.
+The classic Explorer screen retains its native tree, eight columns and lower Details.
+Opening the optional dialog reads a local catalog only. No automatic website contact, recording or capture starts.
+The Screen 1 screenshot from the user's own PC remains pending. Hosted screenshots do not satisfy it.
+
+LOCAL INCIDENT LOOKUP
+Versioned data/certificate-incidents.json retains source, publication date, review time and documented/to test tags.
+The initial Google report records historical .gh, .sl and .as namespace context, issuer-revocation reporting and Chrome's reported action.
+It does not publish certificate hashes. The initial hash list is empty by design; complete incident identity is unknown.
+Find hash uses a complete certificate SHA-256 and current inventory occurrences. MISS is visible and never means safe.
+Additional sourced hash records can be maintained in the data file; this is not certificate store import.
+Namespace matches are historical context, never proof that a newly presented certificate is unauthorized.
+Registry geography, subject C=, issuer C= and CA-owner country remain separate. A ccTLD code is not a certificate-country join.
+File, graph and field bounds reject malformed catalogs. Limits are resource bounds, not a 10000-record truncation.
+The catalog is a dated local research record, not an authenticated live threat feed. No update service is implemented.
+
+MANUAL TLS CHECK
+Enter a DNS hostname and click Inspect TLS. One connection uses the canonical hostname and port 443.
+The check makes no HTTP request and sends no application credentials or client certificate.
+Windows may contact chain/revocation services and maintain its normal caches. VPN, proxy and browser paths can differ from this direct connection.
+Microsoft term: SslStream.AuthenticateAsClient [documented].
+https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslstream.authenticateasclient?view=netframework-4.8.1
+OS-selected protocols, revocation checking requested, and a per-stream validation callback that rejects every supplied certificate error.
+Microsoft term: RemoteCertificateValidationCallback [documented].
+https://learn.microsoft.com/en-us/dotnet/api/system.net.security.remotecertificatevalidationcallback?view=netframework-4.8.1
+No global callback, certificate-validation override or Windows trust-store mutation is introduced.
+An overall 15-second wait deadline and Cancel check bound the operation's waits. Platform DNS/Schannel cleanup can outlive a canceled wait; no late callback changes the sealed result.
+Failed connect, timeout, cancellation and missing certificate each remain incomplete evidence. None becomes a certificate-block claim.
+No browser session is intercepted, and no browser's verifier is invoked by this check.
+
+PEER AND CHAIN
+Retain exact full peer certificate DER and each returned X509ChainElement's DER and status.
+Subject/issuer CN, full DN in Details, both certificate hashes and complete-SPKI SHA-256 come from the presented certificate.
+The supplied Windows chain is shown in its returned order; no hash-derived parent links or invented issuer-store paths.
+Microsoft term: X509ChainElement.ChainElementStatus / X509ChainStatusFlags [documented].
+https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509chainstatusflags?view=netframework-4.8.1
+Revoked is attached to the element that reports it. Unknown/offline remains unknown.
+No reported revocation error is not proof that fresh online revocation information was retrieved.
+This optional SslStream chain display does not implement the planned CertGetCertificateChain multiple-simple-chain bracket.
+
+BROWSER ACTION
+Dated vendor action, scope, source and tag remain distinct from the result of this kisib connection.
+Local Chrome, Firefox/LibreWolf, Edge and other application decisions remain unknown until independently observed.
+Microsoft term for the local Windows comparison: SslPolicyErrors [documented]. Chrome CRLSets are Google's term and have no Microsoft equivalent.
+https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslpolicyerrors
+
+CONTINUING HISTORY
+With Journal off, optional checks remain session evidence; no new history directory is created.
+With Journal on, each completed/canceled/failed manual check appends time, hostname, certificate hash when observed, outcome and catalog identity. The write syncs before reporting retained success.
+With Archive also on, an immutable hash-addressed object retains public peer DER, returned chain evidence and the original check result.
+Microsoft term: FileStream.Flush(Boolean) [documented]; app recording behavior [to test].
+https://learn.microsoft.com/en-us/dotnet/api/system.io.filestream.flush
+Existing history remains available when recording is turned off. No backup or certificate-store import/write is added.
+
+VERIFICATION
+Source/data checks plus owned loopback tests exercise malformed input, source schema, 10025 synthetic hash records, deadlines, cancellation and history separation.
+Disposable hosted Windows adds a temporary self-signed TLS server and checks that actual SslStream rejects it while recording exact peer DER and returned chain errors.
+The temporary private key is created/deleted only in the CI VM and never enters a download or Test.cmd.
+GUI tests verify the optional tree, bounded misses, invalid-host rejection, chain rendering and return to unchanged Screen 1.
+The actual production EXE and all prior native, security and GUI checks run on x64 and ARM64.
+Record passing run details in incident-verification.txt after execution; source preparation alone is not runtime verification.
+
+PARKED
+Certificate blocking/purpose changes, user-PC acceptance, country CSV integration, syscall expansion, real browser decisions, full-chain bracket, CT monitoring and CTL/CCADB refresh remain separate tasks.

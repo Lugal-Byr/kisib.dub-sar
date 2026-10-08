@@ -53,3 +53,11 @@ Microsoft term: CertGetCertificateChain / CertVerifyCertificateChainPolicy; OS c
 https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certgetcertificatechain
 https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certverifycertificatechainpolicy
 No enforcement, chain build, country-data substitution, purpose write, certificate import/delete, or reboot action is implemented here.
+
+2026-10-07 SCOPE UPDATE — USER SAID START AFTER INCIDENT DISCUSSION
+The user authorized starting the optional incident/TLS evidence work.
+F152-F158 add a separate classic dialog under View > Optional features.
+Opening it performs only local source lookup; TLS starts only on Inspect TLS.
+The default Screen 1 layout and its user-PC acceptance remain unchanged/pending.
+S2 blocking, country CSV integration and S4 playoff views stay parked.
+See incident-evidence.txt for exact scope, evidence boundaries and verification.
