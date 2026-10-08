@@ -1,11 +1,72 @@
 kisib.dub-sar — current Screen 1 verification
 2026-10-08 UTC
 
-Fresh hosted Windows verification of the scope correction is pending.
-Do not apply the historical incident-preview result to this changed build.
-This file will record the exact tested-code commit, run, environments, assertion
-counts and executable/download hashes after verification succeeds.
+Tested application code commit: 3f6162686978a8b8022be2059ce4384d19c71927
+Passing run: https://github.com/Lugal-Byr/kisib.dub-sar/actions/runs/37716699485
+Scope: docs/current-task-and-roadmap.txt; Screen 1 only.
 
-User-PC acceptance remains to test: LOCAL_MACHINE > Root expanded, actual
-physical siblings/counts visible, FNMT typed into Find. No PC access is available.
-The supplied CSV is unchanged and not loaded before the S3 gate opens.
+HOSTED WINDOWS EVIDENCE
+Windows Server 2022 x64: Microsoft Windows NT 10.0.20348.0; AMD64; 64-bit test process.
+Windows 11 ARM64 host: Microsoft Windows NT 10.0.26200.0; ARM64; 64-bit test process.
+Both use CLR 4.0.30319.42000 and the Windows .NET Framework compiler.
+Each passed 160 core assertions, 7 exploit regressions, 16 native collector
+assertions, 29 native GUI checks and 2 actual-EXE open/close checks.
+214 checks per host; 428 combined. Both jobs and the full run succeeded.
+Compiler reports and environment records were retained with the artifacts.
+CS0649 warnings concern legacy fields populated by DataContract deserialization;
+the retained-record/catalog decoding checks pass. No S3 country view is loaded.
+Linux source/data audit: 60 assertions passed; separate from Windows runtime tests.
+
+SCREEN 1 CHECKED [to test until user-PC acceptance]
+Actual Windows store enumeration and native read-only opens.
+All reported location/system/physical nodes, observed empty siblings and counts.
+Typed grey documentation references; incomplete reads never assert absence.
+Exactly eight columns, CN/O short labels, separate C= and full DNs below.
+Dynamic Store/Error list; native FNMT Find retains all LOCAL_MACHINE Root children.
+A Find miss leaves native paths/counts unchanged.
+Only four optional switches, unchecked on launch; no default history directory.
+No grouping, app, CAPI2-setting, incident/TLS or later-stage entry points.
+Journal/archive opt-ins cannot expose future views; disabling keeps old records.
+Closing stops owned collectors; normal compiled-EXE open and close succeed.
+
+EXPLOIT REGRESSIONS
+Seven owned temporary-fixture tests per host cover retained-file/link boundaries,
+untrusted paging/size/schema input and explicit failure handling. These are
+regression checks, not proof against every possible exploit.
+The certificate API boundary stays read/enumerate/cleanup only. No trust-store
+mutation, private-key acquisition, import, delete or purpose write is implemented.
+Hosted collector probes temporarily configure diagnostics and start their owned
+capture in disposable VMs. The product exposes no CAPI2-setting action;
+Test.cmd does not enable diagnostics or start native capture on a consumer PC.
+
+DELIVERED EXECUTABLE
+Unsigned AnyCPU EXE: x64-hosted compiled and tested artifact.
+SHA-256: DC10D555DE8575ABA3A46899E1941B84C92CA9AE7DA6180DD454F30607F017D6
+Same source separately compiled/tested on the ARM64 Windows host:
+SHA-256: EB0ABF16D13A067F7F430F89E18B72A2DF0038FE5CA9874CBE6925E843A9E51D
+Compiler outputs differ; the download includes the x64-tested build.
+Artifact CRC, GitHub artifact digest, tested commit and EXE digest were verified
+before packaging. The executable is copied unchanged from the passing artifact.
+
+SUPPLIED COUNTRY DATA
+countries_monarchy_bric.csv SHA-256:
+4b38d9d33a76e9b6f30fea822757450ebf0df6458b652fd5b304f0a041adaaeb
+Saved byte-for-byte for S3; it is not loaded by Screen 1.
+S2-S6 are documented requirements, not newly built code, stubs or scaffolds.
+Historical implementations and tests remain traceable in Git.
+
+OWN-PC ACCEPTANCE — STILL TO TEST
+No access to the user's PC was available. Hosted screenshots are internal
+visual/regression evidence, never acceptance from the user's machine.
+Extract the full folder; open kisib.dub-sar.exe; leave Optional features off.
+Expand LOCAL_MACHINE > Root, type FNMT into Find, take the whole-window screenshot
+on that Windows 11 Home/Pro PC. Children/counts must be what Windows reports;
+absent documented siblings stay grey references. Review it before unlocking S2.
+
+This is an unsigned preview. Windows 11 Home/Pro acceptance and Microsoft Store
+packaging/submission are not established by these hosted checks.
+Microsoft terms, Learn URLs and documented/to test tags: feature-sources.csv.
+
+DOWNLOAD ZIP
+Filename: kisib-dub-sar-screen1-current.zip
+SHA-256: ace6cb8650a044332b70da8ce673a8c03a6757b78d97271b2696562c1f1f3267

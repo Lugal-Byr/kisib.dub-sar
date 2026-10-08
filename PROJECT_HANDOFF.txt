@@ -15,9 +15,18 @@ evidence, clock-sanity rules and read-only Explorer hook, is saved verbatim.
 
 Repository: https://github.com/Lugal-Byr/kisib.dub-sar
 Working branch: codex/windows-verification-2026-10-07
-Current changed source is not yet Windows verified. Fresh hosted checks/download
-are pending; the records below apply only to their historical source revisions.
-Update this header with the exact tested commit, run, counts and hashes after passing.
+Current tested application source: 3f6162686978a8b8022be2059ce4384d19c71927.
+Passing run: https://github.com/Lugal-Byr/kisib.dub-sar/actions/runs/37716699485
+Both hosted Windows jobs passed 214 checks each: 160 core, 7 exploit regressions,
+16 native collector, 29 GUI and 2 actual-EXE checks. Total 428. Source audit: 60.
+Windows Server 2022 x64 and Windows 11 ARM64 host; own-PC acceptance remains pending.
+Delivered file: kisib-dub-sar-screen1-current.zip (unsigned).
+ZIP SHA-256: ace6cb8650a044332b70da8ce673a8c03a6757b78d97271b2696562c1f1f3267
+Included x64-tested AnyCPU EXE SHA-256: DC10D555DE8575ABA3A46899E1941B84C92CA9AE7DA6180DD454F30607F017D6
+Companion report: kisib-dub-sar-screen1-current-verification.txt.
+Documentation-only follow-up records these results without changing tested code.
+CS0649 compiler warnings concern retained serializer-populated legacy fields;
+compiler logs are included. These warnings do not claim implemented S3 views.
 
 Own-PC Screen 1 acceptance remains TO TEST. No access to the user's PC is available.
 Extract the new Screen 1 download; open kisib.dub-sar.exe; leave Optional features off.

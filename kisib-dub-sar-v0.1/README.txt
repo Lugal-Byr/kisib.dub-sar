@@ -2,7 +2,7 @@ kisib.dub-sar v0.1 — Screen 1
 Windows 11 Home / Pro; read-only certificate explorer
 
 Open kisib.dub-sar.exe from the fully extracted download folder.
-Source launch: Start.cmd. Optional source compilation: Build.cmd.
+The source repository includes Start.cmd and the optional Build.cmd compiler command.
 Neither launcher requests elevation, changes execution policy or downloads code.
 
 Classic Explorer: tree left, list right, details below.
