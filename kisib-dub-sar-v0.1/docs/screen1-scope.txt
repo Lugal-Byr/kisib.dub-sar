@@ -1,63 +1,66 @@
-kisib.dub-sar — Screen 1 scope, 2026-10-07
+kisib.dub-sar — CURRENT TASK: Screen 1 only
+Authoritative scope reset, 2026-10-08 UTC
 
-IMPLEMENT THIS SCREEN ONLY
-Default Store view: actual Windows location > system store > physical store.
-Every native physical sibling stays separate, including observed zero counts.
-Grey reference: a predefined store documented by Microsoft but not returned.
-References are typed separately and never included in observed counts.
-A failed/canceled enumeration is unknown, not evidence of absence.
-CN then O for certificate names; C= as a separate short code. Full DNs only in Details.
-List: Subject CN | Issuer CN | C= | found in (physical stores) | not-before | not-after | SHA-1 | SHA-256.
-All former key size/algorithm/signature/SPKI and weakness fields remain in Details.
-The status-bar error link opens source store and original Windows error.
-Journal, public archive, 60-second scan, CAPI2 and syscall capture are off each launch.
-No automatic recording directory is created. Existing logs are never deleted.
-A Journal-only session appends observations without saving public certificates or inventories.
-Archive requires Journal; CAPI2/ETL collectors require Archive for retained evidence.
-Record switches change only between scans while capture is stopped.
+Full user instruction: current-task-and-roadmap.txt.
+Build only CURRENT TASK. Stages unlock after the preceding acceptance passes.
+Do not build, stub or scaffold future stages. CURRENT TASK wins conflicts.
 
-FEATURE REGISTER
-F143-F151 in function-catalog.csv and feature-sources.csv give Microsoft terms, Learn URLs and documented/to test tags.
-Microsoft documents the underlying APIs. Custom display/filter/count/reference behavior and user-PC acceptance are to test.
-System Store Locations: https://learn.microsoft.com/en-us/windows/win32/seccrypto/system-store-locations [documented]
-CERT_RDN_ATTR: https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_rdn_attr [documented]
+CURRENT IMPLEMENTATION [to test]
+Win95 Explorer: branching tree left, list right, details below.
+Only real paths: location > system store > physical store. No grouping switch.
+Every reported physical store stays separate with its observed count, zero included.
+Grey “not present” items are documentation references, typed separately and excluded
+from observed store/counts. Failed/canceled enumeration stays unknown/incomplete.
+LOCAL_MACHINE Root documents .Default .AuthRoot .GroupPolicy .Enterprise .SmartCard.
+CURRENT_USER Root documents .Default .LocalMachine .SmartCard.
+Windows enumeration is authoritative; never substitute this documentation list.
+Names: CN then O. C= is a small separate subject-country code. Full DNs are below.
+Exactly Subject CN, Issuer CN, C=, found in (physical stores), not-before,
+not-after, SHA-1, SHA-256. Existing security metadata remains in Details only.
+Find changes rows, never native paths or counts.
+The dynamic “N errors” status link opens exact Store/Error rows.
+Exactly four switches OFF every launch: journal, archive, 60-second auto scan,
+syscall capture. No default persistent writer, repeating scan or trace.
+Archive requires Journal; existing archive/ETL security is retained.
+No country/owner/group decisions, application inventory, CAPI2-setting action,
+incident/TLS window or Enabled/Blocked category nodes in Screen 1.
+The user CSV is unchanged, saved for S3 and not loaded by Screen 1.
+No certificate import, delete, purpose change, trust write or private-key access.
+
+MICROSOFT TERMS / SOURCES
+System Store Locations [documented]:
+https://learn.microsoft.com/en-us/windows/win32/seccrypto/system-store-locations
+CertEnumSystemStoreLocation / CertEnumSystemStore / CertEnumPhysicalStore [documented]:
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certenumsystemstorelocation
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certenumsystemstore
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certenumphysicalstore
+CertEnumCertificatesInStore [documented; custom counts/display to test]:
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certenumcertificatesinstore
+CERT_RDN_ATTR [documented; short-name decoder to test]:
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_rdn_attr
+TextBox.TextChanged / ListView [documented; filtering to test]:
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.textbox.textchanged
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.listview
+LinkLabel.LinkClicked / GetLastError [documented; error dialog to test]:
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.linklabel.linkclicked
+https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror
+MenuItem.Checked / Timer.Enabled [documented; startup/opt-in behavior to test]:
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.menuitem.checked
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.timer.enabled
+See feature-sources.csv for all retained term/source/tag entries.
 
 ACCEPTANCE — USER PC, NOT CI [to test]
-Run the updated EXE on the user's Windows 11 machine.
-Leave Optional features off. Expand LOCAL_MACHINE > Root.
-Type FNMT into Find. Physical siblings must follow Windows enumeration.
-.Default, .AuthRoot, .GroupPolicy and .Enterprise are separate if Windows reports them.
-Unreturned documented names appear only as grey not-present references.
-Capture the whole window on this PC. No remote access to that PC is available in this session.
-Hosted Windows test evidence may validate compilation/runtime behavior, never this acceptance requirement.
+Open this EXE on the user's Windows 11 Home/Pro PC. Leave Optional features off.
+Expand LOCAL_MACHINE > Root, type FNMT into Find, take the whole-window screenshot.
+Each reported physical child has its own count; absent documented children are grey.
+.Default .AuthRoot .GroupPolicy .Enterprise are separate if Windows reports them.
+No access to that PC is available here. Hosted tests cannot pass this acceptance.
+S2 remains locked until this screenshot is reviewed; future stages remain documents.
+Do not create later-stage code, placeholders or data templates.
 
-PARKED ROADMAP — NO IMPLEMENTATION IN THIS CHANGE
-S2: ENABLED/BLOCKED under category branches; BLOCKED never means certificate deletion.
-Proposed Disallowed store/purpose changes require chain-policy and reboot checks [to test].
-Current labels are user requests, not proof that software can or cannot use a cert.
-Microsoft term: Disallowed system store / CertSetCertificateContextProperty / CERT_ENHKEY_USAGE_PROP_ID [documented API; enforcement to test].
-https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certsetcertificatecontextproperty
-https://learn.microsoft.com/en-us/windows-server/identity/ad-cs/configure-trusted-roots-disallowed-certificates
-History: append-only time/hash/old-state/new-state/change-source, with prior-date scope [to test].
-Microsoft term: FileStream; custom state-history schema [to test].
-https://learn.microsoft.com/en-us/dotnet/api/system.io.filestream
-S3: switch country | tag group | store | status | key/signature strength | expiry; stacked tags [to test].
-Country rows include zero roots-in-store. Join C= to iso2 of data/countries_monarchy_bric.csv [to test].
-The provided CSV is preserved byte-for-byte; source says draft from memory, Claude. These classifications are user draft data, not verified facts.
-Subject and issuer C= are certificate declarations, not verified political affiliation.
-CSV integration replaces no live classification in this Screen 1 change.
-Microsoft term: TreeView / CERT_RDN_ATTR; custom grouping [to test].
-https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.treeview
-S4: playoff grid issuers > category > Enabled/Blocked > software on PC [to test].
-Microsoft term: CertGetCertificateChain / CertVerifyCertificateChainPolicy; OS chain/purpose checks pending.
-https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certgetcertificatechain
-https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certverifycertificatechainpolicy
-No enforcement, chain build, country-data substitution, purpose write, certificate import/delete, or reboot action is implemented here.
-
-2026-10-07 SCOPE UPDATE — USER SAID START AFTER INCIDENT DISCUSSION
-The user authorized starting the optional incident/TLS evidence work.
-F152-F158 add a separate classic dialog under View > Optional features.
-Opening it performs only local source lookup; TLS starts only on Inspect TLS.
-The default Screen 1 layout and its user-PC acceptance remain unchanged/pending.
-S2 blocking, country CSV integration and S4 playoff views stay parked.
-See incident-evidence.txt for exact scope, evidence boundaries and verification.
+CURRENT VERSUS HISTORICAL
+Prior reachable issuer/country/application/CAPI2/incident controls were removed.
+Git keeps the old implementations and evidence; register IDs stay stable and parked
+entries are marked historical. Existing unused record codecs remain for retained
+history compatibility; no new later-stage scaffold was added.
+Older incident and broader Windows verification documents are historical records.

@@ -1,0 +1,108 @@
+PROJECT: kisib.dub-sar, Windows certificate explorer.
+Win95 Explorer look: tree left, list right, details
+below. Read-only until a stage says otherwise.
+
+HOW TO READ THIS
+Build ONLY the CURRENT TASK. The ROADMAP is later,
+not never: each stage unlocks when the previous one
+passes its acceptance check. Do not build, stub or
+scaffold roadmap items. If they conflict, the current
+task wins. Do not hardcode country or group
+decisions; read them from the CSV files.
+RULES: give each feature Microsoft's term and Learn
+URL, tagged documented or to test. Never invent
+columns or tree nodes.
+
+=== CURRENT TASK: SCREEN 1 ONLY ===
+Change nothing else.
+LEFT TREE default = real paths:
+  location > system store > physical store
+  Short labels (CN or O), never full DNs. C= as a
+  small code beside each. Full DN in details only.
+  Show every physical store Windows reports, with
+  its count, zero included. A documented store that
+  is absent shows greyed "not present". Never
+  invent nodes.
+  (Local Machine Root merges .Default .AuthRoot
+  .GroupPolicy .Enterprise .SmartCard. Current User
+  Root merges .Default .LocalMachine .SmartCard.)
+LIST columns: Subject CN, Issuer CN, C=, found in
+  (physical stores), not-before, not-after,
+  SHA-1, SHA-256.
+STATUS BAR: "8 errors" opens a list: store, error.
+PARK behind off-by-default toggles: journal,
+  archive, 60-second auto scan, syscall capture.
+ACCEPTANCE: screenshot from my PC, not CI:
+  LOCAL_MACHINE > Root expanded, children as
+  Windows reports them, and FNMT typed into Find.
+
+=== ROADMAP (do not build yet) ===
+S2 ENABLED / BLOCKED groups under every category
+   branch. BLOCKED = never delete (Windows may
+   reinstall); block by moving to the Disallowed
+   store or disabling purposes, re-check after a
+   chain build and a reboot. [to test]
+   GROUP BLOCK: dry run first (certs touched, apps
+   seen using them), then one history entry per
+   hash, undoable as a single action.
+   HISTORY button: append-only log (time, cert
+   hash, old state, new state, source of change).
+S3 TREE VIEWS: country | tag group | store |
+   status | key and signature strength | expiry.
+   A cert can sit in several branches (tags stack).
+   DATA, local CSVs, header = definition, source,
+   date:
+   countries_monarchy_bric.csv, joined on the
+   cert's C= (ISO 3166-1 alpha-2); roots-in-store
+   per country, zero rows included.
+   owners.csv: ca_owner, owner_type, basis, reach,
+   parent_country, tags, source, date (join on
+   CCADB CA Owner).
+   Program status (Microsoft CTLs and notices,
+   CCADB). Flagged orgs: documented distrust and
+   user flags in separate columns.
+   COLUMNS: key algorithm and size, signature
+   algorithm, SPKI SHA-256. Flags: RSA under 2048,
+   MD5 or SHA-1 signature, same SHA-1 with a
+   different SHA-256 (red), same SPKI SHA-256 under
+   different subjects.
+   Keep three country notions separate: registry
+   country, cert C= claim, issuer owner.
+S4 GRIDS: standings-style, sortable. Rows = CA
+   owners grouped by country. Columns = roots,
+   intermediates, expiring in 12 months, Microsoft
+   status, Mozilla status, tags. Cell colors by
+   status. Branch grid, playoff style: issuers >
+   category branch > Enabled/Blocked > "what
+   software on this PC can use".
+   CHAIN VIEW, bracket left to right, built with
+   CertGetCertificateChain; draw what it returns.
+   Cards: SHA-256, SHA-1, found in, trust status,
+   program status, tags. Under each card a hash
+   strip: key > list > value, with hits, misses
+   and list dates.
+S5 OBSERVED CERTS: issued (CT logs) > encountered
+   (CAPI2 events: the cert a site presented) >
+   decision (which app accepted it). Incident list
+   CSV: hash, source, date. Show revocation
+   evidence and per-browser block status.
+   Separate states: DNS-blocked (outside the app,
+   observed), trust-blocked (our group block),
+   revocation lookup failed (CAPI2 event + process).
+   Flags: "issuer owner = site owner", "issuing CA
+   changed for this domain".
+   CLOCK SANITY: status bar ok | suspect. Suspect
+   if the clock is below the newest not-before in
+   the store, jumped back or ahead of the last
+   journal entry past a threshold, or nearly every
+   cert reads expired at once. Record the Windows
+   Time source and peers each scan; flag "time
+   source changed". While suspect: banner, all
+   date-based status = "unverifiable", and list
+   the "survivors" whose dates still pass. One
+   shared jump detector, clock now, other data later.
+S6 EXPLORER HOOK: .cer .crt .pfx .p7b .sst open in
+   kisib, read-only view first (hashes, issuer,
+   C=, tags). Never auto-install from a file.
+   Never show or export private keys. Default-app
+   choice stays with the user.

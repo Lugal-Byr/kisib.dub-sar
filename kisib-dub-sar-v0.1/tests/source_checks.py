@@ -1,6 +1,7 @@
 """Source audit only. Does not compile C# or execute Windows APIs."""
 from pathlib import Path
 import csv
+import hashlib
 import json
 import re
 import xml.etree.ElementTree as ET
@@ -55,7 +56,7 @@ with (root / "docs/function-catalog.csv").open(encoding="utf-8", newline="") as 
 check([row["function_id"] for row in functions] == ["F%03d" % i for i in range(1, 159)] and all(row["microsoft_term"] and row["learn_url"].startswith("https://learn.microsoft.com/") and row["tag"] in ("documented", "to test") for row in functions), "All 158 stable function IDs retain source/tag fields")
 check(all(row["tag"] == "to test" for row in functions[111:142]), "New application/issuer/ETW implementations remain to test")
 check("MaxCharactersInDocument = 4 * 1024 * 1024" in source and "DtdProcessing = DtdProcessing.Prohibit" in source and "XmlResolver = null" in source, "CAPI2 parser prohibits DTD/external resolution and bounds interpreted XML")
-check('history.RecordActivity(activity)' in source and '!checkpointBlocked && record.Bookmark != null' in source and 'hold' in source.lower(), "CAPI2 source declares durable-before-checkpoint ordering and visible gap handling")
+check('history.RecordActivity(activity)' in source and '!checkpointBlocked && record.Bookmark != null' in source and 'if (!saved) { checkpointBlocked = true;' in source, "CAPI2 source declares durable-before-checkpoint ordering and visible gap handling")
 check('a.Covers(time.ToUniversalTime())' in source and 'ProcessId + "|" + (StartedUtc' in source, "PID correlation declares observed lifetime checks rather than name/PID-only identity")
 check('Name = "kisib.dub-sar.Syscalls." + id' in source and 'EtwNative.ControlTraceW(session, Name, properties, 1)' in source and 'settings.EnableFlags = 0x00000080' in source, "Syscall controller declares unique ownership and the documented system-call provider flag")
 check('settings.MaximumFileSize = 512' in source and 'samplesThisSecond > 500' in source and 'Original ETL page, without live display sampling' in source, "ETL ceiling and separate live display budget are explicit; original archive pager declared")
@@ -65,24 +66,24 @@ countries = catalog["Countries"]
 check(catalog["Version"] == 1 and len(countries) == 248 and len({c["Code"] for c in countries}) == 248 and all(re.fullmatch(r"[A-Z]{2}", c["Code"]) and re.fullmatch(r"[A-Z]{3}", c["Alpha3"]) and re.fullmatch(r"[0-9]{3}", c["M49"]) and c["Name"] and c["Source"] and c["Date"] for c in countries), "Country seed preserves 248 unique sourced UN rows and valid code fields")
 positive = [c for c in countries if c["Monarchy"] == "monarchy"]
 check(len(positive) == 43 and all(c["MonarchySource"] and c["MonarchyDate"] and c["MonarchyTag"] == "to test" for c in positive) and all(c["Monarchy"] == "unknown" for c in countries if c not in positive), "Positive monarchy mappings are sourced/to-test; remaining statuses are explicitly unknown")
-check('"BR", "RU", "IN", "CN"' in source and 'tags.Add("🌿"); tags.Add("🧱")' in source and 'if (code == "RU") tags.Add("🇷🇺")' in source, "Original BRIC and Russia use independent requested tags")
+check('tags.Add("🌿")' not in source and 'tags.Add("🧱")' not in source and 'if (code == "RU")' not in source, "No hardcoded country-to-affiliation decisions")
+check(hashlib.sha256((root / "data/countries_monarchy_bric.csv").read_bytes()).hexdigest() == "4b38d9d33a76e9b6f30fea822757450ebf0df6458b652fd5b304f0a041adaaeb", "Supplied country CSV remains byte-for-byte unchanged for the S3 gate")
 manifest = ET.parse(root / "app.manifest")
 privilege = manifest.find(".//{urn:schemas-microsoft-com:asm.v3}requestedExecutionLevel")
 check(privilege is not None and privilege.attrib["level"] == "asInvoker", "Optional executable manifest requests ordinary user privilege")
 check(not any(path.suffix.lower() in (".pfx", ".p12", ".pem", ".key") for path in root.rglob("*")), "No private-key file in package")
 check(not re.search(r"ExecutionPolicy|RunAs|Invoke-WebRequest|DownloadString", (root / "Start.cmd").read_text(), re.I), "Launcher has no policy bypass, elevation, or download")
-check('Path.Combine(Environment.SystemDirectory, "mmc.exe")' in source and "UseShellExecute = false" in source and 'Process.Start("eventvwr.msc")' not in source, "Event Viewer uses an explicit system executable with shell execution disabled")
-check('"Store", "Issuer"' in source and 'groupBy.SelectedIndex = 0' in source and 'if (Convert.ToString(groupBy.SelectedItem) == "Store") return;' in source, "Native store paths are the default view")
+explorer = "\n".join((root / ("src/" + name)).read_text() for name in ("ExplorerForm.cs", "ControlExplorer.cs", "ScreenOne.cs"))
+check('EventLogConfiguration' not in explorer and 'SaveChanges' not in explorer and 'Process.Start(' not in explorer, "Screen 1 has no diagnostic-channel write or external-tool action")
+check('groupBy' not in explorer and 'ExplorerScope' not in explorer and 'new ComboBox' not in (root / 'src/ControlExplorer.cs').read_text(), "Native store paths are the only tree view; no category scaffold or view switch")
+check('CountryCatalog.Read' not in explorer and 'new IssuerLabels' not in explorer and 'RefreshApplications' not in explorer and 'activity.Restart' not in explorer, "Screen 1 never loads country decisions, inventories apps or starts CAPI2")
+check('options.MenuItems.AddRange(new MenuItem[] { journalToggle, archiveToggle, autoScanToggle, syscallToggle })' in explorer and 'capi2Toggle' not in explorer and 'additionalViewsToggle' not in explorer, "Only the four requested off-by-default optional switches are exposed")
+check('CertificateRecord[]' not in (root / "src/ControlExplorer.cs").read_text() and 'TabPage certificates = new TabPage("Certificates")' in explorer, "No issuer, country, application or branch-grid construction in Screen 1")
 check('this.archiveDirectory = archiveDirectory;' in source and 'this.sourceDirectory = sourceDirectory;\n            try { history' not in source, "Default GUI creates no persistent archive writer")
 check('historyTimer.Start();' not in (root / "src/ExplorerForm.cs").read_text(), "Default window does not start the repeating scan timer")
 check('StoreErrors.Add(new StoreError' in source and 'errorsLink.LinkClicked' in source, "Error UI is bound to structured observed source errors")
 check('DocumentedStoreReference' in source and 'SystemColors.GrayText' in source and 'enumeration incomplete' in source, "Absent documentation references remain separate and incomplete reads stay unknown")
-incident = json.loads((root / "data/certificate-incidents.json").read_text())
-check(incident["Version"] == 1 and len(incident["Incidents"]) == 1 and incident["Incidents"][0]["Hashes"] == [], "Incident seed retains unknown exact fingerprints rather than copying unverified hashes")
-check({n["Suffix"] for n in incident["Incidents"][0]["Namespaces"]} == {"gh", "sl", "as"}, "Historical registry namespaces remain separate from certificate country claims")
-check("SslProtocols.None, true, callback, state" in source and "captured && errors == SslPolicyErrors.None" in source and "new X509CertificateCollection()" in source, "Manual TLS uses OS protocols and revocation checking without a validation bypass or client certificate")
-check("return RunEndpoint(normalized, normalized, 443" in source and "TlsInspection.Run(host, token)" in source, "Product TLS entry point uses only a manually submitted canonical hostname on port 443")
-check("manual_tls_observation" in source and "if (archiveCertificates)" in source, "TLS history retains separate journal-only and public-archive behavior")
-report = "Source/data audit completed in Linux; these source assertions are separate from the hosted Windows runtime tests.\n\n" + "\n".join("PASS: " + label for label in checks) + "\n\nRuntime evidence: docs/windows-verification-report.txt. Manual Windows 11 Home/Pro gate remains pending.\n"
+check('TlsInspection' not in source and 'IncidentForm' not in source and 'manual_tls_observation' not in source and not (root / "data/certificate-incidents.json").exists(), "Later-stage TLS/incident implementation is removed from the active build")
+report = "Source/data audit completed in Linux; these source assertions are separate from the hosted Windows runtime tests.\n\n" + "\n".join("PASS: " + label for label in checks) + "\n\nCurrent runtime evidence: docs/screen1-verification.txt. User-PC Screen 1 acceptance remains to test; historical country data is not loaded by Screen 1.\n"
 (root / "docs/source-checks.txt").write_text(report, encoding="utf-8")
 print(report)

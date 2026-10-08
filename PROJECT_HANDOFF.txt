@@ -1,3 +1,42 @@
+CURRENT HANDOFF — SCREEN 1 ONLY, 2026-10-08 UTC
+Authoritative instruction: kisib-dub-sar-v0.1/docs/current-task-and-roadmap.txt.
+Build only CURRENT TASK. S2-S6 are documentation, not code/stubs/scaffolds.
+Each stage unlocks only after the previous acceptance passes. Current task wins conflicts.
+The previous optional incident authorization is superseded by this scope reset.
+
+Current work: real Windows location > system store > physical store only; exactly
+8 columns; short CN/O labels and separate C=; error-count link; Find preserves all
+paths/counts; four off-by-default journal/archive/auto-scan/syscall switches.
+Removed category/application/label/CAPI2-setting entry points and the incident/TLS
+module from the active build. No hardcoded country-to-affiliation assignment remains.
+The supplied country CSV stays unchanged for S3; Screen 1 does not load it.
+The full S2-S6 roadmap, including owners CSV, group dry run/undo, observed decision
+evidence, clock-sanity rules and read-only Explorer hook, is saved verbatim.
+
+Repository: https://github.com/Lugal-Byr/kisib.dub-sar
+Working branch: codex/windows-verification-2026-10-07
+Current changed source is not yet Windows verified. Fresh hosted checks/download
+are pending; the records below apply only to their historical source revisions.
+Update this header with the exact tested commit, run, counts and hashes after passing.
+
+Own-PC Screen 1 acceptance remains TO TEST. No access to the user's PC is available.
+Extract the new Screen 1 download; open kisib.dub-sar.exe; leave Optional features off.
+Expand LOCAL_MACHINE > Root, type FNMT into Find, take the complete-window screenshot
+there. Returned children/counts must be Windows observations; absent documented
+siblings stay grey references. A CI screenshot never passes this gate. S2 stays locked.
+Every feature needs a Microsoft term, Learn URL and documented/to test tag.
+Keep observed membership, certificate country claim, issuer ownership, actual app use,
+requested policy and verified enforcement distinct. Do not invent certainty.
+No trust-store write/private-key access or main-branch merge/release was authorized.
+
+Current docs: screen1-scope.txt, current-task-and-roadmap.txt, windows-acceptance.txt,
+roadmap-sources.csv, screen1-verification.txt and the stable feature/function registers.
+Historical implementations remain in Git; existing unused codecs are retained for
+old-record compatibility. No future feature may be exposed through an opt-in panel.
+
+The records below are historical. Their scope/readiness statements are superseded
+where they conflict with the current task. Keep them for provenance, not authorization.
+
 LATEST WORK — OPTIONAL INCIDENT EVIDENCE, 2026-10-07
 The user said “start!” after reviewing the October ccTLD certificate incident and our proposed evidence work.
 This authorizes the separate optional TLS/incident dialog (F152-F158), while preserving the default Screen 1 and its pending user-PC acceptance.

@@ -217,9 +217,6 @@ namespace Kisib
         internal string[] Tags(CertificateRecord certificate)
         {
             string code = Country(certificate); SortedSet<string> tags = new SortedSet<string>(StringComparer.Ordinal);
-            if (new string[] { "BR", "RU", "IN", "CN" }.Contains(code)) { tags.Add("🌿"); tags.Add("🧱"); }
-            if (code == "RU") tags.Add("🇷🇺");
-            if (Monarchy(code) == "monarchy") tags.Add("👑");
             CertificateLabel label = Label(certificate); AddTags(tags, label == null ? null : label.Tags);
             CountryLabel country = CountryOverride(code); AddTags(tags, country == null ? null : country.Tags);
             return tags.ToArray();
@@ -247,7 +244,6 @@ namespace Kisib
             text.AppendLine("Requested policy: " + Policy(certificate) + " | OS enforcement: not implemented");
             text.AppendLine("Label source/date: " + (labels == null ? "Unassigned" : labels.Source + " | " + labels.Date));
             text.AppendLine("Label version: " + Annotations.Id + " | " + Annotations.Utc);
-            text.AppendLine("BRIC rule uses the four original BR/ RU/ IN/ CN codes requested by the user; expanded BRICS membership is a separate pending dataset.");
             text.AppendLine("Country metadata and owner labels identify grouping evidence. They do not establish control over a certificate or an application's actions.");
             if (facts.Error != null) text.AppendLine("Name decoding: " + facts.Error);
             text.AppendLine("Microsoft: X500DistinguishedName.RawData; X509Certificate2.IssuerName / SubjectName. Extraction and label mapping: to test.");

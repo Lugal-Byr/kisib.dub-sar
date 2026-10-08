@@ -140,7 +140,7 @@ namespace Kisib
             detailTabs.TabPages.Add(detailTab); detailTabs.TabPages.Add(issuerTab);
             right.Panel2.Controls.Add(detailTabs);
             outer.Panel2.Controls.Add(right);
-            InitializeControlLayer(outer, right, toolbar, detailTabs, menu);
+            InitializeControlLayer(outer, right, detailTabs, menu);
 
             Panel statusBar = new Panel { Dock = DockStyle.Bottom, Height = 25, BorderStyle = BorderStyle.Fixed3D };
             status.Dock = DockStyle.Fill;
@@ -181,7 +181,6 @@ namespace Kisib
                 try
                 {
                     scanner = new Scanner(delegate(string message) { Post(delegate { status.Text = HistoryStatus() + " | " + message; }); }, delegate { return closed; }, history);
-                    if (activity != null && activityTimer.Enabled) activity.RefreshApplications();
                     Snapshot result = scanner.Run();
                     if (history != null) history.Commit(result);
                     Post(delegate { Display(result); scanning = false; refresh.Enabled = true; refreshMenu.Enabled = true; });
@@ -231,7 +230,6 @@ namespace Kisib
                 }
                 AddDocumentedSystemReferences(location, locationNode);
             }
-            AddControlBranches(root);
             root.Expand();
             foreach (TreeNode child in root.Nodes)
             { StoreLocation location = child.Tag as StoreLocation; if (location != null && (location.Flags == Native.CERT_SYSTEM_STORE_LOCAL_MACHINE || location.Flags == Native.CERT_SYSTEM_STORE_CURRENT_USER)) child.Expand(); }
@@ -256,7 +254,6 @@ namespace Kisib
             if (node == null) return null;
             DocumentedStoreReference reference = node.Tag as DocumentedStoreReference;
             if (reference != null) return "documented:" + reference.Path;
-            ExplorerScope scope = node.Tag as ExplorerScope; if (scope != null) return scope.Key;
             StoreLocation location = node.Tag as StoreLocation;
             SystemStore store = node.Tag as SystemStore;
             PhysicalStore physical = node.Tag as PhysicalStore;
@@ -282,15 +279,8 @@ namespace Kisib
             StoreLocation location = selected as StoreLocation;
             SystemStore system = selected as SystemStore;
             PhysicalStore physical = selected as PhysicalStore;
-            ExplorerScope scope = selected as ExplorerScope;
             DocumentedStoreReference reference = selected as DocumentedStoreReference;
-            if (scope != null)
-            {
-                keys.UnionWith(scope.CertificateKeys);
-                address.Text = "Grouped views\\" + args.Node.FullPath;
-                nodeDetails = scope.Description;
-            }
-            else if (reference != null)
+            if (reference != null)
             {
                 address.Text = reference.Path;
                 nodeDetails = reference.Description;
@@ -342,7 +332,6 @@ namespace Kisib
             list.ListViewItemSorter = new CertificateComparer(sortColumn, ascending); list.Sort(); list.EndUpdate();
             details.Text = nodeDetails;
             issuerDetails.Text = "Select a certificate to inspect its recorded issuer name.";
-            UpdateScopeActivity(scope);
         }
 
         private void DrawCertificateCell(object sender, DrawListViewSubItemEventArgs e)
@@ -416,14 +405,12 @@ namespace Kisib
             text.AppendLine(Source("CERT_PUBLIC_KEY_INFO / SubjectPublicKeyInfo", Sources.Spki));
             text.AppendLine("SPKI encoding extraction and local inspection rules: to test.");
             details.Text = text.ToString();
-            if (labels != null) text.AppendLine(labels.Describe(cert));
             details.Text = text.ToString();
             issuerDetails.Text = "Issuer name recorded in the selected certificate [documented]:\r\n" + cert.Issuer +
                 "\r\n\r\nSelected certificate Subject:\r\n" + cert.Subject + "\r\nSelected certificate SHA-256:\r\n" + cert.Sha256 +
                 "\r\n\r\nIssuer certificate, issuer store, and chain trust: not resolved [to test].\r\n" +
                 "CertGetCertificateChain remains after the machine enumeration gate.\r\n" +
                 "A matching issuer name or hash lookup does not establish an issuer link.\r\n\r\n" + Source("X509Certificate2.Issuer", Sources.Issuer);
-            if (labels != null) issuerDetails.AppendText("\r\n\r\n" + labels.Describe(cert));
         }
 
         private void AppendPeers(StringBuilder text, IEnumerable<string> peers, string label)

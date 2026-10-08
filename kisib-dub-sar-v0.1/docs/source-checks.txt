@@ -8,8 +8,6 @@ PASS: CertificateSignals.cs complete lexical delimiters
 PASS: ControlExplorer.cs complete lexical delimiters
 PASS: ExplorerForm.cs complete lexical delimiters
 PASS: HistoryArchive.cs complete lexical delimiters
-PASS: IncidentEvidence.cs complete lexical delimiters
-PASS: IncidentForm.cs complete lexical delimiters
 PASS: IssuerLabels.cs complete lexical delimiters
 PASS: Models.cs complete lexical delimiters
 PASS: Native.cs complete lexical delimiters
@@ -17,11 +15,9 @@ PASS: Program.cs complete lexical delimiters
 PASS: Scanner.cs complete lexical delimiters
 PASS: ScreenOne.cs complete lexical delimiters
 PASS: SyscallTrace.cs complete lexical delimiters
-PASS: TlsInspection.cs complete lexical delimiters
 PASS: ArchiveVerification.cs complete lexical delimiters
 PASS: ControlVerification.cs complete lexical delimiters
 PASS: GuiVerification.cs complete lexical delimiters
-PASS: IncidentVerification.cs complete lexical delimiters
 PASS: NativeActivityVerification.cs complete lexical delimiters
 PASS: RedTeamVerification.cs complete lexical delimiters
 PASS: Verification.cs complete lexical delimiters
@@ -49,20 +45,20 @@ PASS: ETL ceiling and separate live display budget are explicit; original archiv
 PASS: Application signer declares lifetime/file-read boundaries and leaves signature trust unevaluated
 PASS: Country seed preserves 248 unique sourced UN rows and valid code fields
 PASS: Positive monarchy mappings are sourced/to-test; remaining statuses are explicitly unknown
-PASS: Original BRIC and Russia use independent requested tags
+PASS: No hardcoded country-to-affiliation decisions
+PASS: Supplied country CSV remains byte-for-byte unchanged for the S3 gate
 PASS: Optional executable manifest requests ordinary user privilege
 PASS: No private-key file in package
 PASS: Launcher has no policy bypass, elevation, or download
-PASS: Event Viewer uses an explicit system executable with shell execution disabled
-PASS: Native store paths are the default view
+PASS: Screen 1 has no diagnostic-channel write or external-tool action
+PASS: Native store paths are the only tree view; no category scaffold or view switch
+PASS: Screen 1 never loads country decisions, inventories apps or starts CAPI2
+PASS: Only the four requested off-by-default optional switches are exposed
+PASS: No issuer, country, application or branch-grid construction in Screen 1
 PASS: Default GUI creates no persistent archive writer
 PASS: Default window does not start the repeating scan timer
 PASS: Error UI is bound to structured observed source errors
 PASS: Absent documentation references remain separate and incomplete reads stay unknown
-PASS: Incident seed retains unknown exact fingerprints rather than copying unverified hashes
-PASS: Historical registry namespaces remain separate from certificate country claims
-PASS: Manual TLS uses OS protocols and revocation checking without a validation bypass or client certificate
-PASS: Product TLS entry point uses only a manually submitted canonical hostname on port 443
-PASS: TLS history retains separate journal-only and public-archive behavior
+PASS: Later-stage TLS/incident implementation is removed from the active build
 
-Runtime evidence: docs/windows-verification-report.txt. Manual Windows 11 Home/Pro gate remains pending.
+Current runtime evidence: docs/screen1-verification.txt. User-PC Screen 1 acceptance remains to test; historical country data is not loaded by Screen 1.

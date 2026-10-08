@@ -1,3 +1,7 @@
+HISTORICAL RECORD — superseded by current-task-and-roadmap.txt.
+This document does not authorize a Screen 1 feature or unlock a roadmap stage.
+Prior source/evidence stays in Git; current Screen 1 entry points were removed.
+
 kisib.dub-sar — optional TLS and incident evidence
 Scope authorized by the user's “start!” after the ccTLD incident discussion, 2026-10-07.
 F152-F158 are custom functions [to test], with Microsoft terms and Learn URLs in both registers.

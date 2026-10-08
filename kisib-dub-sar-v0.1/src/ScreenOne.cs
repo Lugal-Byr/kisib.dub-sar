@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Threading;
 using System.Windows.Forms;
 
 namespace Kisib
@@ -19,65 +18,28 @@ namespace Kisib
         private readonly MenuItem archiveToggle = new MenuItem("Archive public certificates [to test]");
         private readonly MenuItem autoScanToggle = new MenuItem("60-second automatic scan [to test]");
         private readonly MenuItem syscallToggle = new MenuItem("Syscall capture [to test]");
-        private readonly MenuItem capi2Toggle = new MenuItem("CAPI2 activity [to test]");
-        private readonly MenuItem additionalViewsToggle = new MenuItem("Application and country panels [to test]");
 
         private static MenuItem viewMenu(MainMenu menu)
         { return menu.MenuItems.Cast<MenuItem>().First(item => item.Text == "&View"); }
 
-        private void InitializeScreenOneOptions(SplitContainer right, FlowLayoutPanel toolbar, TabControl detailTabs, MenuItem view, MenuItem live)
+        private void InitializeScreenOneOptions(MenuItem view)
         {
             MenuItem options = new MenuItem("Optional &features");
-            options.MenuItems.AddRange(new MenuItem[] { journalToggle, archiveToggle, autoScanToggle, capi2Toggle, syscallToggle, additionalViewsToggle });
-            options.MenuItems.Add(new MenuItem("TLS and incident evidence [to test]", delegate { ShowIncidentEvidence(); }));
+            options.MenuItems.AddRange(new MenuItem[] { journalToggle, archiveToggle, autoScanToggle, syscallToggle });
             view.MenuItems.Add(options);
-            archiveToggle.Enabled = false; capi2Toggle.Enabled = false; syscallToggle.Enabled = false;
+            archiveToggle.Enabled = false; syscallToggle.Enabled = false;
             journalToggle.Click += delegate { ChangeRecording(false); };
             archiveToggle.Click += delegate { ChangeRecording(true); };
             autoScanToggle.Click += delegate
             { autoScanToggle.Checked = !autoScanToggle.Checked; if (autoScanToggle.Checked) historyTimer.Start(); else historyTimer.Stop(); };
             syscallToggle.Click += delegate { ToggleSyscalls(); };
-            capi2Toggle.Click += delegate
-            {
-                if (!capi2Toggle.Checked) StartCertificateActivity();
-                else
-                {
-                    StopCertificateActivity();
-                }
-            };
-            TabPage[] resultPages = resultTabs.TabPages.Cast<TabPage>().Skip(1).ToArray();
-            TabPage[] detailPages = detailTabs.TabPages.Cast<TabPage>().Skip(2).ToArray();
-            Control[] extraButtons = toolbar.Controls.Cast<Control>().Skip(2).ToArray();
-            foreach (TabPage page in resultPages) resultTabs.TabPages.Remove(page);
-            foreach (TabPage page in detailPages) detailTabs.TabPages.Remove(page);
-            foreach (Control button in extraButtons) button.Visible = false;
-            live.Visible = false; liveStatus.Visible = false;
-            additionalViewsToggle.Click += delegate
-            {
-                additionalViewsToggle.Checked = !additionalViewsToggle.Checked;
-                foreach (TabPage page in resultPages)
-                    if (additionalViewsToggle.Checked) resultTabs.TabPages.Add(page); else resultTabs.TabPages.Remove(page);
-                foreach (TabPage page in detailPages)
-                    if (additionalViewsToggle.Checked) detailTabs.TabPages.Add(page); else detailTabs.TabPages.Remove(page);
-                foreach (Control button in extraButtons) button.Visible = additionalViewsToggle.Checked;
-                live.Visible = additionalViewsToggle.Checked;
-                liveStatus.Visible = additionalViewsToggle.Checked || capi2Toggle.Checked || syscallToggle.Checked;
-            };
-        }
-
-        private void StopCertificateActivity()
-        {
-            capi2Toggle.Checked = false; Interlocked.Increment(ref activityRequestGeneration); activity.Stop();
-            if (!syscalls.Running) activityTimer.Stop();
-            liveStatus.Visible = additionalViewsToggle.Checked || syscalls.Running;
-            UpdateLiveStatus();
         }
 
         private void ChangeRecording(bool archiveOption)
         {
             // Store readers/collectors retain their configured writer for the whole operation.
-            if (scanning || activityTimer.Enabled || activityStartInProgress != 0 || appRefreshInProgress != 0 || syscalls.Running)
-            { ShowText("Recording options", "Finish the scan and stop CAPI2/syscall capture before changing recording options [to test]."); return; }
+            if (scanning || activityTimer.Enabled || syscalls.Running)
+            { ShowText("Recording options", "Finish the scan and stop syscall capture before changing recording options [to test]."); return; }
             bool enableJournal = archiveOption ? journalToggle.Checked : !journalToggle.Checked;
             bool enableArchive = enableJournal && (archiveOption ? !archiveToggle.Checked : archiveToggle.Checked);
             activity.Dispose(); syscalls.Dispose();
@@ -89,9 +51,8 @@ namespace Kisib
                 catch (Exception ex) { historyStartupError = ex.GetType().Name + ": " + ex.Message; enableJournal = false; enableArchive = false; }
             }
             journalToggle.Checked = enableJournal; archiveToggle.Checked = enableArchive;
-            archiveToggle.Enabled = enableJournal; capi2Toggle.Enabled = enableArchive; syscallToggle.Enabled = enableArchive;
+            archiveToggle.Enabled = enableJournal; syscallToggle.Enabled = enableArchive;
             activity = new ActivityMonitor(history); syscalls = new SyscallTrace(history, activity.Publish);
-            if (enableArchive && labels.Catalog != null) history.RecordCountryCatalog(labels.Catalog);
             status.Text = HistoryStatus(); UpdateLiveStatus();
             if (historyStartupError != null) ShowText("Journal could not open", historyStartupError);
         }
@@ -99,9 +60,10 @@ namespace Kisib
         private bool MatchesFind(CertificateRecord certificate)
         {
             string query = findIssuer.Text.Trim();
-            return query.Length == 0 || (labels != null ? labels.Matches(certificate, query) :
-                (certificate.Subject ?? "").IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                (certificate.Issuer ?? "").IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
+            return query.Length == 0 || new string[] { certificate.Subject, certificate.Issuer, certificate.SubjectShortName,
+                certificate.IssuerShortName, certificate.SubjectCountry, certificate.IssuerCountry,
+                certificate.FoundInText, certificate.Sha1, certificate.Sha256 }.Any(value =>
+                    value != null && value.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
         // Microsoft's table is a reference checklist. Windows enumeration remains authoritative.
@@ -173,16 +135,5 @@ namespace Kisib
         private void ShowStoreErrors()
         { using (Form dialog = CreateStoreErrorsDialog()) dialog.ShowDialog(this); }
 
-        internal IncidentForm CreateIncidentEvidenceDialog()
-        {
-            return new IncidentForm(sourceDirectory, snapshot == null ? new CertificateRecord[0] : snapshot.Certificates.Values.ToArray(), SelectedCertificate(),
-                delegate(TlsObservation observation)
-                {
-                    if (history == null) return "Session evidence only; Journal is off. [to test]";
-                    return history.RecordTlsObservation(observation) ? "TLS observation appended to History. [to test]" : "History write failed: " + history.LastError + " [to test]";
-                });
-        }
-        private void ShowIncidentEvidence()
-        { using (IncidentForm dialog = CreateIncidentEvidenceDialog()) dialog.ShowDialog(this); }
     }
 }

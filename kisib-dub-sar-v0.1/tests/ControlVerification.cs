@@ -51,11 +51,13 @@ namespace Kisib
             check(catalog.Countries.Count(c => c.Monarchy == "monarchy") == 43 && catalog.Find("GB").MonarchySource != null && catalog.Find("RU").Monarchy == "unknown", "Positive monarchy classifications carry sources; remaining statuses are not guessed");
             IssuerLabels labels = new IssuerLabels(catalog, new AnnotationSet());
             labels.Annotations.Certificates.Add(new CertificateLabel { Identity = certificate.Identity, OwnerCountry = "RU", Source = "Synthetic test", Date = "2026-10-06" });
-            check(labels.Tags(certificate).OrderBy(x => x).SequenceEqual(new string[] { "🌿", "🧱", "🇷🇺" }.OrderBy(x => x)), "Russia retains three independent requested tags");
+            check(labels.Tags(certificate).Length == 0, "Country code alone never assigns hardcoded affiliation tags");
             labels.Annotations.Certificates[0].OwnerCountry = "GB";
-            check(labels.Tags(certificate).Contains("👑"), "Monarchy-country grouping supplies the requested crown tag");
+            check(labels.Tags(certificate).Length == 0, "Historical country classification alone never assigns implicit certificate tags");
             labels.Annotations.Countries.Add(new CountryLabel { Code = "GB", Monarchy = "not monarchy", Source = "Synthetic user override", Date = "2026-10-06" });
             check(!labels.Tags(certificate).Contains("👑") && !labels.CountryDisplay("GB").Contains("👑"), "Sourced local classification overrides update both tag and tree display");
+            labels.Annotations.Certificates[0].Tags = "🌿 🧱 🇷🇺";
+            check(labels.Tags(certificate).OrderBy(x => x).SequenceEqual(new string[] { "🌿", "🧱", "🇷🇺" }.OrderBy(x => x)), "Retained explicit annotation tags stay independent of country-code decisions");
 
             string temporary = Path.Combine(Path.GetTempPath(), "kisib-controls-test-" + Guid.NewGuid().ToString("N"));
             try

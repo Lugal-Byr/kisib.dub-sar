@@ -1,3 +1,7 @@
+HISTORICAL RECORD — superseded by current-task-and-roadmap.txt.
+This document does not authorize a Screen 1 feature or unlock a roadmap stage.
+Prior source/evidence stays in Git; current Screen 1 entry points were removed.
+
 kisib.dub-sar — application, issuer and syscall evidence
 Prepared source: 2026-10-07 UTC / 2026-10-06 PDT
 Hosted Windows Server x64 and Windows 11 Enterprise ARM64 runtime tested.

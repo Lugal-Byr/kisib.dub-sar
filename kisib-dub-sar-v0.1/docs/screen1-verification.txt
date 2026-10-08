@@ -1,0 +1,11 @@
+kisib.dub-sar — current Screen 1 verification
+2026-10-08 UTC
+
+Fresh hosted Windows verification of the scope correction is pending.
+Do not apply the historical incident-preview result to this changed build.
+This file will record the exact tested-code commit, run, environments, assertion
+counts and executable/download hashes after verification succeeds.
+
+User-PC acceptance remains to test: LOCAL_MACHINE > Root expanded, actual
+physical siblings/counts visible, FNMT typed into Find. No PC access is available.
+The supplied CSV is unchanged and not loaded before the S3 gate opens.
