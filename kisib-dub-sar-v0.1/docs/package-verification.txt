@@ -1,0 +1,18 @@
+kisib.dub-sar — current package verification, 2026-10-07 UTC
+
+142 stable function IDs F001-F142; all earlier identities retained.
+110 feature-source entries with Microsoft terms, Learn URLs and documented/to-test tags.
+Original 15 issuer tags, three visual variants and country seed retained.
+Original certificate native boundary remains nine read/enumeration/cleanup calls.
+Five ETW and three file-handle validation imports are separately accounted for.
+No certificate mutation/private-key acquisition or registry-write API added.
+
+Hosted C# compilation, native Windows GUI, store enumeration, continuing archive,
+real CAPI2 replay, real owned syscall tracing and repaired adversarial fixtures passed
+on Windows Server x64 and Windows 11 Enterprise ARM64. Details and exact scope:
+windows-verification-report.txt. Current download also has compiled EXE smoke evidence.
+
+The executable is unsigned. Microsoft Store packaging and consumer Windows 11
+Home/Pro acceptance are not passed. Planned chain/CTL/CCADB/enforcement/universal
+verifier/continual-rotation functions remain pending. The download does not contain
+live machine archives, original ETLs, private keys or the verification test DLL.

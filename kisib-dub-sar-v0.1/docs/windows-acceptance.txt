@@ -1,0 +1,27 @@
+kisib.dub-sar — Screen 1 acceptance on the user's PC
+Status: to test
+
+Extract the whole download folder. Open kisib.dub-sar.exe.
+Leave View > Optional features off.
+Expand LOCAL_MACHINE, then Root. Type FNMT into Find.
+Take the complete-window screenshot on the user's Windows 11 Home/Pro PC.
+A hosted CI screenshot cannot satisfy this acceptance.
+
+Check the native location > system store > physical store tree, branches visible.
+Every returned physical store has a separate count, including 0.
+LOCAL_MACHINE Root documents .Default .AuthRoot .GroupPolicy .Enterprise .SmartCard.
+CURRENT_USER Root documents .Default .LocalMachine .SmartCard.
+Those lists are references, never invented observations. Unreturned documented
+siblings show grey “not present”; incomplete enumeration stays unknown.
+Click the error count to see exact Store/Error rows and any access failures.
+
+Exactly eight columns: Subject CN, Issuer CN, C=, found in (physical stores),
+not-before, not-after, SHA-1, SHA-256. Names use CN then O. C= is the certificate's
+own claim; full DNs stay in Details/Issuer. Find preserves paths and store counts.
+Select a certificate and compare exact hashes and physical membership, not just a
+name in a merged store. Failed reads must not appear empty. Four optional switches
+start unchecked; no grouping or incident menu exists.
+
+Record Windows edition/build, observed siblings and errors. Screen 1 must pass
+before S2 unlocks. No trust-store change is needed for this acceptance.
+Microsoft terms/Learn URLs: screen1-scope.txt and feature-sources.csv.

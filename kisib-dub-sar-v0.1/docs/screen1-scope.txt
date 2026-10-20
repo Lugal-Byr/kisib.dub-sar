@@ -1,0 +1,66 @@
+kisib.dub-sar — CURRENT TASK: Screen 1 only
+Authoritative scope reset, 2026-10-08 UTC
+
+Full user instruction: current-task-and-roadmap.txt.
+Build only CURRENT TASK. Stages unlock after the preceding acceptance passes.
+Do not build, stub or scaffold future stages. CURRENT TASK wins conflicts.
+
+CURRENT IMPLEMENTATION [to test]
+Win95 Explorer: branching tree left, list right, details below.
+Only real paths: location > system store > physical store. No grouping switch.
+Every reported physical store stays separate with its observed count, zero included.
+Grey “not present” items are documentation references, typed separately and excluded
+from observed store/counts. Failed/canceled enumeration stays unknown/incomplete.
+LOCAL_MACHINE Root documents .Default .AuthRoot .GroupPolicy .Enterprise .SmartCard.
+CURRENT_USER Root documents .Default .LocalMachine .SmartCard.
+Windows enumeration is authoritative; never substitute this documentation list.
+Names: CN then O. C= is a small separate subject-country code. Full DNs are below.
+Exactly Subject CN, Issuer CN, C=, found in (physical stores), not-before,
+not-after, SHA-1, SHA-256. Existing security metadata remains in Details only.
+Find changes rows, never native paths or counts.
+The dynamic “N errors” status link opens exact Store/Error rows.
+Exactly four switches OFF every launch: journal, archive, 60-second auto scan,
+syscall capture. No default persistent writer, repeating scan or trace.
+Archive requires Journal; existing archive/ETL security is retained.
+No country/owner/group decisions, application inventory, CAPI2-setting action,
+incident/TLS window or Enabled/Blocked category nodes in Screen 1.
+The user CSV is unchanged, saved for S3 and not loaded by Screen 1.
+No certificate import, delete, purpose change, trust write or private-key access.
+
+MICROSOFT TERMS / SOURCES
+System Store Locations [documented]:
+https://learn.microsoft.com/en-us/windows/win32/seccrypto/system-store-locations
+CertEnumSystemStoreLocation / CertEnumSystemStore / CertEnumPhysicalStore [documented]:
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certenumsystemstorelocation
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certenumsystemstore
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certenumphysicalstore
+CertEnumCertificatesInStore [documented; custom counts/display to test]:
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certenumcertificatesinstore
+CERT_RDN_ATTR [documented; short-name decoder to test]:
+https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_rdn_attr
+TextBox.TextChanged / ListView [documented; filtering to test]:
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.textbox.textchanged
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.listview
+LinkLabel.LinkClicked / GetLastError [documented; error dialog to test]:
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.linklabel.linkclicked
+https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror
+MenuItem.Checked / Timer.Enabled [documented; startup/opt-in behavior to test]:
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.menuitem.checked
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.timer.enabled
+See feature-sources.csv for all retained term/source/tag entries.
+
+ACCEPTANCE — USER PC, NOT CI [to test]
+Open this EXE on the user's Windows 11 Home/Pro PC. Leave Optional features off.
+Expand LOCAL_MACHINE > Root, type FNMT into Find, take the whole-window screenshot.
+Each reported physical child has its own count; absent documented children are grey.
+.Default .AuthRoot .GroupPolicy .Enterprise are separate if Windows reports them.
+No access to that PC is available here. Hosted tests cannot pass this acceptance.
+S2 remains locked until this screenshot is reviewed; future stages remain documents.
+Do not create later-stage code, placeholders or data templates.
+
+CURRENT VERSUS HISTORICAL
+Prior reachable issuer/country/application/CAPI2/incident controls were removed.
+Git keeps the old implementations and evidence; register IDs stay stable and parked
+entries are marked historical. Existing unused record codecs remain for retained
+history compatibility; no new later-stage scaffold was added.
+Older incident and broader Windows verification documents are historical records.
