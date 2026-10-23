@@ -380,3 +380,18 @@ has no published hashes, so it has no rows. The Screen 1 tree, eight columns
 and Details are unchanged; Find now also matches SPKI SHA-256.
 This changes the 2026-10-08 Screen 1 scope by user instruction; the incident
 dialog line in screen1-scope.txt is updated accordingly.
+
+D034 — Groups tree and blocking (S2/S3), 2026-10-23
+User: "I want this app finished and working today ... go fucking make
+something useful"; no tests, no backups. Built without the Screen 1 gate.
+Groups (left tree, below the store tree): Tags, Countries, Owners from
+data/countries_monarchy_bric.csv (unchanged) and data/owners.csv. Joined on
+subject C=, issuer C= and owner O=; tags stack and each certificate shows why.
+your_group, brics_plus_verify and crown_territory_of feed tags too.
+Every group has Enabled and Blocked; Blocked = observed in a Disallowed store.
+Block group / Block certificate: preview first, then add to
+CURRENT_USER\Disallowed (or LOCAL_MACHINE when run as administrator).
+Certificates sharing the public key are included. Nothing is deleted from
+Root or CA. Every change goes to %LOCALAPPDATA%\kisib.dub-sar\block-history.csv.
+Undo last block / Unblock selected remove only entries kisib added.
+Chrome/Firefox own-store behavior: to test.

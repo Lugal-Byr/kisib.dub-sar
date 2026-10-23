@@ -15,6 +15,15 @@ Columns: Subject CN, Issuer CN, C=, found in (physical stores), not-before,
 not-after, SHA-1, SHA-256. Names use CN then O; full DNs stay in Details.
 C= is the certificate's own declaration, not an owner or affiliation finding.
 Find filters rows while keeping every native branch and count.
+GROUPS AND BLOCKING
+Under the store tree is Groups: Tags (👑, 🌿🧱, Google, eMudhra, your_group...),
+Countries and Owners, built from data\countries_monarchy_bric.csv and
+data\owners.csv. Edit those files and press F5. Each group has Enabled and
+Blocked. Select a group, click Block group..., check the preview, click Block.
+Blocked certificates go into Windows' Disallowed store (this user; whole PC
+when kisib runs as administrator). Nothing is deleted. Undo last block puts
+it back. Block > Block history shows every change.
+
 View > Incident check matches every certificate on this PC against the published eMudhra
 hashes and keys: HIT or MISS, where it was found, and whether Windows' Disallowed store
 holds it. Read-only; MISS never means safe.

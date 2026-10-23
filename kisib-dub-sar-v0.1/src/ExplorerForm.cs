@@ -40,7 +40,7 @@ namespace Kisib
         {
             this.sourceDirectory = sourceDirectory;
             this.archiveDirectory = archiveDirectory;
-            Text = "kisib.dub-sar v0.1 — read-only certificate explorer";
+            Text = "kisib.dub-sar v0.1 — certificate explorer";
             Icon = SystemIcons.Application;
             Font = new Font("Tahoma", 9F);
             BackColor = SystemColors.Control;
@@ -68,7 +68,7 @@ namespace Kisib
             { CertificateRecord cert = SelectedCertificate(); if (cert != null) ShowHistory(cert.Sha256); }));
             MenuItem help = new MenuItem("&Help");
             help.MenuItems.Add(new MenuItem("Feature &sources", delegate { ShowSources(); }));
-            help.MenuItems.Add(new MenuItem("&About", delegate { ShowText("About", "kisib.dub-sar v0.1\r\nRead-only Windows system certificate store explorer.\r\n\r\nAPI basis: documented. Windows 11 Home/Pro execution: to test.\r\n\r\nCertificate chains, CTLs, CCADB, and owner grids follow the enumeration gate.\r\n\r\nNo certificate store changes are implemented."); }));
+            help.MenuItems.Add(new MenuItem("&About", delegate { ShowText("About", "kisib.dub-sar v0.1\r\nRead-only Windows system certificate store explorer.\r\n\r\nAPI basis: documented. Windows 11 Home/Pro execution: to test.\r\n\r\nCertificate chains, CTLs, CCADB, and owner grids follow the enumeration gate.\r\n\r\nBlocking adds certificates to the Disallowed store only; nothing is deleted from Root or CA. Every block is logged and can be undone."); }));
             menu.MenuItems.AddRange(new MenuItem[] { file, certificate, view, help });
             Menu = menu;
 
@@ -77,6 +77,7 @@ namespace Kisib
             Button logButton = new Button { Text = "History log", AutoSize = true };
             logButton.Click += delegate { ShowLog(); };
             toolbar.Controls.AddRange(new Control[] { refresh, logButton });
+            InitializeBlocking(menu, toolbar);
             Panel addressPanel = new Panel { Dock = DockStyle.Top, Height = 29, Padding = new Padding(7, 3, 3, 3) };
             Label addressLabel = new Label { Text = "Address", Dock = DockStyle.Left, Width = 60, TextAlign = ContentAlignment.MiddleLeft };
             address.Dock = DockStyle.Fill; address.ReadOnly = true;
@@ -146,7 +147,7 @@ namespace Kisib
             Panel statusBar = new Panel { Dock = DockStyle.Bottom, Height = 25, BorderStyle = BorderStyle.Fixed3D };
             status.Dock = DockStyle.Fill;
             status.TextAlign = ContentAlignment.MiddleLeft; status.Padding = new Padding(4, 0, 0, 0);
-            status.Text = "Read-only | Windows verification: to test";
+            status.Text = "Ready | Windows verification: to test";
             errorsLink.Dock = DockStyle.Right; errorsLink.Width = 100; errorsLink.TextAlign = ContentAlignment.MiddleLeft;
             errorsLink.Text = "0 errors"; errorsLink.AccessibleName = "Open the list of store errors";
             errorsLink.LinkClicked += delegate { ShowStoreErrors(); };
@@ -235,7 +236,10 @@ namespace Kisib
             foreach (TreeNode child in root.Nodes)
             { StoreLocation location = child.Tag as StoreLocation; if (location != null && (location.Flags == Native.CERT_SYSTEM_STORE_LOCAL_MACHINE || location.Flags == Native.CERT_SYSTEM_STORE_CURRENT_USER)) child.Expand(); }
             foreach (string key in expanded) { TreeNode node = FindNode(root, key); if (node != null) node.Expand(); }
-            tree.EndUpdate(); tree.SelectedNode = FindNode(root, selectedSource) ?? root;
+            AddGroupTree(result, expanded);
+            TreeNode reselect = null;
+            foreach (TreeNode top in tree.Nodes) if (reselect == null) reselect = FindNode(top, selectedSource);
+            tree.EndUpdate(); tree.SelectedNode = reselect ?? root;
             if (selectedCertificate != null)
                 foreach (ListViewItem row in list.Items)
                     if (((CertificateRecord)row.Tag).Der.SequenceEqual(selectedCertificate.Der)) { row.Selected = true; row.EnsureVisible(); break; }
@@ -247,14 +251,18 @@ namespace Kisib
         private string HistoryStatus()
         {
             string error = historyStartupError ?? (history == null ? null : history.LastError);
-            return error != null ? "Read-only stores | HISTORY ERROR: " + error : history == null ? "Read-only stores | Recording off" :
-                "Read-only stores | Journal on | Archive " + (archiveToggle.Checked ? "on" : "off");
+            return error != null ? "Stores | HISTORY ERROR: " + error : history == null ? "Stores | Recording off" :
+                "Stores | Journal on | Archive " + (archiveToggle.Checked ? "on" : "off");
         }
         private static string NodeKey(TreeNode node)
         {
             if (node == null) return null;
             DocumentedStoreReference reference = node.Tag as DocumentedStoreReference;
             if (reference != null) return "documented:" + reference.Path;
+            GroupNode group = node.Tag as GroupNode;
+            if (group != null) return "group:" + group.Key + "|" + group.Filter;
+            string folder = node.Tag as string;
+            if (folder != null) return folder;
             StoreLocation location = node.Tag as StoreLocation;
             SystemStore store = node.Tag as SystemStore;
             PhysicalStore physical = node.Tag as PhysicalStore;
@@ -281,7 +289,8 @@ namespace Kisib
             SystemStore system = selected as SystemStore;
             PhysicalStore physical = selected as PhysicalStore;
             DocumentedStoreReference reference = selected as DocumentedStoreReference;
-            if (reference != null)
+            if (SelectGroup(selected, keys)) { }
+            else if (reference != null)
             {
                 address.Text = reference.Path;
                 nodeDetails = reference.Description;
