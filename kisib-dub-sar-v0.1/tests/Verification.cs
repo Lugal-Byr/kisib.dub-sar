@@ -79,6 +79,49 @@ namespace Kisib
             Reject(delegate { CertificateDer.RsaModulusBits(original.SpkiDer.Concat(new byte[] { 0 }).ToArray()); }, "Trailing SPKI DER rejected");
             Reject(delegate { CertificateDer.PssHash(new byte[] { 0x30, 0x04, 0xa4, 0x02, 0x05, 0 }); }, "Unknown RSA-PSS parameter tag rejected");
         }
+        private static void RejectList(string text, string message)
+        {
+            bool rejected = false;
+            try { IncidentList.Parse(text); } catch (InvalidDataException) { rejected = true; }
+            Check(rejected, message);
+        }
+        private static void VerifyIncidents(string directory)
+        {
+            List<IncidentEntry> entries = IncidentList.Read(IncidentList.PathIn(directory));
+            Check(entries.Count == 24 && entries.All(e => e.IncidentId == "INC-2026-10-B" && e.Class == "key_compromise"), "eMudhra incident list loads 24 sourced rows");
+            Check(entries.Count(e => e.Match == "certificate_sha256") == 16 && entries.Count(e => e.Match == "spki_sha256") == 8, "16 certificate hashes and 8 public-key hashes");
+            Check(entries.Any(e => e.Value == "42C4ACCD12C4F59597925E1A08A7A90102608543809308D50EC427E118BA1493") &&
+                entries.Any(e => e.Value == "EBED6475C2C2D80FCB199F3FE8DD6E6B3CE60B77EB15D4E42C3DEC0C6F5B5105"), "Published EM DV TLS CA - G3B hash and key present");
+            string good = IncidentList.Header + "\nINC-X,key_compromise,certificate_sha256," + new string('A', 64) + ",cn,o,NL,issuer,https://example.test/,2026-10-20\n";
+            Check(IncidentList.Parse(good).Count == 1, "Minimal well-formed list parses");
+            RejectList("wrong,header\n", "Wrong header rejected");
+            RejectList(good.Replace(new string('A', 64), new string('A', 63)), "Short hash rejected");
+            RejectList(good.Replace(new string('A', 64), new string('a', 64)), "Lowercase hash rejected");
+            RejectList(good.Replace("key_compromise", "rumor"), "Unknown class rejected");
+            RejectList(good.Replace("https://example.test/", "http://example.test/"), "Non-https source rejected");
+            RejectList(good.Replace(",cn,", ",\"cn\","), "Quoted field rejected");
+            RejectList(good + good.Substring(IncidentList.Header.Length + 1), "Duplicate value rejected");
+
+            Snapshot snapshot = new Snapshot();
+            StoreLocation machine = new StoreLocation { Name = "LOCAL_MACHINE" };
+            SystemStore disallowed = new SystemStore { Name = "Disallowed", Path = @"LOCAL_MACHINE\Disallowed" };
+            PhysicalStore disallowedDefault = new PhysicalStore { Name = ".Default", Path = @"LOCAL_MACHINE\Disallowed\.Default" };
+            SystemStore root = new SystemStore { Name = "Root", Path = @"LOCAL_MACHINE\Root" };
+            PhysicalStore rootDefault = new PhysicalStore { Name = ".Default", Path = @"LOCAL_MACHINE\Root\.Default" };
+            disallowed.PhysicalStores.Add(disallowedDefault); root.PhysicalStores.Add(rootDefault);
+            machine.Stores.Add(disallowed); machine.Stores.Add(root); snapshot.Locations.Add(machine);
+            CertificateRecord blocked = new CertificateRecord { Identity = "blocked", Sha256 = "42C4ACCD12C4F59597925E1A08A7A90102608543809308D50EC427E118BA1493", SpkiSha256 = "EBED6475C2C2D80FCB199F3FE8DD6E6B3CE60B77EB15D4E42C3DEC0C6F5B5105" };
+            blocked.FoundIn.Add(disallowedDefault.Path);
+            CertificateRecord sameKey = new CertificateRecord { Identity = "same-key", Sha256 = new string('B', 64), SpkiSha256 = "EBED6475C2C2D80FCB199F3FE8DD6E6B3CE60B77EB15D4E42C3DEC0C6F5B5105" };
+            sameKey.FoundIn.Add(rootDefault.Path);
+            CertificateRecord unrelated = new CertificateRecord { Identity = "unrelated", Sha256 = new string('C', 64), SpkiSha256 = new string('D', 64) };
+            unrelated.FoundIn.Add(rootDefault.Path);
+            foreach (CertificateRecord cert in new CertificateRecord[] { blocked, sameKey, unrelated }) snapshot.Certificates.Add(cert.Identity, cert);
+            List<IncidentHit> hits = IncidentList.Match(snapshot, entries);
+            Check(hits.Count(h => h.Certificate == blocked) == 2 && hits.Where(h => h.Certificate == blocked).All(h => h.InDisallowed), "Listed certificate in Disallowed matches by hash and key and reads as in Disallowed");
+            Check(hits.Count(h => h.Certificate == sameKey) == 1 && hits.Single(h => h.Certificate == sameKey).Entry.Match == "spki_sha256" && !hits.Single(h => h.Certificate == sameKey).InDisallowed, "Unlisted certificate sharing a listed key is caught by SPKI and reads as outside Disallowed");
+            Check(!hits.Any(h => h.Certificate == unrelated), "Unrelated certificate does not match");
+        }
         public static int Run(string directory)
         {
             try
@@ -86,6 +129,7 @@ namespace Kisib
                 ArchiveVerification.Run(directory, Check);
                 ControlVerification.Run(directory, Check);
                 VerifyMetadata(directory);
+                VerifyIncidents(directory);
                 Check(Marshal.SizeOf(typeof(Native.CERT_CONTEXT)) == (IntPtr.Size == 8 ? 40 : 20), "CERT_CONTEXT size for this architecture");
                 Check(Marshal.OffsetOf(typeof(Native.CERT_CONTEXT), "hCertStore").ToInt32() == (IntPtr.Size == 8 ? 32 : 16), "CERT_CONTEXT hCertStore offset");
                 Check(Marshal.SizeOf(typeof(Native.CERT_PHYSICAL_STORE_INFO)) == (IntPtr.Size == 8 ? 48 : 32), "CERT_PHYSICAL_STORE_INFO size");

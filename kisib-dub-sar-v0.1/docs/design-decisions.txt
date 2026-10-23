@@ -365,3 +365,18 @@ hardcoded; every classification still comes from the CSV files.
 Note on the user's draft CSV: NL is marked 👑, so a monarchy block by subject
 C= would catch eMudhra BV's NL intermediates, and an India block by subject
 C= would catch none of them. The dry run must show which tag source matched.
+
+D033 — Incident check (F159), 2026-10-23
+User: "keep building KISIB" (no GitHub app; files only). First build after the
+takeover: View > Incident check. Read-only. Every scanned certificate's SHA-256
+and SPKI SHA-256 is matched against data/incident-hashes.csv (24 rows: the 16
+eMudhra certificates and their 8 keys, INC-2026-10-B, each row sourced and
+dated). Each listed certificate shows HIT or MISS, where it was found, and
+whether it sits in the Disallowed system store (Windows' untrusted list). An
+SPKI-only hit catches an unlisted certificate carrying a compromised key.
+HIT outside Disallowed is shown in dark red. MISS never means safe.
+No network, no store writes, no blocking; blocking stays S2. The ccTLD hijack
+has no published hashes, so it has no rows. The Screen 1 tree, eight columns
+and Details are unchanged; Find now also matches SPKI SHA-256.
+This changes the 2026-10-08 Screen 1 scope by user instruction; the incident
+dialog line in screen1-scope.txt is updated accordingly.

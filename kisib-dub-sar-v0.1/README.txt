@@ -15,6 +15,9 @@ Columns: Subject CN, Issuer CN, C=, found in (physical stores), not-before,
 not-after, SHA-1, SHA-256. Names use CN then O; full DNs stay in Details.
 C= is the certificate's own declaration, not an owner or affiliation finding.
 Find filters rows while keeping every native branch and count.
+View > Incident check matches every certificate on this PC against the published eMudhra
+hashes and keys: HIT or MISS, where it was found, and whether Windows' Disallowed store
+holds it. Read-only; MISS never means safe.
 Click the bottom error count for the complete Store/Error list.
 
 View > Optional features has exactly four switches, OFF every launch:

@@ -48,12 +48,12 @@ check("right.Panel2.Controls.Add(detailTabs)" in source and "Orientation = Orien
 check("existing.Der.SequenceEqual(der)" in source, "Hash match checked against full DER before deduplication")
 with (root / "docs/feature-sources.csv").open(encoding="utf-8", newline="") as stream:
     rows = list(csv.DictReader(stream))
-check(len(rows) == 126 and all(row["microsoft_term"] and row["learn_url"].startswith("https://learn.microsoft.com/") and row["tag"] in ("documented", "to test") for row in rows), "All 126 registered features have an underlying term/source/tag")
+check(len(rows) == 127 and all(row["microsoft_term"] and row["learn_url"].startswith("https://learn.microsoft.com/") and row["tag"] in ("documented", "to test") for row in rows), "All 127 registered features have an underlying term/source/tag")
 check(not any(row["tag"] == "documented" for row in rows if row["feature"] in {"Chain construction", "Local CSV lists", "Owner standings and country grouping", "CCADB hash lookup and program status"}), "Gated views stay to test")
 check(all(row["tag"] == "to test" for row in rows if row["feature"] in {"Key size (bits)", "SPKI SHA-256", "Weak tier", "SHA-1 collision", "Key reuse"}), "Derived metadata and local inspection rules stay to test")
 with (root / "docs/function-catalog.csv").open(encoding="utf-8", newline="") as stream:
     functions = list(csv.DictReader(stream))
-check([row["function_id"] for row in functions] == ["F%03d" % i for i in range(1, 159)] and all(row["microsoft_term"] and row["learn_url"].startswith("https://learn.microsoft.com/") and row["tag"] in ("documented", "to test") for row in functions), "All 158 stable function IDs retain source/tag fields")
+check([row["function_id"] for row in functions] == ["F%03d" % i for i in range(1, 160)] and all(row["microsoft_term"] and row["learn_url"].startswith("https://learn.microsoft.com/") and row["tag"] in ("documented", "to test") for row in functions), "All 159 stable function IDs retain source/tag fields")
 check(all(row["tag"] == "to test" for row in functions[111:142]), "New application/issuer/ETW implementations remain to test")
 check("MaxCharactersInDocument = 4 * 1024 * 1024" in source and "DtdProcessing = DtdProcessing.Prohibit" in source and "XmlResolver = null" in source, "CAPI2 parser prohibits DTD/external resolution and bounds interpreted XML")
 check('history.RecordActivity(activity)' in source and '!checkpointBlocked && record.Bookmark != null' in source and 'if (!saved) { checkpointBlocked = true;' in source, "CAPI2 source declares durable-before-checkpoint ordering and visible gap handling")
@@ -83,7 +83,13 @@ check('this.archiveDirectory = archiveDirectory;' in source and 'this.sourceDire
 check('historyTimer.Start();' not in (root / "src/ExplorerForm.cs").read_text(), "Default window does not start the repeating scan timer")
 check('StoreErrors.Add(new StoreError' in source and 'errorsLink.LinkClicked' in source, "Error UI is bound to structured observed source errors")
 check('DocumentedStoreReference' in source and 'SystemColors.GrayText' in source and 'enumeration incomplete' in source, "Absent documentation references remain separate and incomplete reads stay unknown")
-check('TlsInspection' not in source and 'IncidentForm' not in source and 'manual_tls_observation' not in source and not (root / "data/certificate-incidents.json").exists(), "Later-stage TLS/incident implementation is removed from the active build")
+check('TlsInspection' not in source and 'IncidentForm' not in source and 'manual_tls_observation' not in source and not (root / "data/certificate-incidents.json").exists(), "Later-stage TLS implementation is removed from the active build")
+incident = (root / "src/IncidentList.cs").read_text(encoding="utf-8")
+check(not re.search(r"WebRequest|WebClient|HttpClient|Socket|TcpClient|SslStream|Dns\.", incident) and "File.Write" not in incident and "Cert" + "AddCertificate" not in incident, "Incident check is read-only: no network, file writes or store changes")
+with (root / "data/incident-hashes.csv").open(encoding="utf-8", newline="") as stream:
+    incident_rows = list(csv.DictReader(stream))
+check(len(incident_rows) == 24 and all(re.fullmatch(r"[0-9A-F]{64}", r["value"]) and r["source"].startswith("https://") and r["date"] for r in incident_rows), "Incident list holds 24 sourced, dated 64-hex rows")
+check('"&Incident check"' in source and 'view.MenuItems.Add(new MenuItem("&Incident check"' in source, "Incident check is a View menu dialog; tree, columns and Details unchanged")
 report = "Source/data audit completed in Linux; these source assertions are separate from the hosted Windows runtime tests.\n\n" + "\n".join("PASS: " + label for label in checks) + "\n\nCurrent runtime evidence: docs/screen1-verification.txt. User-PC Screen 1 acceptance remains to test; historical country data is not loaded by Screen 1.\n"
 (root / "docs/source-checks.txt").write_text(report, encoding="utf-8")
 print(report)

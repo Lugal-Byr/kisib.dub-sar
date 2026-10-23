@@ -62,7 +62,7 @@ namespace Kisib
             string query = findIssuer.Text.Trim();
             return query.Length == 0 || new string[] { certificate.Subject, certificate.Issuer, certificate.SubjectShortName,
                 certificate.IssuerShortName, certificate.SubjectCountry, certificate.IssuerCountry,
-                certificate.FoundInText, certificate.Sha1, certificate.Sha256 }.Any(value =>
+                certificate.FoundInText, certificate.Sha1, certificate.Sha256, certificate.SpkiSha256 }.Any(value =>
                     value != null && value.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
         }
 

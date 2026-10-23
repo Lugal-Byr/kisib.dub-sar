@@ -12,6 +12,12 @@ Added: design-decisions D029-D032, an ADDENDUM at the end of
 current-task-and-roadmap.txt (S2 SPKI blocking and Disallowed sync state,
 S3 stacked tag sources, S5 incident class column), and 4 roadmap-sources rows.
 Feature/function registers keep 126 and 158 rows; source checks pass.
+Second commit, same branch: View > Incident check (F159, D033), src/IncidentList.cs,
+data/incident-hashes.csv (24 rows), Verification.VerifyIncidents (14 checks) and one
+GUI check. Registers now 127 features / 159 functions. Compiled with Mono against the
+.NET 4.8 API set; incident checks pass under Mono. Windows runtime, GUI and native
+inventory runs are to test. No GitHub app: the user receives zips/patches; this
+session cannot push.
 
 CURRENT HANDOFF — SCREEN 1 ONLY, 2026-10-08 UTC
 Authoritative instruction: kisib-dub-sar-v0.1/docs/current-task-and-roadmap.txt.

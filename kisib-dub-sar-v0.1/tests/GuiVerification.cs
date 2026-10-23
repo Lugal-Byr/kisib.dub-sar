@@ -76,6 +76,11 @@ namespace Kisib
                             ListView grid = errors.Controls.OfType<ListView>().Single();
                             Check(grid.Columns.Count == 2 && grid.Columns[0].Text == "Store" && grid.Columns[1].Text == "Error" && grid.Items.Count == snapshot.Errors.Count && Field<LinkLabel>(form, "errorsLink").Text == snapshot.Errors.Count + " errors", "clickable count opens the complete Store/Error list"); checks++;
                         }
+                        using (Form incidents = form.CreateIncidentDialog())
+                        {
+                            ListView grid = incidents.Controls.OfType<ListView>().Single();
+                            Check(grid.Columns.Count == 8 && grid.Items.Count >= 16 && grid.Items.Cast<ListViewItem>().Take(16).All(row => row.SubItems[4].Text == "HIT" || row.SubItems[4].Text == "MISS") && incidents.Controls.OfType<Label>().Single().Text.Contains("16 listed certificates"), "incident check lists every published eMudhra certificate as HIT or MISS against the real inventory"); checks++;
+                        }
                         search.Text = "FNMT"; TreeNode root = MachineRoot(tree); tree.SelectedNode = root; root.Expand(); root.Parent.Expand(); Application.DoEvents();
                         Check(root.Nodes.Cast<TreeNode>().Count(n => n.Tag is PhysicalStore) == ((SystemStore)root.Tag).PhysicalStores.Count && list.Items.Cast<ListViewItem>().All(row => ((CertificateRecord)row.Tag).Subject.IndexOf("FNMT", StringComparison.OrdinalIgnoreCase) >= 0 || ((CertificateRecord)row.Tag).Issuer.IndexOf("FNMT", StringComparison.OrdinalIgnoreCase) >= 0), "FNMT Find preserves every reported LOCAL_MACHINE Root sibling"); checks++;
                         Console.WriteLine("GUI native FNMT rows=" + list.Items.Count + "; hosted screenshot is NOT user-PC acceptance.");

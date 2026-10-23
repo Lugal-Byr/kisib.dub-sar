@@ -23,7 +23,9 @@ Exactly four switches OFF every launch: journal, archive, 60-second auto scan,
 syscall capture. No default persistent writer, repeating scan or trace.
 Archive requires Journal; existing archive/ETL security is retained.
 No country/owner/group decisions, application inventory, CAPI2-setting action,
-incident/TLS window or Enabled/Blocked category nodes in Screen 1.
+TLS window or Enabled/Blocked category nodes in Screen 1.
+Added 2026-10-23 by user instruction: View > Incident check (F159, D033),
+read-only published-hash/SPKI match with Disallowed-store presence.
 The user CSV is unchanged, saved for S3 and not loaded by Screen 1.
 No certificate import, delete, purpose change, trust write or private-key access.
 

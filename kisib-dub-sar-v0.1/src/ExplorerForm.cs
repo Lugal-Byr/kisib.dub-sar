@@ -59,6 +59,7 @@ namespace Kisib
             view.MenuItems.Add(new MenuItem("&History log", delegate { ShowLog(); }));
             view.MenuItems.Add(new MenuItem("Enumeration &summary", delegate { ShowSummary(); }));
             view.MenuItems.Add(new MenuItem("Store &errors", delegate { ShowStoreErrors(); }));
+            view.MenuItems.Add(new MenuItem("&Incident check", delegate { ShowIncidents(); }));
             MenuItem certificate = new MenuItem("&Certificate");
             certificate.MenuItems.Add(new MenuItem("Copy SHA-&1", delegate { CopyHash(false); }));
             certificate.MenuItems.Add(new MenuItem("Copy SHA-&256", delegate { CopyHash(true); }));
@@ -566,5 +567,6 @@ namespace Kisib
         internal const string Spki = "https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_public_key_info";
         internal const string Issuer = "https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509certificate2.issuer?view=netframework-4.8.1";
         internal const string NameAttributes = "https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_rdn_attr";
+        internal const string Disallowed = "https://learn.microsoft.com/en-us/windows-server/identity/ad-cs/configure-trusted-roots-disallowed-certificates";
     }
 }
