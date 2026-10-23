@@ -106,3 +106,27 @@ S6 EXPLORER HOOK: .cer .crt .pfx .p7b .sst open in
    C=, tags). Never auto-install from a file.
    Never show or export private keys. Default-app
    choice stays with the user.
+
+=== ADDENDUM 2026-10-23 (Claude, from the chat
+"Certificate hacks in Africa and India") ===
+Does not change the CURRENT TASK or unlock a stage.
+Details: incident-records-2026-10.txt, design-decisions D029-D032.
+S2 Block keys: SPKI SHA-256 and certificate SHA-256.
+   One SPKI covers originals and cross-signs (eMudhra:
+   8 keys, 16 certs). Dry run lists every cert sharing
+   the SPKI. Show Microsoft's Disallowed CTL last-sync
+   time and whether "Untrusted CTL Automatic Update" is
+   turned off; a PC that never syncs never gets
+   Microsoft's own block.
+S3 Tag sources, selectable and stacking: cert C=,
+   issuer C=, CA owner country, any cert in the
+   returned chain. Each tag shows its source.
+S5 Incident CSV adds: spki_sha256, class
+   (key_compromise | dns_hijack | misissuance | other).
+   First real rows: the 16 eMudhra certs. ccTLD
+   hijack row has no hashes; MISS never means safe.
+   DNS hijacks are answered by CT issuance vs the
+   encountered cert, not by any block list.
+   Per-browser state stays separate: Windows
+   Disallowed, Chrome (own root store + CRLSet),
+   Firefox (own store + OneCRL).

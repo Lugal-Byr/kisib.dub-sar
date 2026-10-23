@@ -1,0 +1,150 @@
+kisib.dub-sar — October 2026 certificate incident records
+Recorded 2026-10-23 America/Los_Angeles, Claude (taking over from Codex).
+Origin: claude.ai chat "Certificate hacks in Africa and India", 2026-10-23,
+plus the public sources listed under each record.
+
+STATUS: reference record for later stages (S2 blocking, S3 tags, S5 incident
+list). Documentation only. Screen 1 does not read this file. It is not a data
+file, threat feed or template. Hashes are copied from the cited public sources
+and are [to test] until a later stage verifies them against the actual
+certificates (DER SHA-256 and SPKI SHA-256 computed locally).
+
+======================================================================
+INC-2026-10-A  ccTLD registry hijacks (.gh .sl .as)
+======================================================================
+Class: DNS / registry hijack. Domain control was stolen; no CA key was lost.
+What happened: attackers who compromised the registries for .gh (Ghana),
+  .sl (Sierra Leone) and .as (American Samoa) changed authoritative DNS
+  records and obtained unauthorized HTTPS certificates for Google domains
+  and domains of other unnamed organizations. Google's systems were not
+  compromised.
+Disclosed: 2026-10-06 (Google security blog). Google learned of it the
+  week before.
+Issuing CAs: not named in Google's post. The Oct 23 chat named Let's Encrypt
+  and ZeroSSL from press reports [to test]. Google says it has no reason to
+  believe the CAs did anything wrong.
+Certificate hashes: NOT published. The hash list stays empty. A MISS against
+  this incident never means safe.
+Chrome response: blocked the Google-property certificates through CRLSets,
+  had the CAs revoke them, and used CT logs to find and block certificates
+  for other affected organizations.
+Google recommendations: CT monitoring across the whole domain portfolio;
+  restrictive CAA records (RFC 8657 account/method binding); do not rely on
+  browser-side intervention for non-Chrome users.
+
+What this means for kisib:
+- A country, owner or root block does NOT stop this class. The rogue certs
+  chain to ordinary, legitimately trusted public CAs.
+- Detection needs CT issuance data (S5 "issued") compared with the encountered
+  certificate (S5 "encountered", CAPI2) and the flag "issuing CA changed for
+  this domain".
+- The ccTLD is registry geography only. It is never joined to a certificate
+  C= or to the CA owner's country (three country notions stay separate).
+
+Sources:
+https://blog.google/security/chromes-response-to-recent-cctld-registry-hijacks/
+https://www.bleepingcomputer.com/news/security/hackers-hijack-google-domains-after-breaching-cctld-registries/
+https://labs.cloudsecurityalliance.org/research/csa-research-note-cctld-registry-hijack-certificate-trust-20/
+
+======================================================================
+INC-2026-10-B  eMudhra (emSign) intermediate CA key compromise
+======================================================================
+Class: CA private-key compromise. Anyone holding the keys could sign
+  certificates trusted for any site by clients that still trusted the chain.
+Cause (as published): the intermediate private keys were generated with weak
+  entropy and are recoverable from the certificates. Possible since the
+  certificates were created in April 2025.
+Proof: the reporter signed the message "We have a problem here - Wayne" with
+  each key (proof.zip; verify with openssl dgst -sha384 -verify).
+Timeline (UTC unless stated):
+  2026-10-17 18:05  Chrome Root Program receives the report.
+  2026-10-17 19:45  Chrome ships a CRLSet blocking the intermediates by SPKI hash.
+  2026-10-17        Firefox blocks.
+  2026-10-18        eMudhra revokes its 8 originals (reason ca_compromise).
+  2026-10-19        Sectigo revokes the 8 cross-signs. Disclosure to downstream
+                    trust stores. Android/Googlebooks via Play Services.
+  2026-10-20        Microsoft adds the 16 certificates to the Windows disallowed
+                    certificate list (Fleet guide). oss-security post.
+  2026-10-22        Apple blocks (per reporter page; the Oct 23 chat said Oct 19
+                    [to test]).
+  2026-10-27 (PDT)  Chrome removes emSign ECC Root CA - G3 from the Chrome Root
+                    Store (planned).
+CT: no TLS certificates chaining to the affected intermediates were logged
+  before the block. CT logs now reject them.
+
+The 8 keys exist as 16 certificates: each eMudhra-issued original has a
+Sectigo cross-sign (issuer AAA Certificate Services, Comodo CA Limited, C=GB)
+with the SAME subject and SAME SPKI. Blocking by certificate hash needs all 16;
+blocking by SPKI needs 8.
+
+Country notions on one chain (the stacked-tag case):
+  subject C=  NL (eMudhra BV) or US (eMudhra Inc)
+  issuer C=   IN (emSign root) or GB (AAA Certificate Services cross-sign)
+  CA owner    eMudhra Technologies Limited, India
+  A join on the certificate's own C= tags these NL or US, not IN. The India
+  tag comes from the issuer/owner notion. Keep the notions separate and let
+  the tags stack.
+
+Algorithms: all keys EC secp384r1. Originals signed ecdsa-with-SHA384;
+cross-signs signed sha256WithRSAEncryption.
+
+subject | issuer | certificate SHA-256 | SPKI SHA-256
+EM DV TLS CA - G3B (eMudhra BV, NL) | emSign Root TLS CA - G3 | 42C4ACCD12C4F59597925E1A08A7A90102608543809308D50EC427E118BA1493 | EBED6475C2C2D80FCB199F3FE8DD6E6B3CE60B77EB15D4E42C3DEC0C6F5B5105
+EM DV TLS CA - G3B (eMudhra BV, NL) | AAA Certificate Services | 45A883F349AEDFD5F3A649B5498FFB121712BA8B448F3F2A91DBC5A766FCDDBE | EBED6475C2C2D80FCB199F3FE8DD6E6B3CE60B77EB15D4E42C3DEC0C6F5B5105
+EM OV TLS CA - G3B (eMudhra BV, NL) | emSign Root TLS CA - G3 | 98B896625C0C230ADEEC3EB2CF6AAD5001ECF9156A68644E82374CE5833BC25B | 43BFFA19D6EF651451F6841E019931E96F6F2EAEFF28AB4B6F1CE4576DE2717B
+EM OV TLS CA - G3B (eMudhra BV, NL) | AAA Certificate Services | 5F1DED4DD590AF74631290CF073B122A2AAC6A1FA479778A0BD43579BD832699 | 43BFFA19D6EF651451F6841E019931E96F6F2EAEFF28AB4B6F1CE4576DE2717B
+EM EV TLS CA - G3B (eMudhra BV, NL) | emSign Root TLS CA - G3 | E7568FE6E12331F4FD7DE61DA4C7559D0F8EB192A218D4741A3BA75184333838 | E0254C7FCDC265E2F0F8A428DABB75AB4AE039B4872D62F5EE57F0877D5A8A41
+EM EV TLS CA - G3B (eMudhra BV, NL) | AAA Certificate Services | 579480AEA166290BD3C643589E795FC0D0E54E86505D180F1DFF99EFD3199512 | E0254C7FCDC265E2F0F8A428DABB75AB4AE039B4872D62F5EE57F0877D5A8A41
+EM DV TLS CA - G3C (eMudhra Inc, US) | emSign Root TLS CA - G3 | 0164D7CEAE5BB909C272AF151FF44B1177AE9B47D9424B94F1D9558C30934D19 | 49DD353DC2B919A3770645117D0E60C16115E7D1BC259EEFE734B00EA434FE5F
+EM DV TLS CA - G3C (eMudhra Inc, US) | AAA Certificate Services | 62B7F9868263F72F6911FC78CEAF72C1979158B7368BF648683BB2AA39B02E72 | 49DD353DC2B919A3770645117D0E60C16115E7D1BC259EEFE734B00EA434FE5F
+EM OV TLS CA - G3C (eMudhra Inc, US) | emSign Root TLS CA - G3 | CB6E15165AC802E9B3F993F16C25D41F4E81C21EBDE71AE1B012AC00BF9C7C3F | 63ECEFEE431D49523BC1136C4E72D0206A477086CAF606CD5CF025686C109CF8
+EM OV TLS CA - G3C (eMudhra Inc, US) | AAA Certificate Services | 7485B51C0ED192878FA1D2F948FB529AE1842CC5086C4B67F7BE5B2039DE9489 | 63ECEFEE431D49523BC1136C4E72D0206A477086CAF606CD5CF025686C109CF8
+EM EV TLS CA - G3C (eMudhra Inc, US) | emSign Root TLS CA - G3 | 432EC25F0D28DE9006D97BF752F17BBB2CD41F669933FCB072D9A1148D0261F3 | 5C0660A2B164910D8FF589C18E14552E9E0EC237DCEFE2CB736D41A4811F81A0
+EM EV TLS CA - G3C (eMudhra Inc, US) | AAA Certificate Services | FD9D5C2DBBD4995AB69B8D50C439D9527B00529199C2FD01B2174EB58F07021F | 5C0660A2B164910D8FF589C18E14552E9E0EC237DCEFE2CB736D41A4811F81A0
+EM OV CS CA - G3B (eMudhra BV, NL) | emSign Root CS CA - G3 | 9E39DE2881273ACC225A149C72BA3E0F51424963669AB633EE1DC7DF5DB067B4 | EC4FFA1AD0AC88081314B7AAFFEF6A91F97CD57291BB5BA686C5415F5EB4F6B6
+EM OV CS CA - G3B (eMudhra BV, NL) | AAA Certificate Services | A496E23AC0CAB8155FC9B117B97EAE368EFCBB9041AEC8804D5A308D2D01C2D8 | EC4FFA1AD0AC88081314B7AAFFEF6A91F97CD57291BB5BA686C5415F5EB4F6B6
+EM OV CS CA - G3C (eMudhra Inc, US) | emSign Root CS CA - G3 | 4B2460A466F95FD40113BCDCCA2CEB29B3B093921DE45474DA7DF48874C630B1 | 92C063D67E8F14DB71D288E11266FFDAF69CBF115F7BAB14F3BC2F68D25E0E30
+EM OV CS CA - G3C (eMudhra Inc, US) | AAA Certificate Services | 84112972B8E59D14560AE7E7119654474AAD119990CF3722BFC1E3B91615E1FD | 92C063D67E8F14DB71D288E11266FFDAF69CBF115F7BAB14F3BC2F68D25E0E30
+(CS = code signing. 12 TLS + 4 code-signing certificates. SHA-256 values
+match across two sources: the reporter's impacted-intermediates.json and the
+oss-security post. Two SPKI values were truncated in the oss-security copy;
+the values above are from impacted-intermediates.json.)
+
+Root SPKI SHA-256 (from the oss-security post, [to test]):
+  AAA Certificate Services   BD153ED7B0434F6886B17BCE8BBE84ED340C7132D702A8F4FA318F756ECBD6F3
+  emSign Root TLS CA - G3    C619E4780ED8E0ABEDA24AD732567DE4383A7EA941338F6D1A7D1B49AC792FE9
+  emSign ECC Root CA - G3    8D417DB2DD8BF5E3084D1E3F196D583849D81BDD4C00C70B9D39369E96B8C782
+
+Windows (Microsoft term: untrusted / Disallowed certificate trust list):
+- Microsoft's protection is the disallowed certificate list Windows downloads
+  automatically (disallowedcertstl.cab, Disallowed store). [documented
+  mechanism; the Oct 20 addition per Fleet, to test]
+- Check sync: certutil -verifyctl Disallowed | findstr /i "lastsynctime"
+  Fleet's guide: passes when last sync is on or after 2026-10-21 UTC.
+- Policy that can stop it: "Untrusted CTL Automatic Update"
+  (EnableDisallowedCertAutoUpdate) and "Auto Root Update"
+  (DisableRootAutoUpdate). A PC with automatic update turned off never gets
+  Microsoft's block.
+  https://learn.microsoft.com/en-us/windows-server/identity/ad-cs/configure-trusted-roots-disallowed-certificates
+
+What this means for kisib:
+- This class IS answered by a block list. It is the first incident with
+  published hashes, so it is the first real test row for the S5 incident CSV
+  and the S2 block dry run.
+- Block on SPKI SHA-256, not only the certificate SHA-256 (Chrome's method).
+  One SPKI row covers the original and its cross-sign.
+- Screen 1 already shows the evidence needed to see this on a PC: the
+  Disallowed system store, its physical stores and counts, SHA-1/SHA-256, and
+  SPKI SHA-256 in Details.
+- Chrome and Firefox decide with their own root stores and CRLSets/OneCRL.
+  Windows' Disallowed store is not proof any browser blocked it, and a Chrome
+  block is not proof Windows did. Each stays a separate observed state.
+
+Sources:
+https://blog.google/security/protecting-chrome-and-android-users-from-compromised-emudhra-intermediate-ca-certificates/
+https://emudhra.we-have-a-problem.com/
+https://emudhra.we-have-a-problem.com/impacted-intermediates.json
+https://www.openwall.com/lists/oss-security/2026/10/20/1
+https://fleetdm.com/guides/find-and-fix-emudhra-intermediate-ca-exposure
+https://thehackernews.com/2026/10/eight-emudhra-ca-keys-compromised.html
+https://lwn.net/Articles/1101643/

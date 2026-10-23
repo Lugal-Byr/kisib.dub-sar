@@ -1,3 +1,18 @@
+CLAUDE TAKEOVER — 2026-10-23 America/Los_Angeles
+The user handed the build to Claude ("you're taking over") and asked that the
+claude.ai chat "Certificate hacks in Africa and India" feed the build spec.
+Working branch: claude/spec-incidents-2026-10-23 (from main caba8bb).
+This change is documentation only. Screen 1 code, its tests and the tested
+commit reference below are unchanged. Screen 1 user-PC acceptance is still
+pending and still locks S2.
+Added: docs/incident-records-2026-10.txt (ccTLD hijack INC-2026-10-A; eMudhra
+key compromise INC-2026-10-B with 16 certificate SHA-256 and 8 SPKI SHA-256
+values, sources, Windows Disallowed-list notes).
+Added: design-decisions D029-D032, an ADDENDUM at the end of
+current-task-and-roadmap.txt (S2 SPKI blocking and Disallowed sync state,
+S3 stacked tag sources, S5 incident class column), and 4 roadmap-sources rows.
+Feature/function registers keep 126 and 158 rows; source checks pass.
+
 CURRENT HANDOFF — SCREEN 1 ONLY, 2026-10-08 UTC
 Authoritative instruction: kisib-dub-sar-v0.1/docs/current-task-and-roadmap.txt.
 Build only CURRENT TASK. S2-S6 are documentation, not code/stubs/scaffolds.

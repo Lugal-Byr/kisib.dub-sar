@@ -325,3 +325,43 @@ The final real x64 collector test observed an IOException while a bookmark was
 being atomically replaced concurrently with a read. Serialize reads under the
 same archive gate used by replacement writes. A 100-write/1000-read regression
 requires complete values, the final replacement and no retained storage errors.
+
+D029 — Claude takes over the build, 2026-10-23 America/Los_Angeles
+The user handed the build to Claude: "you're taking over", and asked that the
+"Certificate hacks in Africa and India" chat feed the build spec. Codex's
+tested Screen 1 code and the Screen 1 gate stay unchanged. The user-PC
+screenshot is still the acceptance for Screen 1 and still locks S2.
+User goal, verbatim from that chat: "I DONT NEED CERTs FROM MONARCHY OR INDIA
+OR GOOGLE ... BLOCK THEM ON MY COMPUTER". This is the S2-S4 destination:
+requested policy by group, then verified Windows enforcement, kept separate.
+Record: incident-records-2026-10.txt.
+
+D030 — Two incident classes, two different answers
+Key compromise (eMudhra, INC-2026-10-B) is answered by a block list: hashes
+are published, and a block on the key covers every certificate carrying it.
+Registry/DNS hijack (ccTLD, INC-2026-10-A) is NOT answered by any country,
+owner or root block: the rogue certificates chain to ordinary trusted CAs.
+It needs S5 CT issuance data compared with the encountered certificate and
+the "issuing CA changed for this domain" flag. The S5 incident CSV gains a
+"class" column: key_compromise | dns_hijack | misissuance | other.
+
+D031 — Block on SPKI SHA-256 as well as certificate SHA-256
+Chrome blocked eMudhra by SPKI hash, which also caught the Sectigo
+cross-signs: 8 keys, 16 certificates. S2 group block and the S5 incident
+match carry both keys. A certificate-hash match proves that exact
+certificate; an SPKI match proves the same public key under any issuer. The
+dry run lists every certificate in every store that shares the SPKI, so the
+cross-signed copy cannot be missed. Microsoft's own Disallowed list entries
+are certificate based [to test]; kisib reports what Windows actually holds.
+
+D032 — Country tags stack across one chain
+eMudhra shows one chain carrying NL or US (subject C=), IN (emSign root,
+CA owner) and GB (AAA Certificate Services cross-sign). The S3 CSV join on a
+certificate's own C= alone would tag these intermediates NL or US and never
+IN. S3 therefore offers per-certificate C=, issuer C=, CA owner country and
+"any certificate in the returned chain" as separate, selectable tag sources;
+tags from each source stack and each shows where it came from. No country is
+hardcoded; every classification still comes from the CSV files.
+Note on the user's draft CSV: NL is marked 👑, so a monarchy block by subject
+C= would catch eMudhra BV's NL intermediates, and an India block by subject
+C= would catch none of them. The dry run must show which tag source matched.
