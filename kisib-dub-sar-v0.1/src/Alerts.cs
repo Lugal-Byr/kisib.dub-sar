@@ -171,12 +171,20 @@ namespace Kisib
                 {
                     ListViewItem row = new ListViewItem(new string[] { d.Time.ToString("HH:mm:ss"), d.Program, d.Subject, d.Reason, d.BlockedBy ?? "", d.Flags });
                     if (d.Noise) row.ForeColor = SystemColors.GrayText; else if (d.BlockedBy != null) row.ForeColor = Color.DarkRed;
-                    grid.Items.Add(row);
+                    row.Tag = d; grid.Items.Add(row);
                 }
                 Label note = new Label { Dock = DockStyle.Bottom, Height = 40, Text = "Red = refused because of your Disallowed list. Grey = revocation server unreachable (common, not an alert).\r\n" +
                     "Source: Microsoft-Windows-CAPI2/Operational events 11 and 30. Chrome and Firefox check certificates themselves and do not appear here." };
+                Button allow = new Button { Text = "Allow selected for 3 minutes", Dock = DockStyle.Bottom, Height = 30 };
+                allow.Click += delegate
+                {
+                    if (grid.SelectedItems.Count == 0) return;
+                    Denial d = (Denial)grid.SelectedItems[0].Tag;
+                    dialog.Close();
+                    AllowTemporarily(CertificatesBehind(d), d.Subject);
+                };
                 Button close = new Button { Text = "Close", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
-                dialog.Controls.Add(grid); dialog.Controls.Add(note); dialog.Controls.Add(close); dialog.CancelButton = close;
+                dialog.Controls.Add(grid); dialog.Controls.Add(note); dialog.Controls.Add(allow); dialog.Controls.Add(close); dialog.CancelButton = close;
                 dialog.ShowDialog(this);
             }
         }
