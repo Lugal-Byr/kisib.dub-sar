@@ -69,6 +69,10 @@ namespace Kisib
             if (result == null) d.Reason = "trusted";
             else d.Reason = Codes.TryGetValue(result.TrimStart('0'), out reason) || Codes.TryGetValue(result, out reason) ? reason : "error " + d.Code;
             d.Noise = result != null && (result.EndsWith("92012", StringComparison.Ordinal) || result.EndsWith("92013", StringComparison.Ordinal));
+            // An expired time-stamping certificate is normal: the timestamp is what keeps old signatures valid.
+            if (result != null && result.EndsWith("B0101", StringComparison.Ordinal) && d.ChainNames.Concat(new[] { d.Subject ?? "" })
+                .Any(n => n.IndexOf("Time-Stamp", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("Timestamp", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("TSA", StringComparison.Ordinal) >= 0))
+            { d.Noise = true; d.Reason = "expired time-stamp certificate (normal for older signed files)"; }
             if (String.IsNullOrEmpty(d.Program)) d.Program = "[program not logged]";
             if (String.IsNullOrEmpty(d.Subject)) d.Subject = "[subject not logged]";
             return d;
@@ -183,7 +187,7 @@ namespace Kisib
                     if (d.Noise) row.ForeColor = SystemColors.GrayText; else if (d.BlockedBy != null) row.ForeColor = Color.DarkRed;
                     row.Tag = d; grid.Items.Add(row);
                 }
-                Label note = new Label { Dock = DockStyle.Bottom, Height = 40, Text = "Red = refused because of your Disallowed list. Grey = revocation server unreachable (common, not an alert).\r\n" +
+                Label note = new Label { Dock = DockStyle.Bottom, Height = 40, Text = "Red = refused because of your Disallowed list. Grey = harmless (revocation server unreachable, expired time-stamp certificate); listed, no alert.\r\n" +
                     "Source: Microsoft-Windows-CAPI2/Operational events 11 and 30. Chrome and Firefox check certificates themselves and do not appear here." };
                 FlowLayoutPanel allow = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 34, Padding = new Padding(2) };
                 allow.Controls.Add(new Label { Text = "Allow selected for:", AutoSize = true, Padding = new Padding(0, 6, 0, 0) });
