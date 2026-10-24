@@ -1,7 +1,8 @@
 name: Release
 on:
   push:
-    tags: ['v*']
+    branches: ['main']
+    paths: ['kisib-dub-sar-v0.1/**', '.github/workflows/release.yml']
 permissions:
   contents: write
 jobs:
@@ -30,4 +31,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create $env:GITHUB_REF_NAME 'out\kisib.dub-sar-windows.zip' --title "kisib.dub-sar $env:GITHUB_REF_NAME" --notes "Windows build. Download kisib.dub-sar-windows.zip, Extract All, double-click kisib.dub-sar.exe. Unsigned: if Windows warns, click More info then Run anyway."
+          $tag = "v0.2.$env:GITHUB_RUN_NUMBER"
+          gh release create $tag 'out\kisib.dub-sar-windows.zip' --target $env:GITHUB_SHA --latest --title "kisib.dub-sar $tag" --notes "Windows build. Download kisib.dub-sar-windows.zip, Extract All, double-click kisib.dub-sar.exe. Unsigned: if Windows warns, click More info then Run anyway."
