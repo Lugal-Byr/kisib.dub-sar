@@ -40,7 +40,9 @@ namespace Kisib
         {
             this.sourceDirectory = sourceDirectory;
             this.archiveDirectory = archiveDirectory;
-            Text = "kisib.dub-sar v0.1 — certificate explorer";
+            string version = "v0.1";
+            try { string file = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "version.txt"); if (File.Exists(file)) version = File.ReadAllText(file).Trim(); } catch (IOException) { }
+            Text = "kisib.dub-sar " + version + " — certificate explorer";
             Icon = SystemIcons.Application;
             Font = new Font("Tahoma", 9F);
             BackColor = SystemColors.Control;
