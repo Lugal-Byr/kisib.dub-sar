@@ -68,9 +68,10 @@ namespace Kisib
             { CertificateRecord cert = SelectedCertificate(); if (cert != null) ShowHistory(cert.Sha256); }));
             MenuItem help = new MenuItem("&Help");
             help.MenuItems.Add(new MenuItem("Feature &sources", delegate { ShowSources(); }));
-            help.MenuItems.Add(new MenuItem("&About", delegate { ShowText("About", "kisib.dub-sar v0.1\r\nRead-only Windows system certificate store explorer.\r\n\r\nAPI basis: documented. Windows 11 Home/Pro execution: to test.\r\n\r\nCertificate chains, CTLs, CCADB, and owner grids follow the enumeration gate.\r\n\r\nBlocking adds certificates to the Disallowed store only; nothing is deleted from Root or CA. Every block is logged and can be undone."); }));
+            help.MenuItems.Add(new MenuItem("&About", delegate { ShowText("About", "kisib.dub-sar v0.1\r\nRead-only Windows system certificate store explorer.\r\n\r\nAPI basis: documented. Windows 11 Home/Pro execution: to test.\r\n\r\nView > Standings, Certificate > Show chain, File > Open certificate file, Groups and Block are included.\r\n\r\nBlocking adds certificates to the Disallowed store only; nothing is deleted from Root or CA. Every block is logged and can be undone."); }));
             menu.MenuItems.AddRange(new MenuItem[] { file, certificate, view, help });
             Menu = menu;
+            InitializeViews(file, view, certificate);
 
             FlowLayoutPanel toolbar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 34, Padding = new Padding(3), WrapContents = false };
             refresh.Text = "Refresh"; refresh.AutoSize = true; refresh.Click += delegate { StartScan(); };
@@ -243,9 +244,10 @@ namespace Kisib
             if (selectedCertificate != null)
                 foreach (ListViewItem row in list.Items)
                     if (((CertificateRecord)row.Tag).Der.SequenceEqual(selectedCertificate.Der)) { row.Selected = true; row.EnsureVisible(); break; }
-            status.Text = HistoryStatus() + " | " + result.StoreCount + " system / " + result.PhysicalCount + " physical stores | " + result.Certificates.Count +
+            status.Text = HistoryStatus() + " | " + ClockStatus(result) + " | " + result.StoreCount + " system / " + result.PhysicalCount + " physical stores | " + result.Certificates.Count +
                 " certificates | PC acceptance: to test";
             errorsLink.Text = result.Errors.Count + " errors";
+            OpenPendingFile();
         }
 
         private string HistoryStatus()

@@ -395,3 +395,12 @@ Certificates sharing the public key are included. Nothing is deleted from
 Root or CA. Every change goes to %LOCALAPPDATA%\kisib.dub-sar\block-history.csv.
 Undo last block / Unblock selected remove only entries kisib added.
 Chrome/Firefox own-store behavior: to test.
+
+D035 — Standings, chain view, certificate files, clock check, 2026-10-23
+User: "go finish the fucking job". View > Standings (S4 grid: owners by
+country; roots, intermediates, expiring, expired, blocked, weak, tags).
+Certificate > Show chain (S4: X509Chain/CertGetCertificateChain output, root
+left; no revocation fetch). File > Open certificate file and command-line
+file argument (S6: read-only, never installs, refuses PFX/P12). Status bar
+clock check (S5 subset: earlier than newest not-before, or >90% expired).
+Not built: CT logs, CAPI2 per-app evidence, per-browser block status.

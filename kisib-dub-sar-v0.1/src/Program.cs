@@ -7,7 +7,7 @@ namespace Kisib
     public static class Program
     {
         [STAThread]
-        public static void Main()
+        public static void Main(string[] args)
         {
             if (Environment.OSVersion.Platform != PlatformID.Win32NT)
                 throw new PlatformNotSupportedException("kisib.dub-sar v0.1 requires Windows.");
@@ -19,7 +19,10 @@ namespace Kisib
             }
             // Native classic controls: no web view, card shell, or modern theme override.
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new ExplorerForm(directory));
+            ExplorerForm form = new ExplorerForm(directory);
+            // Opening a .cer/.crt/.p7b/.sst with kisib shows it read-only; nothing is installed.
+            if (args != null && args.Length > 0 && File.Exists(args[0])) form.PendingFile = Path.GetFullPath(args[0]);
+            Application.Run(form);
         }
     }
 }

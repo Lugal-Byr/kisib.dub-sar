@@ -24,6 +24,17 @@ Blocked certificates go into Windows' Disallowed store (this user; whole PC
 when kisib runs as administrator). Nothing is deleted. Undo last block puts
 it back. Block > Block history shows every change.
 
+MORE VIEWS
+View > Standings: CA owners grouped by country with roots, intermediates,
+expiring in 12 months, expired, blocked, weak and tags. Click a heading to sort.
+Certificate > Show chain: the chain Windows builds, root on the left, with
+hashes, where each one is found, blocked or not, and tags.
+File > Open certificate file (Ctrl+O): .cer .crt .der .pem .p7b .sst shown
+read-only, with whether each is on this PC and blocked. Never installs; .pfx
+and .p12 are refused. "Open with" kisib works too (Build.cmd makes the exe).
+Status bar: Clock ok | SUSPECT when the PC clock is earlier than the newest
+certificate or nearly everything reads as expired.
+
 View > Incident check matches every certificate on this PC against the published eMudhra
 hashes and keys: HIT or MISS, where it was found, and whether Windows' Disallowed store
 holds it. Read-only; MISS never means safe.
