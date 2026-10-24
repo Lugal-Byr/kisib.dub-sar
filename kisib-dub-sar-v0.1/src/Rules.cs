@@ -19,7 +19,7 @@ namespace Kisib
     {
         internal const string Label = "MICROSOFT_LIST (trusted by Windows; downloads on demand)";
         internal static string SstPath
-        { get { return Path.Combine(Path.GetDirectoryName(BlockEngine.LogPath), "WURoots.sst"); } }
+        { get { return Storage.File("microsoft-root-list.sst"); } }
 
         internal static string Update()
         {
@@ -70,7 +70,7 @@ namespace Kisib
     internal static class BlockRules
     {
         internal static string RulesPath
-        { get { return Path.Combine(Path.GetDirectoryName(BlockEngine.LogPath), "rules.csv"); } }
+        { get { return Storage.File(Storage.Rules); } }
 
         internal static List<BlockRule> Read()
         {

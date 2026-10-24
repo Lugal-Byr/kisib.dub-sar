@@ -23,7 +23,7 @@ namespace Kisib
         private readonly Button denialsButton = new Button { AutoSize = true };
         private readonly System.Windows.Forms.Timer uiTimer = new System.Windows.Forms.Timer { Interval = 2000 };
         private bool showSources, cleaning;
-        private string SourcesFlag { get { return Path.Combine(Path.GetDirectoryName(BlockEngine.LogPath), "show-sources"); } }
+        private string SourcesFlag { get { return Storage.File("SETTING - show sources and test labels.txt"); } }
 
         private TreeView ActiveTree { get { return leftTabs != null && leftTabs.SelectedTab == groupsTab ? groupTree : tree; } }
 

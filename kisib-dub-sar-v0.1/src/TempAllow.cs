@@ -20,7 +20,7 @@ namespace Kisib
 
     internal static class TempAllow
     {
-        internal static string PendingPath { get { return Path.Combine(Path.GetDirectoryName(BlockEngine.LogPath), "temp-allow.csv"); } }
+        internal static string PendingPath { get { return Storage.File(Storage.TempAllows); } }
 
         internal static List<TempAllowEntry> Read()
         {

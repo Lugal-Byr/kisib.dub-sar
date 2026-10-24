@@ -22,7 +22,7 @@ namespace Kisib
 
     internal static class MyTags
     {
-        internal static string PathName { get { return Path.Combine(Path.GetDirectoryName(BlockEngine.LogPath), "my-tags.csv"); } }
+        internal static string PathName { get { return Storage.File(Storage.MyTags); } }
         internal static readonly string[] Kinds = { "country", "organization", "certificate" };
         // EU member states (27) plus C=EU, which some certificates use.
         internal static readonly string[] EuMembers = { "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT",

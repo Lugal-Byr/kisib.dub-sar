@@ -24,6 +24,14 @@ Blocked certificates go into Windows' Disallowed store (this user; whole PC
 when kisib runs as administrator). Nothing is deleted. Undo last block puts
 it back. Block > Block history shows every change.
 
+PORTABLE BACKUP LISTS
+Everything kisib remembers is plain .txt in the PORTABLE BACKUP LISTS folder next
+to kisib.dub-sar.exe (File > Open PORTABLE BACKUP LISTS folder). Keep the kisib
+folder on a USB stick or another drive. After a reformat, run kisib as
+administrator once: every block in "BLOCKED CERTIFICATES (re-applied after
+reformat).txt" is put back, and your rules and tags carry on. Unzipping a new
+version next to the old one copies the lists over automatically.
+
 ALLOW FOR A WHILE
 When something gets refused, the pop-up has Allow 3 / 10 / 60 min buttons.
 kisib lifts that block (and its siblings from the same company or key), counts

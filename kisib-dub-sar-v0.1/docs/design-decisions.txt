@@ -470,3 +470,14 @@ source lines hidden unless View > Show sources and test labels. Menus: Watch
 and Tools split out of View/Block. Toolbar: Refresh, Block group, Block
 certificate, Undo, Live map, Denials (count), Allow 10 min. Status bar: plain
 counts plus Watching dot and Refused today link. Nothing removed.
+
+D042 — PORTABLE BACKUP LISTS, 2026-10-23
+User: "i always preferred regular .txt files saying shit like PORTABLE BACKUP
+LISTS". Everything kisib remembers now lives in plain .txt files in a folder
+"PORTABLE BACKUP LISTS" next to the exe (AppData fallback only if that folder
+is not writable): BLOCKED CERTIFICATES (re-applied after reformat).txt holds
+each block with the certificate itself; at every start kisib puts back any
+listed block missing from Windows (fresh install, or removed by something
+else), skipping ones lifted by a temporary allow. Also RULES, MY TAGS, BLOCK
+HISTORY, TEMP ALLOWS, DENIALS, SETTING - *.txt switches and a README. Lists are
+copied from old AppData files and from an older unzipped kisib version beside it.

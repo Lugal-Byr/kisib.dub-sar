@@ -28,9 +28,19 @@ namespace Kisib
     {
         internal static string LogPath
         {
-            get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "kisib.dub-sar", "block-history.csv"); }
+            get { return Storage.File(Storage.BlockHistory); }
         }
         private const string LogHeader = "time_utc,batch,action,scope,sha256,sha1,subject,prior,result,group";
+
+        internal static void Note(string action, X509Location scope, string sha256, string sha1, string subject, string note)
+        {
+            try
+            {
+                Append(new List<BlockLogRow> { new BlockLogRow { Time = Now(), Batch = action + "-" + DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture),
+                    Action = action, Scope = scope.ToString(), Sha256 = sha256, Sha1 = sha1, Subject = subject, Prior = "absent", Result = "added", Group = note } });
+            }
+            catch (IOException) { }
+        }
 
         internal static bool IsElevated()
         {
@@ -79,6 +89,7 @@ namespace Kisib
                             row.Prior = present ? "present" : "absent";
                             if (!present) store.Add(cert);
                             row.Result = present ? "already in Disallowed" : "added";
+                            BlockedCertificates.Add(scope, item.Certificate);
                         }
                     }
                     catch (Exception ex) { row.Result = "error: " + ex.GetType().Name + ": " + ex.Message; if (row.Prior == null) row.Prior = "unknown"; }
@@ -118,6 +129,7 @@ namespace Kisib
                         row.Prior = found.Count > 0 ? "present" : "absent";
                         foreach (X509Certificate2 cert in found) store.Remove(cert);
                         row.Result = found.Count > 0 ? "removed" : "already absent";
+                        BlockedCertificates.Remove(scope, source.Sha1);
                     }
                     catch (Exception ex) { row.Result = "error: " + ex.GetType().Name + ": " + ex.Message; }
                     rows.Add(row);

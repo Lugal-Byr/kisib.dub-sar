@@ -86,7 +86,7 @@ namespace Kisib
         private NotifyIcon tray;
         private readonly List<Denial> denials = new List<Denial>();
         private readonly MenuItem watchToggle = new MenuItem("&Watch for certificate denials");
-        private string WatchOffFlag { get { return Path.Combine(Path.GetDirectoryName(BlockEngine.LogPath), "watch.off"); } }
+        private string WatchOffFlag { get { return Storage.File("SETTING - watching is turned off.txt"); } }
 
         private void InitializeAlerts(MenuItem view)
         {

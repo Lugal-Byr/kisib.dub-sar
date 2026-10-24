@@ -23,8 +23,8 @@ namespace Kisib
         private static readonly object gate = new object();
         private static readonly Dictionary<string, string> owners = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        private static string Folder { get { return Path.GetDirectoryName(BlockEngine.LogPath); } }
-        private static string FileFor(string decade) { return Path.Combine(Folder, "ccadb-pems-" + decade + "s.csv"); }
+        private static string Folder { get { return Storage.Folder; } }
+        private static string FileFor(string decade) { return Storage.File("ccadb-list-" + decade + "s.csv"); }
 
         internal static DateTime? Updated
         {

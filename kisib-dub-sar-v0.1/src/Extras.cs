@@ -43,9 +43,9 @@ namespace Kisib
     {
         internal bool StartInTray;
         private DenialToast toast;
-        private string AppFolder { get { return Path.GetDirectoryName(BlockEngine.LogPath); } }
-        private string DenialLogPath { get { return Path.Combine(AppFolder, "denials.csv"); } }
-        private string TrayFlag { get { return Path.Combine(AppFolder, "minimize-to-tray"); } }
+        private string AppFolder { get { return Storage.Folder; } }
+        private string DenialLogPath { get { return Storage.File(Storage.Denials); } }
+        private string TrayFlag { get { return Storage.File("SETTING - minimize to tray.txt"); } }
         private const string TaskName = "kisib.dub-sar";
 
         private void InitializeExtras(MenuItem file, MenuItem view)

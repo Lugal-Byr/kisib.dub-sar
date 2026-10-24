@@ -77,6 +77,7 @@ namespace Kisib
             InitializeAlerts(view);
             InitializeTempAllow(certificate);
             InitializeExtras(file, view);
+            InitializePortable(file);
             InitializeMyTags(certificate, view);
             InitializeContextMenus();
             InitializeLiveMap(view);
