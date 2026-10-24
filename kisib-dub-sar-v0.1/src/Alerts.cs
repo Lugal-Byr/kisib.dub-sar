@@ -191,6 +191,7 @@ namespace Kisib
             {
                 ListView grid = new ListView();
                 SetupGrid(grid, new string[] { "Time", "Verdict", "Who is this", "Reason", "Blocked by your list", "Program", "Certificate / site", "Trust flags" }, new int[] { 70, 160, 420, 260, 200, 120, 220, 300 });
+                AddDenialMenu(grid, delegate { dialog.Close(); });
                 foreach (Denial d in denials.AsEnumerable().Reverse())
                 {
                     if (d.Verdict == null) Annotate(d);

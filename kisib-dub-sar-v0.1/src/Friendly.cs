@@ -38,6 +38,7 @@ namespace Kisib
             storesTab.Controls.Add(tree); groupsTab.Controls.Add(groupTree);
             watchList = new ListView();
             SetupGrid(watchList, new string[] { "Time", "Verdict", "Who is this", "Why", "Your block" }, new int[] { 60, 120, 260, 160, 140 });
+            AddDenialMenu(watchList, null);
             FlowLayoutPanel buttons = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 66, Padding = new Padding(4) };
             foreach (KeyValuePair<string, Action> b in new Dictionary<string, Action> {
                 { "Live map", OpenLiveMap }, { "All denials", ShowDenials }, { "Rules", ShowRules }, { "Incident check", ShowIncidents } })

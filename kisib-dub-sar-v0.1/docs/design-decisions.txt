@@ -499,3 +499,11 @@ puts enabled categories' roots into LOCAL_MACHINE Root and out of Disallowed
 Get-NetTCPConnection/Get-AuthenticodeSignature/Get-NetFirewallRule joined
 with kisib's stores, tags and blocks; red when not validly signed and
 listening, or signed under a blocked CA.
+
+D044 Right-click on a refusal (Certificate denials window and Watching tab):
+Why is this blocked (kisib block date and group from BLOCK HISTORY, or
+already in Disallowed before kisib; every group it belongs to with the
+reason; RULE marker when a saved rule keeps that group blocked; tags;
+protected-category note), Allow 3/10/60 minutes, certificate card, show
+in main list, copy. Refusals not caused by a block explain the Windows
+reason instead of offering an allow.
