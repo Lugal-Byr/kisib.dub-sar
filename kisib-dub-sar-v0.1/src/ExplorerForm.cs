@@ -198,6 +198,8 @@ namespace Kisib
                     catch (Exception ex) { result.Fail("Microsoft root list", MicrosoftList.SstPath, ex.GetType().Name + ": " + ex.Message); }
                     try { Ccadb.Merge(result); }
                     catch (Exception ex) { result.Fail("CCADB list", "CCADB", ex.GetType().Name + ": " + ex.Message); }
+                    try { result.Paths = TrustGraph.Build(result); }
+                    catch (Exception ex) { result.Fail("Cross-sign paths", "kisib", ex.GetType().Name + ": " + ex.Message); }
                     if (history != null) history.Commit(result);
                     Post(delegate { Display(result); scanning = false; refresh.Enabled = true; refreshMenu.Enabled = true; });
                 }
@@ -266,6 +268,8 @@ namespace Kisib
             ApplyRules(result);
             DateTime? msList = MicrosoftList.Updated;
             status.Text += " | MS list: " + (msList.HasValue ? msList.Value.ToString("yyyy-MM-dd") : "not loaded (Block > Update)") + " | CCADB: " + (Ccadb.Updated.HasValue ? Ccadb.Updated.Value.ToString("yyyy-MM-dd") : "not loaded") + (ruleStatus.Length > 0 ? " | " + ruleStatus : "");
+            int leaks = LeakCount();
+            if (leaks > 0) status.Text += " | LEAKS: " + leaks + " blocked CAs still have a way in (Tools > Reroute check)";
             OpenPendingFile();
         }
 

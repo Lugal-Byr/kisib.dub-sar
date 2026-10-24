@@ -59,6 +59,7 @@ namespace Kisib
             t.AppendLine("SPKI SHA-256: " + (c.SpkiSha256 ?? "—"));
             t.AppendLine("Found in: " + c.FoundInText);
             t.AppendLine("Blocked (in a Disallowed store): " + (blocked.Contains(c.Identity) ? "YES" : "no"));
+            t.AppendLine("Path to a trusted root: " + PathSummary(c));
             string tags = TagsOf(c);
             t.AppendLine("Tags: " + (tags.Length > 0 ? tags : "—"));
             if (groups != null)
@@ -92,6 +93,14 @@ namespace Kisib
             });
             certMenu.MenuItems.Add("-");
             certMenu.MenuItems.Add("Show chain", delegate { ShowChain(sel()); });
+            certMenu.MenuItems.Add("Paths to trusted roots (cross-signs, leaks, reroutes)...", delegate { CertificateRecord c = sel(); if (c != null) ShowText("Paths — " + c.SubjectShortName, PathsReport(c)); });
+            certMenu.MenuItems.Add("Install route around blocks for this CA...", delegate
+            {
+                CertificateRecord c = sel(); if (c == null) return;
+                Reach r = PathsNow();
+                if (r == null || c.SpkiSha256 == null || !r.Has(c.SpkiSha256)) { ShowText("Install route", "No other path for this CA: nothing to install.\r\n\r\n" + PathsReport(c)); return; }
+                InstallRoute(snapshot.Paths.Missing(snapshot.Paths.Path(r, c.SpkiSha256)), c.SubjectShortName);
+            });
             certMenu.MenuItems.Add("Block this certificate...", delegate { BlockSelectedCertificate(); });
             foreach (int minutes in new int[] { 3, 10, 60 })
             {

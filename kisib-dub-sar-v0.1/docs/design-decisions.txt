@@ -507,3 +507,15 @@ reason; RULE marker when a saved rule keeps that group blocked; tags;
 protected-category note), Allow 3/10/60 minutes, certificate card, show
 in main list, copy. Refusals not caused by a block explain the Windows
 reason instead of offering an allow.
+
+D045 Reroute check (cross-signs). A key graph is built offline after every scan
+from the stores, the Microsoft list and CCADB, matching issuers by subject name
+and authority/subject key ID. Trusted roots = self-signed in Root/AuthRoot or on
+the Microsoft list; Disallowed and expired certificates are not usable. LEAK =
+blocked key still reachable; rerouted = key signed by a blocked key but still
+reachable another way; cut off = no path. Install route adds only missing
+cross-signed certificates (never roots) to Intermediate Certification
+Authorities (LOCAL_MACHINE when elevated, else CURRENT_USER), records them in
+ROUTES (...).txt, re-applies them on start, and removes only what it added.
+The block preview shows what a block would cut off/reroute. Windows path
+choice remains [to test].

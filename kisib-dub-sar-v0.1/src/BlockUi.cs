@@ -127,7 +127,10 @@ namespace Kisib
                 scopePanel.Controls.AddRange(new Control[] { user, machine });
                 ListView grid = new ListView();
                 SetupGrid(grid, new string[] { "Action", "Subject CN", "Issuer CN", "C=", "Why", "Found in (physical stores)", "SHA-256" }, new int[] { 130, 210, 210, 45, 330, 330, 460 });
-                Label info = new Label { Dock = DockStyle.Bottom, Height = 78 };
+                Label info = new Label { Dock = DockStyle.Bottom, Height = 96 };
+                string whatIf = "";
+                Button rerouteDetails = new Button { Text = "Cross-sign details: what this block cuts off and what gets rerouted...", Dock = DockStyle.Bottom, Height = 28 };
+                rerouteDetails.Click += delegate { ShowText("If you block this — cross-signs", whatIf.Length > 0 ? whatIf : "Nothing new to block, or the scan is not ready."); };
                 CheckBox includeProtected = new CheckBox { Dock = DockStyle.Bottom, Height = 24, Text = "Also block PROTECTED certificates (trusted categories like Windows essentials need them)", ForeColor = Color.Firebrick };
                 CheckBox keep = new CheckBox { Dock = DockStyle.Bottom, Height = 26, Checked = ruleGroup != null, Enabled = ruleGroup != null,
                     Text = "Keep this group blocked: block new matches after every scan (rescans every 60 seconds)" };
@@ -160,6 +163,9 @@ namespace Kisib
                         "Nothing is deleted from Root or CA, so a Windows root update cannot bring them back: Disallowed wins.\r\n" +
                         "Windows, Edge and apps using Windows certificate checks stop trusting them. Chrome and Firefox keep their own root stores [to test].\r\n" +
                         "Undo: Block > Undo last block. Every change is written to " + BlockEngine.LogPath;
+                    string whatIfLine;
+                    whatIf = RerouteWhatIf(plan.Where(i => !i.AlreadyBlocked).Select(i => i.Certificate), out whatIfLine);
+                    if (whatIfLine.Length > 0) info.Text += "\r\n" + whatIfLine;
                 };
                 user.CheckedChanged += delegate { refreshPlan(); };
                 keep.CheckedChanged += delegate { refreshPlan(); };
@@ -183,7 +189,7 @@ namespace Kisib
                     ShowText("Block result", Report(rows));
                     StartScan();
                 };
-                dialog.Controls.Add(grid); dialog.Controls.Add(scopePanel); dialog.Controls.Add(info); dialog.Controls.Add(includeProtected); dialog.Controls.Add(keep); dialog.Controls.Add(go); dialog.Controls.Add(cancel);
+                dialog.Controls.Add(grid); dialog.Controls.Add(scopePanel); dialog.Controls.Add(info); dialog.Controls.Add(rerouteDetails); dialog.Controls.Add(includeProtected); dialog.Controls.Add(keep); dialog.Controls.Add(go); dialog.Controls.Add(cancel);
                 dialog.CancelButton = cancel;
                 dialog.ShowDialog(this);
             }

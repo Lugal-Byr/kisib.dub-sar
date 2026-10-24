@@ -15,6 +15,16 @@ namespace Kisib
             Func<Denial> selected = delegate { return grid.SelectedItems.Count == 0 ? null : grid.SelectedItems[0].Tag as Denial; };
             List<MenuItem> items = new List<MenuItem>();
             items.Add(new MenuItem("Why is this blocked? (groups, rules, who blocked it)", delegate { Denial d = selected(); if (d != null) ShowText("Why — " + d.Subject, ExplainDenial(d)); }));
+            items.Add(new MenuItem("Reroute around the block (use a cross-signed path)...", delegate
+            {
+                Denial d = selected(); if (d == null) return;
+                List<CertificateRecord> missing;
+                List<CertificateRecord> route = DenialRoute(d, out missing);
+                if (route == null) { ShowText("Reroute", "No other path: the CA that signed this has no cross-sign to a root you trust, so only Allow gets it through.\r\n\r\n" + ExplainDenial(d)); return; }
+                if (missing.Count == 0) { ShowText("Reroute", "The other path is already on this PC:\r\n  " + TrustGraph.PathText(route) + "\r\n\r\nWindows should take it on the next try [to test]. If it still fails, the site or program only offers the blocked path."); return; }
+                if (closeParent != null) closeParent();
+                InstallRoute(missing, d.Subject);
+            }));
             foreach (int minutes in new int[] { 3, 10, 60 })
             {
                 int m = minutes;
@@ -95,6 +105,15 @@ namespace Kisib
                 if (guard != null) t.AppendLine("  NOTE      protected by trusted category " + guard + " — blocking it breaks that category");
                 t.AppendLine("  undo      right-click > Allow for N minutes (temporary), or Certificate > Unblock (kisib's own blocks).");
                 t.AppendLine();
+            }
+            List<CertificateRecord> missing;
+            List<CertificateRecord> route = DenialRoute(d, out missing);
+            t.AppendLine("OTHER ROUTE (cross-signs):");
+            if (route == null) t.AppendLine("  none. The CA that signed this has no path to a root you trust except through the block. Only Allow gets it through.");
+            else
+            {
+                t.AppendLine("  " + TrustGraph.PathText(route));
+                t.AppendLine(missing.Count == 0 ? "  Already on this PC; Windows should find it [to test]." : "  Needs " + missing.Count + " certificate(s) Windows can't find: right-click > Reroute around the block installs them.");
             }
             return t.ToString();
         }

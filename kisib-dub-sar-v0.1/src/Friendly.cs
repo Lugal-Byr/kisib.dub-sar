@@ -80,10 +80,10 @@ namespace Kisib
 
         internal string StatusOf(CertificateRecord c)
         {
-            if (rowBlocked.Contains(c.Identity)) return "BLOCKED";
+            if (rowBlocked.Contains(c.Identity)) return "BLOCKED" + RouteNote(c);
             Func<string, bool> inStore = delegate(string name)
             { return c.FoundIn.Concat(c.Collections).Any(p => p.IndexOf("\\" + name + "\\", StringComparison.OrdinalIgnoreCase) >= 0 || p.EndsWith("\\" + name, StringComparison.OrdinalIgnoreCase)); };
-            string extra = c.CollisionPeers.Count > 0 ? " · SHA-1 collision!" : c.WeakReasons.Count > 0 ? " · weak" : "";
+            string extra = (c.CollisionPeers.Count > 0 ? " · SHA-1 collision!" : c.WeakReasons.Count > 0 ? " · weak" : "") + RouteNote(c);
             if (inStore("Root") || inStore("AuthRoot")) return "Trusted root" + extra;
             if (inStore("CA")) return "Intermediate" + extra;
             if (inStore("TrustedPublisher")) return "Trusted publisher" + extra;
@@ -197,6 +197,7 @@ namespace Kisib
             menu.MenuItems.Add(at, watch); menu.MenuItems.Add(at + 1, tools);
             InitializeReputation(tools);
             InitializePrograms(watch, toolbar);
+            InitializeReroute(tools, toolbar);
             Tidy(view); Tidy(block);
 
             // Toolbar: the daily actions.

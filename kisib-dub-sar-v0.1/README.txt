@@ -62,6 +62,24 @@ View > Certificate denials lists them. Run kisib as administrator once so it
 can switch on Windows' certificate log (CAPI2); after that it just watches.
 View > Watch for certificate denials turns it off and on.
 
+REROUTE CHECK (CROSS-SIGNS)
+One CA key can hang under more than one root (a cross-sign). Tools > Reroute
+check (Ctrl+R) maps every path offline from this PC, the Microsoft list and CCADB:
+  LEAK        a blocked CA that still has a way in, so the block does not hold.
+              Right-click > Block the leak.
+  rerouted    a CA under a blocked root that still reaches another root you
+              trust (e.g. Google's GTS Root R1 when GlobalSign BE is blocked).
+              "Windows can find it: no" means the cross-sign is only in CCADB;
+              right-click > Install route adds it to Intermediate Certification
+              Authorities so Windows can take that path. No root is added and
+              nothing is unblocked.
+  cut off     no path left; only Allow gets it through.
+Certificate denials: right-click > Reroute around the block does the same for one
+refusal. The block preview shows what a block cuts off and what gets rerouted.
+The Status column marks LEAK / rerouted / cut off; the card shows the path.
+Routes live in ROUTES (...).txt and come back after a reformat. Tools > Routes kisib
+installed removes them. Windows picks the path itself [to test].
+
 KEEP GROUPS BLOCKED
 Block > Update Microsoft root list downloads every root Windows trusts, including
 ones not on this PC yet, so they can be blocked before they ever arrive.

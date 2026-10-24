@@ -161,6 +161,7 @@ namespace Kisib
         internal DateTime Started = DateTime.UtcNow;
         internal DateTime Finished;
         internal bool Canceled;
+        internal TrustGraph Paths;   // cross-sign map, built in the scan worker
         internal int StoreCount { get { return Locations.Sum(location => location.Stores.Count); } }
         internal int PhysicalCount { get { return Locations.Sum(location => location.Stores.Sum(store => store.PhysicalStores.Count)); } }
         internal int UnresolvedCount { get { return Certificates.Values.Count(cert => cert.FoundIn.Count == 0); } }
