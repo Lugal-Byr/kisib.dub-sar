@@ -1,0 +1,40 @@
+# TRUSTED CATEGORIES.  A category that is on:
+#  - its roots (and the CAs right under them) are PROTECTED: rules skip them, the block preview warns before blocking them
+#  - refusals for its programs or sites are labelled "expected service broken" (one notice, not a pop-up storm)
+# enabled = on / off.  Lists are comma-separated.  *.example.com matches example.com and anything under it.
+
+[Windows essentials]
+enabled = on
+programs = MsMpEng.exe, NisSrv.exe, MpCmdRun.exe, MpDefenderCoreService.exe, SecurityHealthService.exe, smartscreen.exe, wuauclt.exe, UsoClient.exe, MoUsoCoreWorker.exe, TiWorker.exe, TrustedInstaller.exe
+sites = ctldl.windowsupdate.com, *.update.microsoft.com, *.windowsupdate.com, *.delivery.mp.microsoft.com, *.dsp.mp.microsoft.com, *.smartscreen.microsoft.com, *.smartscreen-prod.microsoft.com, *.wdcp.microsoft.com, *.wd.microsoft.com, definitionupdates.microsoft.com, *.msftconnecttest.com
+roots = Microsoft Root Certificate Authority 2010, Microsoft Root Certificate Authority 2011, Microsoft Root Authority, Microsoft RSA Root Certificate Authority 2017, Microsoft ECC Root Certificate Authority 2017, Microsoft Identity Verification Root Certificate Authority 2020, DigiCert Global Root G2, DigiCert Global Root CA, DigiCert Global Root G3, DigiCert Assured ID Root CA, Baltimore CyberTrust Root
+
+[Microsoft account and OneDrive]
+enabled = off
+programs = OneDrive.exe
+sites = login.live.com, login.microsoftonline.com, *.live.com, *.onedrive.com, settings-win.data.microsoft.com, *.wns.windows.com, *.notify.windows.com
+roots = Microsoft RSA Root Certificate Authority 2017, Microsoft ECC Root Certificate Authority 2017, DigiCert Global Root G2, DigiCert Global Root CA, Baltimore CyberTrust Root
+
+[Microsoft Store]
+enabled = off
+programs = WinStore.App.exe, AppInstaller.exe, winget.exe
+sites = displaycatalog.mp.microsoft.com, *.bigcatalog.*, *.storeedgefd.dsx.mp.microsoft.com
+roots = Microsoft RSA Root Certificate Authority 2017, DigiCert Global Root G2
+
+[Apple iCloud]
+enabled = off
+programs = iCloudServices.exe, iCloudDrive.exe, APSDaemon.exe
+sites = *.apple.com, *.icloud.com
+roots = Apple Root CA, Apple Root CA - G2, Apple Root CA - G3
+
+[Google]
+enabled = off
+programs = chrome.exe
+sites = *.google.com, *.googleapis.com, *.gstatic.com
+roots = GTS Root R1, GTS Root R2, GTS Root R3, GTS Root R4, GlobalSign Root CA
+
+[Steam and Epic]
+enabled = off
+programs = steam.exe, steamwebhelper.exe, EpicGamesLauncher.exe
+sites = *.steampowered.com, *.steamstatic.com, *.epicgames.com
+roots = DigiCert Global Root G2, DigiCert Global Root CA, USERTrust RSA Certification Authority

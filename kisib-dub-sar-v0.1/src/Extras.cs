@@ -17,7 +17,7 @@ namespace Kisib
         internal DenialToast(string title, string text, bool canAllow, Action<int> allow, Action details)
         {
             FormBorderStyle = FormBorderStyle.FixedToolWindow; TopMost = true; ShowInTaskbar = false; StartPosition = FormStartPosition.Manual;
-            Text = title; Size = new Size(430, canAllow ? 190 : 160); Font = new Font("Tahoma", 9F); BackColor = SystemColors.Info;
+            Text = title; Size = new Size(500, canAllow ? 230 : 200); Font = new Font("Tahoma", 9F); BackColor = SystemColors.Info;
             Rectangle area = Screen.PrimaryScreen.WorkingArea;
             Location = new Point(area.Right - Width - 12, area.Bottom - Height - 12);
             Label body = new Label { Text = text, Dock = DockStyle.Fill, Padding = new Padding(8), ForeColor = SystemColors.InfoText };
@@ -87,6 +87,7 @@ namespace Kisib
             toast = new DenialToast("kisib: certificate denied", text, behind.Count > 0,
                 delegate(int m) { AllowTemporarily(behind, d.Subject, TimeSpan.FromMinutes(m), false); },
                 delegate { RestoreFromTray(); ShowDenials(); });
+            toast.BackColor = d.Verdict == "yellow" ? Color.LightYellow : d.Verdict == "red" ? Color.MistyRose : SystemColors.Info;
             toast.Show();
         }
 

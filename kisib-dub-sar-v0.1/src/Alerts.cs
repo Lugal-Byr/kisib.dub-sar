@@ -14,7 +14,7 @@ namespace Kisib
     internal sealed class Denial
     {
         internal DateTime Time;
-        internal string Program, Subject, Code, Reason, Flags, BlockedBy;
+        internal string Program, Subject, Code, Reason, Flags, BlockedBy, Who, Category, Verdict;
         internal readonly List<string> ChainSha1 = new List<string>();
         internal readonly List<string> ChainNames = new List<string>();
         internal bool Noise, Ok;
@@ -163,12 +163,20 @@ namespace Kisib
                 List<string> hits = snapshot.Certificates.Values.Where(c => blocked.Contains(c.Identity) && d.ChainSha1.Contains(c.Sha1)).Select(c => c.SubjectShortName).ToList();
                 if (hits.Count > 0) d.BlockedBy = String.Join(", ", hits.ToArray());
             }
+            Annotate(d);
             denials.Add(d);
             SaveDenial(d);
             RefreshWatchTab(); UpdateIndicators();
             if (denials.Count > 2000) denials.RemoveAt(0);
             if (d.Noise) return;
-            string text = d.Program + " was refused " + d.Subject + "\r\n" + d.Reason + (d.BlockedBy != null ? "\r\nBlocked by your Disallowed list: " + d.BlockedBy : "");
+            if (d.Verdict == "yellow")
+            {
+                // A trusted category is failing: one calm notice per hour, not a pop-up per refusal.
+                if (!CategoryNoticeDue(d.Category)) return;
+                ShowDenialToast(d, "Expected service broken: " + d.Category + "\r\n" + d.Who + "\r\n" + ShortReason(d.Reason) + "\r\nTools > Repair Windows essentials can fix missing Microsoft roots.");
+                return;
+            }
+            string text = d.Who + "\r\n" + ShortReason(d.Reason) + (d.BlockedBy != null ? "\r\nBlocked by your Disallowed list: " + d.BlockedBy : "");
             ShowDenialToast(d, text);
             FLASHWINFO flash = new FLASHWINFO { cbSize = (uint)Marshal.SizeOf(typeof(FLASHWINFO)), hwnd = Handle, dwFlags = 3 | 12, uCount = 0, dwTimeout = 0 }; // all + until foreground
             FlashWindowEx(ref flash);
@@ -180,11 +188,12 @@ namespace Kisib
             using (Form dialog = new Form { Text = "Certificate denials (Windows CAPI2 log, since kisib opened)", Size = new Size(1150, 520), Font = Font, StartPosition = FormStartPosition.CenterParent })
             {
                 ListView grid = new ListView();
-                SetupGrid(grid, new string[] { "Time", "Program", "Certificate / site", "Reason", "Blocked by your list", "Trust flags" }, new int[] { 80, 140, 230, 330, 220, 400 });
+                SetupGrid(grid, new string[] { "Time", "Verdict", "Who is this", "Reason", "Blocked by your list", "Program", "Certificate / site", "Trust flags" }, new int[] { 70, 160, 420, 260, 200, 120, 220, 300 });
                 foreach (Denial d in denials.AsEnumerable().Reverse())
                 {
-                    ListViewItem row = new ListViewItem(new string[] { d.Time.ToString("HH:mm:ss"), d.Program, d.Subject, d.Reason, d.BlockedBy ?? "", d.Flags });
-                    if (d.Noise) row.ForeColor = SystemColors.GrayText; else if (d.BlockedBy != null) row.ForeColor = Color.DarkRed;
+                    if (d.Verdict == null) Annotate(d);
+                    ListViewItem row = new ListViewItem(new string[] { d.Time.ToString("HH:mm:ss"), VerdictWord(d), (d.Who ?? "").Replace("\r\n", "  |  "), ShortReason(d.Reason), d.BlockedBy ?? "", d.Program, d.Subject, d.Flags });
+                    row.ForeColor = VerdictColor(d.Verdict);
                     row.Tag = d; grid.Items.Add(row);
                 }
                 Label note = new Label { Dock = DockStyle.Bottom, Height = 40, Text = "Red = refused because of your Disallowed list. Grey = harmless (revocation server unreachable, expired time-stamp certificate); listed, no alert.\r\n" +

@@ -1,0 +1,53 @@
+# WHO IS WHO - certificate owners.   text found in the certificate's organization or name = owner (country) = what it is
+Microsoft = Microsoft (US) = Windows maker; signs Windows, Update and Microsoft services
+DigiCert = DigiCert (US) = public certificate authority; also signs many Microsoft services
+Baltimore CyberTrust = DigiCert (US) = older public root, now DigiCert's
+QuoVadis = QuoVadis / DigiCert (BM, CH) = public certificate authority owned by DigiCert
+Symantec = DigiCert (US) = legacy Symantec roots taken over by DigiCert
+Thawte = DigiCert (US) = legacy brand of DigiCert
+VeriSign = DigiCert (US) = legacy VeriSign roots, now DigiCert's
+Sectigo = Sectigo (US, roots say GB) = public certificate authority, formerly Comodo
+Comodo = Sectigo (US, roots say GB) = Comodo roots, now Sectigo's
+AAA Certificate Services = Sectigo (GB) = old Comodo root used for cross-signing (eMudhra was cross-signed here)
+USERTrust = Sectigo (US) = Sectigo root
+GlobalSign = GlobalSign (BE, owned by GMO in JP) = public certificate authority
+ISRG = Let's Encrypt (US) = free nonprofit certificate authority
+Let's Encrypt = Let's Encrypt (US) = free nonprofit certificate authority
+Google Trust Services = Google (US) = Google's certificate authority
+GTS Root = Google (US) = Google's certificate authority
+Amazon = Amazon (US) = Amazon Web Services certificate authority
+Starfield = GoDaddy (US) = GoDaddy's Starfield roots
+GoDaddy = GoDaddy (US) = public certificate authority
+Go Daddy = GoDaddy (US) = public certificate authority
+Entrust = Entrust (US) = certificate authority (browsers distrusted its new TLS certificates from late 2024)
+IdenTrust = IdenTrust (US) = certificate authority, owned by HID Global
+SSL.com = SSL.com (US) = public certificate authority
+Apple = Apple (US) = Apple's own certificate authority
+Actalis = Actalis (IT) = Italian certificate authority, Aruba group
+eMudhra = eMudhra (IN) = Indian certificate authority (emSign); 2026 intermediate key compromise
+emSign = eMudhra (IN) = Indian certificate authority; 2026 intermediate key compromise
+FNMT = FNMT-RCM (ES) = Spanish Royal Mint, Spain's state certificate authority
+Izenpe = Izenpe (ES) = Basque government certificate authority
+ACCV = ACCV (ES) = Valencian government certificate authority
+Firmaprofesional = Firmaprofesional (ES) = Spanish certificate authority
+Camerfirma = Camerfirma (ES) = Spanish certificate authority (distrusted by browsers in 2021)
+Certum = Certum / Asseco (PL) = Polish certificate authority
+Buypass = Buypass (NO) = Norwegian certificate authority
+SwissSign = SwissSign (CH) = Swiss certificate authority
+D-TRUST = D-Trust / Bundesdruckerei (DE) = German state printer's certificate authority
+T-TeleSec = Deutsche Telekom (DE) = German telecom certificate authority
+Telekom Security = Deutsche Telekom (DE) = German telecom certificate authority
+HARICA = HARICA (GR) = Greek academic certificate authority
+Certigna = Certigna (FR) = French certificate authority
+Telia = Telia (FI, SE) = Nordic telecom certificate authority
+Microsec = Microsec e-Szigno (HU) = Hungarian certificate authority
+NetLock = NetLock (HU) = Hungarian certificate authority
+Chunghwa = Chunghwa Telecom (TW) = Taiwanese telecom certificate authority
+TWCA = TWCA (TW) = Taiwan certificate authority
+SECOM = SECOM (JP) = Japanese certificate authority
+CFCA = CFCA (CN) = China Financial Certification Authority
+GDCA = GDCA (CN) = Chinese certificate authority
+WoTrus = WoTrus (CN) = Chinese certificate authority
+Hongkong Post = Hongkong Post (HK) = Hong Kong government certificate authority
+OSSign = OSSign / Scheibling Consulting (SE) = code-signing certificate authority (signs LibreWolf's Windows installer)
+CCA India = Controller of Certifying Authorities (IN) = Indian government root

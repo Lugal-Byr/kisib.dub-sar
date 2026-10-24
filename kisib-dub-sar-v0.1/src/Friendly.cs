@@ -37,7 +37,7 @@ namespace Kisib
             storesTab = new TabPage("Stores"); groupsTab = new TabPage("Groups"); watchTab = new TabPage("Watching");
             storesTab.Controls.Add(tree); groupsTab.Controls.Add(groupTree);
             watchList = new ListView();
-            SetupGrid(watchList, new string[] { "Time", "Program", "Site", "Why", "Your block" }, new int[] { 60, 90, 150, 160, 140 });
+            SetupGrid(watchList, new string[] { "Time", "Verdict", "Who is this", "Why", "Your block" }, new int[] { 60, 120, 260, 160, 140 });
             FlowLayoutPanel buttons = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 66, Padding = new Padding(4) };
             foreach (KeyValuePair<string, Action> b in new Dictionary<string, Action> {
                 { "Live map", OpenLiveMap }, { "All denials", ShowDenials }, { "Rules", ShowRules }, { "Incident check", ShowIncidents } })
@@ -66,8 +66,9 @@ namespace Kisib
             watchList.BeginUpdate(); watchList.Items.Clear();
             foreach (Denial d in denials.Where(x => !x.Ok && !x.Noise).Reverse().Take(200))
             {
-                ListViewItem row = new ListViewItem(new string[] { d.Time.ToString("HH:mm:ss"), d.Program, d.Subject, ShortReason(d.Reason), d.BlockedBy ?? "" }) { Tag = d };
-                if (d.BlockedBy != null) row.ForeColor = Color.Firebrick;
+                if (d.Verdict == null) Annotate(d);
+                ListViewItem row = new ListViewItem(new string[] { d.Time.ToString("HH:mm:ss"), VerdictWord(d), (d.Who ?? d.Program).Replace("\r\n", "  |  "), ShortReason(d.Reason), d.BlockedBy ?? "" }) { Tag = d };
+                row.ForeColor = VerdictColor(d.Verdict);
                 watchList.Items.Add(row);
             }
             watchList.EndUpdate();
@@ -107,7 +108,7 @@ namespace Kisib
         private readonly Label cardName = new Label { Dock = DockStyle.Top, Height = 30, Font = new Font("Tahoma", 13F, FontStyle.Bold), AutoEllipsis = true };
         private readonly Label cardIssuer = new Label { Dock = DockStyle.Top, Height = 20, AutoEllipsis = true };
         private readonly Label cardStatus = new Label { Dock = DockStyle.Top, Height = 24, Font = new Font("Tahoma", 10F, FontStyle.Bold) };
-        private readonly Label cardFacts = new Label { Dock = DockStyle.Top, Height = 60, AutoEllipsis = true };
+        private readonly Label cardFacts = new Label { Dock = DockStyle.Top, Height = 92, AutoEllipsis = true };
         private readonly FlowLayoutPanel cardButtons = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 36 };
 
         private TabPage BuildCardTab()
@@ -144,7 +145,9 @@ namespace Kisib
             cardStatus.ForeColor = blocked ? Color.Firebrick : status.StartsWith("Trusted", StringComparison.Ordinal) ? Color.SeaGreen : Color.DimGray;
             string tags = TagsOf(c);
             string expiry = !c.NotAfter.HasValue ? "?" : c.NotAfter.Value < DateTime.UtcNow ? "EXPIRED " + c.NotAfter.Value.ToString("yyyy-MM-dd") : "valid until " + c.NotAfter.Value.ToString("yyyy-MM-dd");
-            cardFacts.Text = "Tags: " + (tags.Length > 0 ? tags : "none") + "\r\n" + expiry + "   ·   " + c.KeyAlgorithm + (c.KeySize.HasValue ? " " + c.KeySize.Value + "-bit" : "") +
+            string owner = WhoIsWho.Owner(c), guard = TrustCategories.ProtectedBy(c);
+            cardFacts.Text = (owner != null ? "Owner: " + owner + "\r\n" : "") + (guard != null ? "PROTECTED by trusted category: " + guard + "\r\n" : "") +
+                "Tags: " + (tags.Length > 0 ? tags : "none") + "\r\n" + expiry + "   ·   " + c.KeyAlgorithm + (c.KeySize.HasValue ? " " + c.KeySize.Value + "-bit" : "") +
                 (c.WeakReasons.Count > 0 ? "   ·   weak: " + String.Join(", ", c.WeakReasons.ToArray()) : "") + "\r\nSHA-1 " + c.Sha1;
         }
 
@@ -191,6 +194,8 @@ namespace Kisib
             MoveMenuItems(block, tools, "Update &Microsoft root list", "Update &CCADB list (all CA certificates, catches cross-signs)");
             int at = menu.MenuItems.IndexOf(view) + 1;
             menu.MenuItems.Add(at, watch); menu.MenuItems.Add(at + 1, tools);
+            InitializeReputation(tools);
+            InitializePrograms(watch, toolbar);
             Tidy(view); Tidy(block);
 
             // Toolbar: the daily actions.

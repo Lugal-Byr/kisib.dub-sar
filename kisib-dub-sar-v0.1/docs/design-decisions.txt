@@ -481,3 +481,21 @@ listed block missing from Windows (fresh install, or removed by something
 else), skipping ones lifted by a temporary allow. Also RULES, MY TAGS, BLOCK
 HISTORY, TEMP ALLOWS, DENIALS, SETTING - *.txt switches and a README. Lists are
 copied from old AppData files and from an older unzipped kisib version beside it.
+
+D043 — Who is this, trusted categories, Programs, repair, 2026-10-23
+User: Little Snitch-style reputation ("THIS IS RAN BY MICROSOFT FOR WINDOWS
+UPDATE"), format "file.exe = common name = what it does", and her PowerShell
+toolkit (listening ports, Authenticode signer, firewall openings).
+WHO IS WHO lists (programs, sites, certificate owners) ship in data/ and are
+copied into PORTABLE BACKUP LISTS for editing. Every denial gets a Who line and
+a traffic-light verdict (green known, yellow expected service broken, red
+blocked by you or unknown, grey harmless). TRUSTED CATEGORIES.txt (Windows
+essentials on by default; Microsoft account, Store, iCloud, Google, Steam/Epic
+off): their roots are protected (rules skip them; block preview skips them
+unless "Also block PROTECTED" is ticked = warn, user decides) and their
+refusals give one calm notice per hour. Tools > Repair Windows essentials
+puts enabled categories' roots into LOCAL_MACHINE Root and out of Disallowed
+(admin, preview, logged). Watch > Programs (Ctrl+P): PowerShell
+Get-NetTCPConnection/Get-AuthenticodeSignature/Get-NetFirewallRule joined
+with kisib's stores, tags and blocks; red when not validly signed and
+listening, or signed under a blocked CA.

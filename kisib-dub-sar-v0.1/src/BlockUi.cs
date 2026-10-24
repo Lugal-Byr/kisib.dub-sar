@@ -128,6 +128,7 @@ namespace Kisib
                 ListView grid = new ListView();
                 SetupGrid(grid, new string[] { "Action", "Subject CN", "Issuer CN", "C=", "Why", "Found in (physical stores)", "SHA-256" }, new int[] { 130, 210, 210, 45, 330, 330, 460 });
                 Label info = new Label { Dock = DockStyle.Bottom, Height = 78 };
+                CheckBox includeProtected = new CheckBox { Dock = DockStyle.Bottom, Height = 24, Text = "Also block PROTECTED certificates (trusted categories like Windows essentials need them)", ForeColor = Color.Firebrick };
                 CheckBox keep = new CheckBox { Dock = DockStyle.Bottom, Height = 26, Checked = ruleGroup != null, Enabled = ruleGroup != null,
                     Text = "Keep this group blocked: block new matches after every scan (rescans every 60 seconds)" };
                 Button go = new Button { Dock = DockStyle.Bottom, Height = 32 };
@@ -141,12 +142,15 @@ namespace Kisib
                     foreach (BlockItem item in plan.OrderBy(i => i.AlreadyBlocked).ThenBy(i => i.Certificate.SubjectShortName, StringComparer.OrdinalIgnoreCase))
                     {
                         CertificateRecord c = item.Certificate;
-                        ListViewItem row = new ListViewItem(new string[] { item.AlreadyBlocked ? "already blocked" : "add to Disallowed", c.SubjectShortName, c.IssuerShortName,
+                        string guard = TrustCategories.ProtectedBy(c);
+                        string action = item.AlreadyBlocked ? "already blocked" : guard != null && !includeProtected.Checked ? "SKIP: protected (" + guard + ")" : guard != null ? "add — PROTECTED (" + guard + ")" : "add to Disallowed";
+                        ListViewItem row = new ListViewItem(new string[] { action, c.SubjectShortName, c.IssuerShortName,
                             c.SubjectCountry ?? "—", item.Reason, c.FoundInText, c.Sha256 });
-                        if (item.AlreadyBlocked) row.ForeColor = SystemColors.GrayText;
+                        if (item.AlreadyBlocked) row.ForeColor = SystemColors.GrayText; else if (guard != null) row.ForeColor = Color.DarkGoldenrod;
                         grid.Items.Add(row);
                     }
                     grid.EndUpdate();
+                    plan = plan.Where(i => i.AlreadyBlocked || includeProtected.Checked || TrustCategories.ProtectedBy(i.Certificate) == null).ToList();
                     int add = plan.Count(i => !i.AlreadyBlocked), roots = plan.Count(i => !i.AlreadyBlocked && i.Certificate.FoundIn.Any(p => p.IndexOf("\\Root\\", StringComparison.OrdinalIgnoreCase) >= 0));
                     go.Text = add == 0 ? "Nothing to block" : "Block " + add + " certificate" + (add == 1 ? "" : "s");
                     go.Enabled = add > 0 || keep.Checked;
@@ -159,6 +163,7 @@ namespace Kisib
                 };
                 user.CheckedChanged += delegate { refreshPlan(); };
                 keep.CheckedChanged += delegate { refreshPlan(); };
+                includeProtected.CheckedChanged += delegate { refreshPlan(); };
                 refreshPlan();
                 go.Click += delegate
                 {
@@ -178,7 +183,7 @@ namespace Kisib
                     ShowText("Block result", Report(rows));
                     StartScan();
                 };
-                dialog.Controls.Add(grid); dialog.Controls.Add(scopePanel); dialog.Controls.Add(info); dialog.Controls.Add(keep); dialog.Controls.Add(go); dialog.Controls.Add(cancel);
+                dialog.Controls.Add(grid); dialog.Controls.Add(scopePanel); dialog.Controls.Add(info); dialog.Controls.Add(includeProtected); dialog.Controls.Add(keep); dialog.Controls.Add(go); dialog.Controls.Add(cancel);
                 dialog.CancelButton = cancel;
                 dialog.ShowDialog(this);
             }

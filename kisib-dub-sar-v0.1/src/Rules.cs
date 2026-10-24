@@ -135,7 +135,7 @@ namespace Kisib
             catch (Exception ex) { ruleStatus = "Rules unreadable: " + ex.Message; return; }
             if (rules.Count == 0 || groups == null || groups.Error != null) { ruleRescan = false; return; }
             bool elevated = BlockEngine.IsElevated();
-            int added = 0, skipped = 0, failed = 0;
+            int added = 0, skipped = 0, failed = 0, protectedSkipped = 0;
             foreach (BlockRule rule in rules)
             {
                 X509Location scope;
@@ -145,6 +145,9 @@ namespace Kisib
                 if (group == null) continue;
                 List<BlockItem> plan = BlockEngine.Plan(result, group.Members.Select(id => result.Certificates[id]),
                     delegate { return "rule: " + rule.Label; }, scope).Where(i => !i.AlreadyBlocked).ToList();
+                int before = plan.Count;
+                plan = plan.Where(i => TrustCategories.ProtectedBy(i.Certificate) == null).ToList();
+                protectedSkipped += before - plan.Count;
                 if (plan.Count == 0) continue;
                 try
                 {
@@ -155,7 +158,8 @@ namespace Kisib
                 catch (Exception ex) { failed += plan.Count; sessionLog.Add(DateTime.UtcNow.ToString("o") + "\tRule block failed\t" + rule.Label + "\t" + ex.Message); }
             }
             ruleStatus = "Rules: " + rules.Count + " active" + (added > 0 ? ", blocked " + added + " NEW" : ", nothing new") +
-                (skipped > 0 ? ", " + skipped + " whole-PC rules need admin" : "") + (failed > 0 ? ", " + failed + " errors (Block history)" : "");
+                (skipped > 0 ? ", " + skipped + " whole-PC rules need admin" : "") + (failed > 0 ? ", " + failed + " errors (Block history)" : "") +
+                (protectedSkipped > 0 ? ", " + protectedSkipped + " protected skipped" : "");
             // Rescan once so the new blocks show as Blocked; the second pass finds nothing new and stops.
             if (added > 0 && !ruleRescan) { ruleRescan = true; BeginInvoke((Action)StartScan); }
             else ruleRescan = false;

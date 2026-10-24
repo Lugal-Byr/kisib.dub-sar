@@ -1,0 +1,47 @@
+# WHO IS WHO - sites.   pattern = who = what for.   *.example.com matches example.com and anything under it.
+ctldl.windowsupdate.com = Windows Update = Microsoft's trusted and untrusted root certificate lists
+*.update.microsoft.com = Windows Update = update files and metadata
+*.windowsupdate.com = Windows Update = update files and metadata
+*.delivery.mp.microsoft.com = Windows Update / Store = update and app downloads
+*.dsp.mp.microsoft.com = Delivery Optimization = update downloads, peer sharing
+*.do.dsp.mp.microsoft.com = Delivery Optimization = update downloads, peer sharing
+*.smartscreen.microsoft.com = SmartScreen = download and app reputation lookups
+*.smartscreen-prod.microsoft.com = SmartScreen = download and app reputation lookups
+*.wdcp.microsoft.com = Microsoft Defender = cloud protection lookups
+*.wd.microsoft.com = Microsoft Defender = cloud protection and reporting
+definitionupdates.microsoft.com = Microsoft Defender = virus definition downloads
+*.msftconnecttest.com = Windows network check = "is the internet up" test
+*.wns.windows.com = Windows push notifications = app notifications and live tiles
+*.notify.windows.com = Windows push notifications = app notifications
+login.live.com = Microsoft account = sign-in
+login.microsoftonline.com = Microsoft work/school account = sign-in
+*.live.com = Microsoft account = account and Outlook services
+*.onedrive.com = OneDrive = cloud files
+settings-win.data.microsoft.com = Windows settings service = settings and feature configuration
+*.events.data.microsoft.com = Windows telemetry = diagnostic data uploads
+*.vortex.data.microsoft.com = Windows telemetry = diagnostic data uploads
+displaycatalog.mp.microsoft.com = Microsoft Store = app catalog
+*.bigcatalog.* = Microsoft Store = app catalog front door
+*.storeedgefd.dsx.mp.microsoft.com = Microsoft Store = store pages
+*.microsoft.com = Microsoft = Microsoft service (check the full name for which one)
+*.windows.com = Microsoft = Windows service
+*.digicert.com = DigiCert = certificate status (revocation) checks
+ocsp.* = Certificate authority = revocation check for a certificate
+crl.* = Certificate authority = revocation list download
+*.apple.com = Apple = Apple services
+*.icloud.com = Apple iCloud = iCloud sync
+*.google.com = Google = Google services
+*.googleapis.com = Google = Google APIs
+*.gstatic.com = Google = Google static files
+*.steampowered.com = Steam = game store
+*.steamstatic.com = Steam = game store files
+*.epicgames.com = Epic Games = game store
+*.librewolf.net = LibreWolf = browser downloads and updates
+*.mozilla.org = Mozilla = Firefox services
+*.mozilla.net = Mozilla = Firefox updates and services
+*.github.com = GitHub = code hosting (kisib releases live here)
+*.githubusercontent.com = GitHub = downloads from GitHub
+*.anthropic.com = Anthropic = Claude services
+claude.ai = Anthropic = Claude
+*.ivpn.net = IVPN = VPN service
+*.salesforce-sites.com = CCADB host = public list of certificate authorities

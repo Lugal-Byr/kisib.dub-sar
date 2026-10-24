@@ -1,0 +1,70 @@
+# WHO IS WHO - programs.   file.exe = common name = what it does
+# Edit freely. One per line. Lines starting with # are notes.
+System = Windows kernel = the core of Windows; owns low-level network ports
+MsMpEng.exe = Microsoft Defender = scans files, downloads virus definitions
+NisSrv.exe = Defender network inspection = watches network traffic for known attacks
+MpCmdRun.exe = Defender command line = runs scans and definition updates
+MpDefenderCoreService.exe = Defender core service = Defender's background engine
+SecurityHealthService.exe = Windows Security center = reports antivirus and firewall health
+smartscreen.exe = SmartScreen = checks downloads and apps against Microsoft's reputation list
+wuauclt.exe = Windows Update = checks for and installs updates
+UsoClient.exe = Windows Update orchestrator = schedules update scans and installs
+MoUsoCoreWorker.exe = Windows Update worker = downloads and stages updates
+TiWorker.exe = Windows Modules Installer = installs updates and Windows features
+TrustedInstaller.exe = Windows Modules Installer = owns and changes Windows system files
+svchost.exe = Service host = runs Windows background services (the site shows which one)
+lsass.exe = Windows security = checks certificates and logins for other programs
+services.exe = Service control manager = starts and stops Windows services
+wininit.exe = Windows start-up = starts core services at boot
+winlogon.exe = Windows logon = handles sign-in and the lock screen
+csrss.exe = Client/server runtime = core part of Windows sessions
+smss.exe = Session manager = starts Windows sessions at boot
+spoolsv.exe = Print spooler = sends jobs to printers
+explorer.exe = File Explorer = desktop, taskbar, checks signatures on files you browse
+consent.exe = UAC prompt = checks who signed a program asking for admin
+dllhost.exe = COM surrogate = runs helper code for other programs (thumbnails, etc.)
+RuntimeBroker.exe = Runtime broker = handles permissions for Store apps
+SearchHost.exe = Windows Search UI = the start-menu search box
+SearchIndexer.exe = Windows Search indexer = indexes files for search
+StartMenuExperienceHost.exe = Start menu = draws the start menu
+ShellExperienceHost.exe = Windows shell = notifications, clock and flyouts
+sihost.exe = Shell infrastructure host = desktop and notification plumbing
+taskhostw.exe = Task host = runs scheduled tasks and DLL tasks
+WmiPrvSE.exe = WMI provider host = answers system-information queries
+audiodg.exe = Windows audio = sound processing
+ctfmon.exe = Text input = keyboard, handwriting and language bar
+CompPkgSrv.exe = Component package support = helper for Store app installs
+backgroundTaskHost.exe = Background task host = runs Store app background tasks
+WinStore.App.exe = Microsoft Store = the Store app
+winget.exe = Windows Package Manager = installs apps from the command line
+AppInstaller.exe = App Installer = installs .appx/.msix packages and winget
+OneDrive.exe = OneDrive = syncs files to Microsoft's cloud
+msedge.exe = Microsoft Edge = web browser
+msedgewebview2.exe = Edge WebView2 = web views inside other apps
+ms-teams.exe = Microsoft Teams = chat and meetings
+powershell.exe = Windows PowerShell = command shell and scripts
+pwsh.exe = PowerShell 7 = command shell and scripts
+cmd.exe = Command prompt = command shell
+curl.exe = curl = downloads web addresses from the command line
+certutil.exe = certutil = Windows certificate tool (lists, downloads root lists)
+mmc.exe = Management console = Windows admin tools (certmgr, etc.)
+CertEnrollCtrl.exe = Certificate enrollment = requests certificates
+librewolf.exe = LibreWolf = privacy-hardened Firefox browser (uses its own certificate list)
+firefox.exe = Firefox = web browser (uses its own certificate list)
+chrome.exe = Google Chrome = web browser (uses Chrome's own root store)
+qbittorrent.exe = qBittorrent = torrent client
+ivpn-service.exe = IVPN service = keeps the VPN tunnel and firewall up
+IVPN Client.exe = IVPN app = VPN window
+simplewall.exe = simplewall = firewall rules front-end for Windows Filtering Platform
+steam.exe = Steam = game store and launcher
+steamwebhelper.exe = Steam web helper = Steam's built-in browser
+EpicGamesLauncher.exe = Epic Games Launcher = game store and launcher
+ollama.exe = Ollama = runs local AI models; listens on port 11434
+LM Studio.exe = LM Studio = runs local AI models
+claude.exe = Claude desktop = Claude app
+vlc.exe = VLC = media player
+Code.exe = Visual Studio Code = code editor
+git.exe = Git = version control
+ssh.exe = OpenSSH client = secure remote shell
+nvcontainer.exe = NVIDIA container = NVIDIA driver services
+kisib.dub-sar.exe = kisib = this app
