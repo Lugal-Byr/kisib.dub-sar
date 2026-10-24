@@ -414,3 +414,15 @@ be blocked ahead of time. "Keep this group blocked" saves a rule
 (rules.csv); after every scan new matches are added to Disallowed and logged
 as "rule: <group>", and the 60-second auto scan turns on while rules exist.
 Not yet: CCADB intermediates (cross-sign back doors not on disk), per-browser.
+
+D037 — Denial alerts, 2026-10-23
+User: "can we make kisib ping the user when a cert denial is pinged in the
+system ... started flashing in the taskbar". kisib watches
+Microsoft-Windows-CAPI2/Operational events 11 and 30 (turns the log on once
+when run as admin). Any failed certificate check flashes the taskbar and shows
+a tray notice with program, certificate, reason, and which of your Disallowed
+blocks caused it (matched by SHA-1 in the logged chain). View > Certificate
+denials lists them. Revocation-server-offline errors are listed grey, no alert.
+Chrome/Firefox verify on their own and do not log here.
+First real case: curl/winget to dl.librewolf.net refused (CRYPT_E_REVOKED)
+because the Actalis (IT) roots are in Disallowed.

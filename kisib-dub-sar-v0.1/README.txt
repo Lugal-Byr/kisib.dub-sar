@@ -24,6 +24,14 @@ Blocked certificates go into Windows' Disallowed store (this user; whole PC
 when kisib runs as administrator). Nothing is deleted. Undo last block puts
 it back. Block > Block history shows every change.
 
+DENIAL ALERTS
+When any program on this PC is refused a certificate (curl, winget, Edge,
+Windows apps), kisib flashes in the taskbar and pops a notice: which program,
+which certificate, why, and whether one of your blocks did it.
+View > Certificate denials lists them. Run kisib as administrator once so it
+can switch on Windows' certificate log (CAPI2); after that it just watches.
+View > Watch for certificate denials turns it off and on.
+
 KEEP GROUPS BLOCKED
 Block > Update Microsoft root list downloads every root Windows trusts, including
 ones not on this PC yet, so they can be blocked before they ever arrive.

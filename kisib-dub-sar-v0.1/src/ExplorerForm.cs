@@ -72,6 +72,7 @@ namespace Kisib
             menu.MenuItems.AddRange(new MenuItem[] { file, certificate, view, help });
             Menu = menu;
             InitializeViews(file, view, certificate);
+            InitializeAlerts(view);
 
             FlowLayoutPanel toolbar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 34, Padding = new Padding(3), WrapContents = false };
             refresh.Text = "Refresh"; refresh.AutoSize = true; refresh.Click += delegate { StartScan(); };
