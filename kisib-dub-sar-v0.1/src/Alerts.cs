@@ -17,7 +17,7 @@ namespace Kisib
         internal string Program, Subject, Code, Reason, Flags, BlockedBy, Who, Category, Verdict;
         internal readonly List<string> ChainSha1 = new List<string>();
         internal readonly List<string> ChainNames = new List<string>();
-        internal bool Noise, Ok;
+        internal bool Noise, Ok, Known;
     }
 
     internal static class DenialParser
@@ -172,8 +172,10 @@ namespace Kisib
             if (d.Verdict == "yellow")
             {
                 // A trusted category is failing: one calm notice per hour, not a pop-up per refusal.
-                if (!CategoryNoticeDue(d.Category)) return;
-                ShowDenialToast(d, "Expected service broken: " + d.Category + "\r\n" + d.Who + "\r\n" + ShortReason(d.Reason) + "\r\nTools > Repair Windows essentials can fix missing Microsoft roots.");
+                string key = d.Category ?? ("known: " + (d.Who ?? d.Subject).Split('\n').Last().Split('=')[0].Trim());
+                if (!CategoryNoticeDue(key)) return;
+                ShowDenialToast(d, (d.Category != null ? "Expected service broken: " + d.Category : "Known company, refused") + "\r\n" + d.Who + "\r\n" + ShortReason(d.Reason) +
+                    (d.Category != null ? "\r\nTools > Repair Windows essentials can fix missing Microsoft roots." : "\r\nTurn its category on in Tools > Trusted categories to protect it."));
                 return;
             }
             string text = d.Who + "\r\n" + ShortReason(d.Reason) + (d.BlockedBy != null ? "\r\nBlocked by your Disallowed list: " + d.BlockedBy : "");

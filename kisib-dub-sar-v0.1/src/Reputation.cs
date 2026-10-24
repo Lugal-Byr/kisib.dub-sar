@@ -205,8 +205,10 @@ namespace Kisib
             if (owner != null) who.Add(root + " = " + owner);
             d.Who = String.Join("\r\n", who.ToArray());
             d.Category = d.Ok ? null : TrustCategories.CategoryOf(d);
+            // Known = the site or the root owner is in the who-is-who lists (a known company, just refused).
+            d.Known = site != null || owner != null;
             d.Verdict = d.Ok ? (program != null || site != null ? "green" : "grey") :
-                d.Noise ? "grey" : d.BlockedBy != null ? "red" : d.Category != null ? "yellow" : "red";
+                d.Noise ? "grey" : d.BlockedBy != null ? "red" : d.Category != null || d.Known ? "yellow" : "red";
         }
 
         internal static Color VerdictColor(string verdict)
@@ -216,7 +218,7 @@ namespace Kisib
 
         internal static string VerdictWord(Denial d)
         {
-            return d.Verdict == "green" ? "● known, trusted" : d.Verdict == "yellow" ? "● expected service broken" : d.Verdict == "red" ? (d.BlockedBy != null ? "● blocked by you" : "● refused, unknown") : "● harmless";
+            return d.Verdict == "green" ? "● known, trusted" : d.Verdict == "yellow" ? (d.Category != null ? "● expected service broken" : "● known company, refused") : d.Verdict == "red" ? (d.BlockedBy != null ? "● blocked by you" : "● refused, unknown") : "● harmless";
         }
 
         // One notice per broken category per hour instead of a pop-up for every refusal.
