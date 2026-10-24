@@ -85,7 +85,7 @@ namespace Kisib
             refresh.Text = "Refresh"; refresh.AutoSize = true; refresh.Click += delegate { StartScan(); };
             Button logButton = new Button { Text = "History log", AutoSize = true };
             logButton.Click += delegate { ShowLog(); };
-            toolbar.Controls.AddRange(new Control[] { refresh, logButton });
+            toolbar.Controls.AddRange(new Control[] { refresh });
             InitializeBlocking(menu, toolbar);
             Panel addressPanel = new Panel { Dock = DockStyle.Top, Height = 29, Padding = new Padding(7, 3, 3, 3) };
             Label addressLabel = new Label { Text = "Address", Dock = DockStyle.Left, Width = 60, TextAlign = ContentAlignment.MiddleLeft };
@@ -101,7 +101,7 @@ namespace Kisib
             tree.ShowNodeToolTips = true;
             tree.AfterSelect += TreeSelected;
             tree.AccessibleName = "System store locations, system stores, and physical stores";
-            outer.Panel1.Controls.Add(tree);
+            outer.Panel1.Controls.Add(BuildLeftTabs());
 
             SplitContainer right = new SplitContainer { Dock = DockStyle.Fill, Size = new Size(700, 680),
                 Orientation = Orientation.Horizontal, SplitterWidth = 5, BorderStyle = BorderStyle.Fixed3D };
@@ -109,10 +109,9 @@ namespace Kisib
             list.Dock = DockStyle.Fill; list.View = View.Details; list.FullRowSelect = true;
             list.MultiSelect = false; list.HideSelection = false; list.GridLines = false;
             list.AccessibleName = "Certificates in the selected store";
-            list.Columns.Add("Subject CN", 215); list.Columns.Add("Issuer CN", 215);
-            list.Columns.Add("C=", 48); list.Columns.Add("found in (physical stores)", 330);
-            list.Columns.Add("not-before", 165); list.Columns.Add("not-after", 165);
-            list.Columns.Add("SHA-1", 305); list.Columns.Add("SHA-256", 460);
+            list.Columns.Add("Subject CN", 230); list.Columns.Add("Issuer CN", 210);
+            list.Columns.Add("C=", 40); list.Columns.Add("Status", 160); list.Columns.Add("Tags", 110);
+            list.Columns.Add("Not before", 150); list.Columns.Add("Not after", 150); list.Columns.Add("Found in (stores)", 420);
             list.OwnerDraw = true;
             list.DrawColumnHeader += delegate(object sender, DrawListViewColumnHeaderEventArgs e) { e.DrawDefault = true; };
             list.DrawSubItem += DrawCertificateCell;
@@ -144,11 +143,11 @@ namespace Kisib
             issuerDetails.AccessibleName = "Recorded issuer name; issuer certificate and chain not yet verified";
             issuerDetails.Text = "Select a certificate to inspect its recorded issuer name.";
             TabControl detailTabs = new TabControl { Dock = DockStyle.Fill };
-            TabPage detailTab = new TabPage("Details");
+            TabPage detailTab = new TabPage("Raw");
             TabPage issuerTab = new TabPage("Issuer 🏛️");
             detailTab.Controls.Add(details); detailTab.Controls.Add(hashToolbar);
             issuerTab.Controls.Add(issuerDetails);
-            detailTabs.TabPages.Add(detailTab); detailTabs.TabPages.Add(issuerTab);
+            detailTabs.TabPages.Add(BuildCardTab()); detailTabs.TabPages.Add(detailTab); detailTabs.TabPages.Add(issuerTab);
             right.Panel2.Controls.Add(detailTabs);
             outer.Panel2.Controls.Add(right);
             InitializeControlLayer(outer, right, detailTabs, menu);
@@ -161,6 +160,7 @@ namespace Kisib
             errorsLink.Text = "0 errors"; errorsLink.AccessibleName = "Open the list of store errors";
             errorsLink.LinkClicked += delegate { ShowStoreErrors(); };
             statusBar.Controls.Add(status); statusBar.Controls.Add(errorsLink);
+            InitializeFriendly(menu, view, toolbar, statusBar);
             Controls.Add(outer); Controls.Add(addressPanel); Controls.Add(toolbar); Controls.Add(statusBar);
             TreeNode initial = new TreeNode(Environment.MachineName + " — Certificates");
             initial.Nodes.Add("Enumeration starts when this window opens."); tree.Nodes.Add(initial); initial.Expand();
@@ -218,10 +218,11 @@ namespace Kisib
 
         private void Display(Snapshot result)
         {
-            string selectedSource = NodeKey(tree.SelectedNode);
+            string selectedSource = NodeKey(ActiveTree.SelectedNode);
             CertificateRecord selectedCertificate = SelectedCertificate();
             HashSet<string> expanded = new HashSet<string>(StringComparer.Ordinal);
             foreach (TreeNode oldRoot in tree.Nodes) CollectExpanded(oldRoot, expanded);
+            foreach (TreeNode oldRoot in groupTree.Nodes) CollectExpanded(oldRoot, expanded);
             snapshot = result;
             if (history == null || history.FailedWrites > 0) sessionLog.AddRange(result.Log);
             tree.BeginUpdate(); tree.Nodes.Clear();
@@ -250,14 +251,16 @@ namespace Kisib
             { StoreLocation location = child.Tag as StoreLocation; if (location != null && (location.Flags == Native.CERT_SYSTEM_STORE_LOCAL_MACHINE || location.Flags == Native.CERT_SYSTEM_STORE_CURRENT_USER)) child.Expand(); }
             foreach (string key in expanded) { TreeNode node = FindNode(root, key); if (node != null) node.Expand(); }
             AddGroupTree(result, expanded);
-            TreeNode reselect = null;
+            TreeNode reselect = null, regroup = null;
             foreach (TreeNode top in tree.Nodes) if (reselect == null) reselect = FindNode(top, selectedSource);
-            tree.EndUpdate(); tree.SelectedNode = reselect ?? root;
+            foreach (TreeNode top in groupTree.Nodes) if (regroup == null) regroup = FindNode(top, selectedSource);
+            tree.EndUpdate();
+            if (ActiveTree == groupTree) groupTree.SelectedNode = regroup ?? (groupTree.Nodes.Count > 0 ? groupTree.Nodes[0] : null);
+            else tree.SelectedNode = reselect ?? root;
             if (selectedCertificate != null)
                 foreach (ListViewItem row in list.Items)
                     if (((CertificateRecord)row.Tag).Der.SequenceEqual(selectedCertificate.Der)) { row.Selected = true; row.EnsureVisible(); break; }
-            status.Text = HistoryStatus() + " | " + ClockStatus(result) + " | " + result.StoreCount + " system / " + result.PhysicalCount + " physical stores | " + result.Certificates.Count +
-                " certificates | PC acceptance: to test";
+            status.Text = (history != null ? HistoryStatus() + " | " : "") + ClockStatus(result) + " | " + result.Certificates.Count + " certificates in " + result.PhysicalCount + " stores";
             errorsLink.Text = result.Errors.Count + " errors";
             ApplyRules(result);
             DateTime? msList = MicrosoftList.Updated;
@@ -348,13 +351,12 @@ namespace Kisib
                     "\r\nRead: " + (physical.Error ?? "Completed") + "\r\n\r\n" + Source("CERT_PHYSICAL_STORE_INFO", Sources.PhysicalInfo);
             }
             list.BeginUpdate(); list.Items.Clear();
+            rowBlocked = GroupCatalog.BlockedIdentities(snapshot);
             foreach (string key in keys)
             {
                 CertificateRecord record = snapshot.Certificates[key];
                 if (!MatchesFind(record)) continue;
-                ListViewItem row = new ListViewItem(new string[] { record.SubjectShortName, record.IssuerShortName, record.SubjectCountry ?? "—", record.FoundInText,
-                    CertificateRecord.Time(record.NotBefore), CertificateRecord.Time(record.NotAfter), record.Sha1, record.Sha256 });
-                row.Tag = record; list.Items.Add(row);
+                list.Items.Add(CertificateRow(record));
             }
             list.ListViewItemSorter = new CertificateComparer(sortColumn, ascending); list.Sort(); list.EndUpdate();
             details.Text = nodeDetails;
@@ -364,11 +366,12 @@ namespace Kisib
         private void DrawCertificateCell(object sender, DrawListViewSubItemEventArgs e)
         {
             CertificateRecord cert = e.Item.Tag as CertificateRecord;
-            bool collision = cert != null && e.ColumnIndex == 6 && cert.CollisionPeers.Count > 0;
+            bool collision = cert != null && e.ColumnIndex == 3 && cert.CollisionPeers.Count > 0;
+            bool blockedRow = cert != null && rowBlocked.Contains(cert.Identity);
             bool warning = false;
             bool selected = e.Item.Selected;
             Color background = collision ? Color.Firebrick : selected ? SystemColors.Highlight : warning ? SystemColors.Info : SystemColors.Window;
-            Color foreground = collision ? Color.White : selected ? SystemColors.HighlightText : warning ? SystemColors.InfoText : SystemColors.WindowText;
+            Color foreground = collision ? Color.White : selected ? SystemColors.HighlightText : blockedRow ? Color.Firebrick : warning ? SystemColors.InfoText : SystemColors.WindowText;
             using (Brush brush = new SolidBrush(background)) e.Graphics.FillRectangle(brush, e.Bounds);
             Rectangle bounds = e.Bounds; bounds.X += 4; bounds.Width = Math.Max(0, bounds.Width - 8);
             TextRenderer.DrawText(e.Graphics, e.SubItem.Text, list.Font, bounds, foreground,
@@ -383,6 +386,7 @@ namespace Kisib
         private void ShowCertificate()
         {
             CertificateRecord cert = SelectedCertificate();
+            UpdateCard(cert);
             if (cert == null) { details.Text = nodeDetails; issuerDetails.Text = "Select a certificate to inspect its recorded issuer name."; return; }
             StringBuilder text = new StringBuilder();
             text.AppendLine("Subject: " + cert.Subject); text.AppendLine("Issuer: " + cert.Issuer);
@@ -559,7 +563,7 @@ namespace Kisib
         {
             using (Form dialog = new Form { Text = title, Size = new Size(950, 570), StartPosition = FormStartPosition.CenterParent, Font = Font })
             {
-                TextBox text = new TextBox { Dock = DockStyle.Fill, Text = content, ReadOnly = true, Multiline = true,
+                TextBox text = new TextBox { Dock = DockStyle.Fill, Text = CleanText(content), ReadOnly = true, Multiline = true,
                     ScrollBars = ScrollBars.Both, WordWrap = false, Font = new Font("Consolas", 9F), BackColor = SystemColors.Window };
                 Button close = new Button { Text = "Close", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
                 dialog.Controls.Add(text); dialog.Controls.Add(close); dialog.CancelButton = close; dialog.ShowDialog(this);
@@ -574,7 +578,7 @@ namespace Kisib
             {
                 ListViewItem left = (ListViewItem)x, right = (ListViewItem)y;
                 CertificateRecord a = (CertificateRecord)left.Tag, b = (CertificateRecord)right.Tag;
-                int comparison = column == 4 ? Nullable.Compare(a.NotBefore, b.NotBefore) : column == 5 ? Nullable.Compare(a.NotAfter, b.NotAfter) :
+                int comparison = column == 5 ? Nullable.Compare(a.NotBefore, b.NotBefore) : column == 6 ? Nullable.Compare(a.NotAfter, b.NotAfter) :
                     StringComparer.OrdinalIgnoreCase.Compare(left.SubItems[column].Text, right.SubItems[column].Text);
                 return ascending ? comparison : -comparison;
             }

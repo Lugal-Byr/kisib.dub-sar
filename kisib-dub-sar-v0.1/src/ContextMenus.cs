@@ -117,9 +117,10 @@ namespace Kisib
             list.ContextMenu = certMenu;
 
             // Tree: right-click selects the node first, then offers copy and block.
-            tree.NodeMouseClick += delegate(object sender, TreeNodeMouseClickEventArgs e) { if (e.Button == MouseButtons.Right) tree.SelectedNode = e.Node; };
+            foreach (TreeView tv in new TreeView[] { tree, groupTree })
+                tv.NodeMouseClick += delegate(object sender, TreeNodeMouseClickEventArgs e) { if (e.Button == MouseButtons.Right) ((TreeView)sender).SelectedNode = e.Node; };
             ContextMenu treeMenu = new ContextMenu();
-            treeMenu.MenuItems.Add("Copy name", delegate { if (tree.SelectedNode != null) CopyText(tree.SelectedNode.Text); });
+            treeMenu.MenuItems.Add("Copy name", delegate { if (ActiveTree.SelectedNode != null) CopyText(ActiveTree.SelectedNode.Text); });
             treeMenu.MenuItems.Add("Copy path", delegate { CopyText(address.Text); });
             treeMenu.MenuItems.Add("Copy details (summary and member list)", delegate { CopyText(nodeDetails); });
             treeMenu.MenuItems.Add("Copy certificate list", delegate
@@ -131,10 +132,10 @@ namespace Kisib
             MenuItem blockGroupItem = new MenuItem("Block this group...", delegate { BlockSelectedGroup(); });
             treeMenu.MenuItems.Add("-");
             treeMenu.MenuItems.Add(blockGroupItem);
-            treeMenu.MenuItems.Add("Expand all below", delegate { if (tree.SelectedNode != null) tree.SelectedNode.ExpandAll(); });
-            treeMenu.MenuItems.Add("Collapse", delegate { if (tree.SelectedNode != null) tree.SelectedNode.Collapse(); });
-            treeMenu.Popup += delegate { blockGroupItem.Enabled = tree.SelectedNode != null && tree.SelectedNode.Tag is GroupNode; };
-            tree.ContextMenu = treeMenu;
+            treeMenu.MenuItems.Add("Expand all below", delegate { if (ActiveTree.SelectedNode != null) ActiveTree.SelectedNode.ExpandAll(); });
+            treeMenu.MenuItems.Add("Collapse", delegate { if (ActiveTree.SelectedNode != null) ActiveTree.SelectedNode.Collapse(); });
+            treeMenu.Popup += delegate { blockGroupItem.Enabled = ActiveTree.SelectedNode != null && ActiveTree.SelectedNode.Tag is GroupNode; };
+            tree.ContextMenu = treeMenu; groupTree.ContextMenu = treeMenu;
 
             // Details panes and status bar
             foreach (TextBox box in new TextBox[] { details, issuerDetails })

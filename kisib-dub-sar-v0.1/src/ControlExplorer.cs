@@ -89,8 +89,8 @@ namespace Kisib
         }
         private void RefreshFindResults()
         {
-            if (snapshot != null && tree.SelectedNode != null)
-                TreeSelected(tree, new TreeViewEventArgs(tree.SelectedNode));
+            if (snapshot != null && ActiveTree.SelectedNode != null)
+                TreeSelected(ActiveTree, new TreeViewEventArgs(ActiveTree.SelectedNode));
         }
         private void CloseControlLayer()
         {

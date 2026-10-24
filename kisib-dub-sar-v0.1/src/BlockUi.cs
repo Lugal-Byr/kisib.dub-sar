@@ -39,14 +39,17 @@ namespace Kisib
         private void AddGroupTree(Snapshot result, HashSet<string> expanded)
         {
             groups = GroupCatalog.Build(result, sourceDirectory);
-            TreeNode root = new TreeNode("Groups (from data\\*.csv)" + (groups.Error == null ? "" : " [error]")) { Tag = "groups" };
-            tree.Nodes.Add(root);
+            TreeNode root = new TreeNode("Groups (from data\\*.csv and my tags)" + (groups.Error == null ? "" : " [error]")) { Tag = "groups" };
+            groupTree.BeginUpdate(); groupTree.Nodes.Clear();
+            groupTree.Nodes.Add(root);
+            try {
             if (groups.Error != null) { root.Nodes.Add(new TreeNode("Could not load: " + groups.Error) { Tag = "groups:error" }); return; }
             AddFolder(root, "Tags", groups.Tags, expanded);
             AddFolder(root, "Countries", groups.Countries, expanded);
             AddFolder(root, "Owners", groups.Owners, expanded);
             root.Expand();
             foreach (TreeNode node in root.Nodes) if (expanded.Contains(NodeKey(node))) node.Expand();
+            } finally { groupTree.EndUpdate(); }
         }
 
         private void AddFolder(TreeNode root, string name, List<GroupNode> items, HashSet<string> expanded)
@@ -99,7 +102,7 @@ namespace Kisib
 
         private void BlockSelectedGroup()
         {
-            GroupNode group = tree.SelectedNode == null ? null : tree.SelectedNode.Tag as GroupNode;
+            GroupNode group = groupTree.SelectedNode == null ? null : groupTree.SelectedNode.Tag as GroupNode;
             if (snapshot == null || group == null) { ShowText("Block group", "Select a group (or its Enabled branch) under Groups in the left tree first."); return; }
             GroupNode source = group.Filter == "all" ? group : group.Parent ?? group;
             List<CertificateRecord> chosen = source.Members.Select(id => snapshot.Certificates[id]).ToList();

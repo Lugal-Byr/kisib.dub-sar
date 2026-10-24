@@ -161,6 +161,7 @@ namespace Kisib
             }
             denials.Add(d);
             SaveDenial(d);
+            RefreshWatchTab(); UpdateIndicators();
             if (denials.Count > 2000) denials.RemoveAt(0);
             if (d.Noise) return;
             string text = d.Program + " was refused " + d.Subject + "\r\n" + d.Reason + (d.BlockedBy != null ? "\r\nBlocked by your Disallowed list: " + d.BlockedBy : "");
