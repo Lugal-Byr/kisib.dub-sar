@@ -74,6 +74,8 @@ namespace Kisib
             InitializeViews(file, view, certificate);
             InitializeAlerts(view);
             InitializeTempAllow(certificate);
+            InitializeExtras(file, view);
+            InitializeMyTags(certificate, view);
 
             FlowLayoutPanel toolbar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 34, Padding = new Padding(3), WrapContents = false };
             refresh.Text = "Refresh"; refresh.AutoSize = true; refresh.Click += delegate { StartScan(); };
@@ -189,6 +191,8 @@ namespace Kisib
                     Snapshot result = scanner.Run();
                     try { MicrosoftList.Merge(result); }
                     catch (Exception ex) { result.Fail("Microsoft root list", MicrosoftList.SstPath, ex.GetType().Name + ": " + ex.Message); }
+                    try { Ccadb.Merge(result); }
+                    catch (Exception ex) { result.Fail("CCADB list", "CCADB", ex.GetType().Name + ": " + ex.Message); }
                     if (history != null) history.Commit(result);
                     Post(delegate { Display(result); scanning = false; refresh.Enabled = true; refreshMenu.Enabled = true; });
                 }
@@ -253,7 +257,7 @@ namespace Kisib
             errorsLink.Text = result.Errors.Count + " errors";
             ApplyRules(result);
             DateTime? msList = MicrosoftList.Updated;
-            status.Text += " | MS list: " + (msList.HasValue ? msList.Value.ToString("yyyy-MM-dd") : "not loaded (Block > Update)") + (ruleStatus.Length > 0 ? " | " + ruleStatus : "");
+            status.Text += " | MS list: " + (msList.HasValue ? msList.Value.ToString("yyyy-MM-dd") : "not loaded (Block > Update)") + " | CCADB: " + (Ccadb.Updated.HasValue ? Ccadb.Updated.Value.ToString("yyyy-MM-dd") : "not loaded") + (ruleStatus.Length > 0 ? " | " + ruleStatus : "");
             OpenPendingFile();
         }
 

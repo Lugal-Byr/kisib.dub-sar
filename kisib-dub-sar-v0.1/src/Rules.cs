@@ -115,6 +115,7 @@ namespace Kisib
             block.MenuItems.Add(new MenuItem("-"));
             block.MenuItems.Add(new MenuItem("&Rules (keep groups blocked)...", delegate { ShowRules(); }));
             block.MenuItems.Add(new MenuItem("Update &Microsoft root list", delegate { UpdateMicrosoftList(); }));
+            block.MenuItems.Add(new MenuItem("Update &CCADB list (all CA certificates, catches cross-signs)", delegate { UpdateCcadb(); }));
             // With rules saved, keep watching: rescan every 60 seconds so a new match is caught and blocked.
             Shown += delegate
             {

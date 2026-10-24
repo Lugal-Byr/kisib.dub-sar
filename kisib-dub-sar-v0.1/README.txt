@@ -24,6 +24,28 @@ Blocked certificates go into Windows' Disallowed store (this user; whole PC
 when kisib runs as administrator). Nothing is deleted. Undo last block puts
 it back. Block > Block history shows every change.
 
+ALLOW FOR A WHILE
+When something gets refused, the pop-up has Allow 3 / 10 / 60 min buttons.
+kisib lifts that block (and its siblings from the same company or key), counts
+down in the status bar, and puts it back on time, even if kisib was closed.
+Also: Certificate > Allow for N minutes, and the buttons in Certificate denials.
+
+ALWAYS ON
+File > Start with Windows (in tray): run kisib as administrator once and tick it.
+It then starts at logon in the tray, watching. File > Minimize to tray.
+Denials are saved, so View > Certificate denials keeps history across days.
+
+MY TAGS
+View > Edit my tags: tag by country code, organization name or certificate.
+"Add EU" tags all 27 member states. Certificate > Tag this certificate / Tag
+this organization does it from the list. Tags appear under Groups > Tags.
+
+BACK DOORS (CCADB)
+Block > Update CCADB list downloads every CA certificate the browser root
+programs know, including intermediates and cross-signs never seen on this PC.
+Rules then block those too, so a Spanish CA signed by a British root still
+gets caught.
+
 DENIAL ALERTS
 When any program on this PC is refused a certificate (curl, winget, Edge,
 Windows apps), kisib flashes in the taskbar and pops a notice: which program,

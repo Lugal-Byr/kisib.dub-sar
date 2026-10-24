@@ -426,3 +426,16 @@ denials lists them. Revocation-server-offline errors are listed grey, no alert.
 Chrome/Firefox verify on their own and do not log here.
 First real case: curl/winget to dl.librewolf.net refused (CRYPT_E_REVOKED)
 because the Actalis (IT) roots are in Disallowed.
+
+D038 — Temp allow, pop-up actions, tray startup, saved denials, my tags, CCADB, 2026-10-23
+User: "do all that". Allow 3/10/60 minutes lifts Disallowed entries (any
+origin, same-organization and same-key siblings included), writes a re-block
+promise to temp-allow.csv first, and re-blocks on time, on close, or at next
+start. Denial pop-up carries the Allow buttons. File > Start with Windows
+creates a logon task with highest privileges (schtasks) running --tray.
+Denials persist in denials.csv. View > Edit my tags (my-tags.csv in
+%LOCALAPPDATA%, so updates never overwrite it): country / organization /
+certificate tags, with an EU button (27 members + C=EU). Block > Update CCADB
+list downloads the public PEM reports (2010s, 2020s) and merges every
+unexpired CA certificate into each scan with its CA Owner, so rules also block
+intermediates and cross-signs that never reached this PC.

@@ -127,12 +127,16 @@ namespace Kisib
         private void InitializeTempAllow(MenuItem certificate)
         {
             certificate.MenuItems.Add(new MenuItem("-"));
-            certificate.MenuItems.Add(new MenuItem("&Allow for 3 minutes", delegate
+            foreach (int minutes in new int[] { 3, 10, 60 })
             {
-                CertificateRecord cert = SelectedCertificate();
-                if (cert == null) { ShowText("Allow for 3 minutes", "Select a blocked certificate in the list first."); return; }
-                AllowTemporarily(new List<CertificateRecord> { cert }, cert.SubjectShortName);
-            }));
+                int m = minutes;
+                certificate.MenuItems.Add(new MenuItem("&Allow for " + m + " minutes", delegate
+                {
+                    CertificateRecord cert = SelectedCertificate();
+                    if (cert == null) { ShowText("Allow", "Select a blocked certificate in the list first."); return; }
+                    AllowTemporarily(new List<CertificateRecord> { cert }, cert.SubjectShortName, TimeSpan.FromMinutes(m), true);
+                }));
+            }
             allowTimer.Tick += delegate { TickTempAllow(); };
             Shown += delegate
             {
@@ -158,19 +162,20 @@ namespace Kisib
         private static string Org(CertificateRecord c)
         { string o = c.SubjectOrganization ?? ""; int slash = o.IndexOf('/'); return (slash >= 0 ? o.Substring(0, slash) : o).Trim(); }
 
-        private void AllowTemporarily(List<CertificateRecord> certs, string label)
+        internal void AllowTemporarily(List<CertificateRecord> certs, string label, TimeSpan duration, bool confirm)
         {
-            if (certs.Count == 0) { ShowText("Allow for 3 minutes", "No blocked certificate found for this."); return; }
+            string span = (int)duration.TotalMinutes + " minutes";
+            if (certs.Count == 0) { ShowText("Allow for " + span, "No blocked certificate found for this."); return; }
             string names = String.Join("\r\n", certs.Select(c => "  " + c.SubjectShortName).Distinct().ToArray());
-            if (MessageBox.Show(this, "Lift these blocks for 3 minutes?\r\n\r\n" + names + "\r\n\r\nThey are put back automatically, even if kisib is closed.",
-                "Allow for 3 minutes — " + label, MessageBoxButtons.OKCancel, MessageBoxIcon.Question) != DialogResult.OK) return;
+            if (confirm && MessageBox.Show(this, "Lift these blocks for " + span + "?\r\n\r\n" + names + "\r\n\r\nThey are put back automatically, even if kisib is closed.",
+                "Allow for " + span + " — " + label, MessageBoxButtons.OKCancel, MessageBoxIcon.Question) != DialogResult.OK) return;
             List<string> report;
-            try { report = TempAllow.Lift(certs, TimeSpan.FromMinutes(3)); }
-            catch (Exception ex) { ShowText("Allow for 3 minutes", "Failed: " + ex.GetType().Name + ": " + ex.Message); return; }
+            try { report = TempAllow.Lift(certs, duration); }
+            catch (Exception ex) { ShowText("Allow for " + span, "Failed: " + ex.GetType().Name + ": " + ex.Message); return; }
             allowTimer.Start();
-            if (tray != null) tray.ShowBalloonTip(5000, "kisib: allowed for 3 minutes", label + "\r\nBlocks come back automatically.", ToolTipIcon.Info);
+            if (tray != null) tray.ShowBalloonTip(5000, "kisib: allowed for " + span, label + "\r\n" + names.Trim() + "\r\nBlocks come back automatically.", ToolTipIcon.Info);
             if (report.Any(r => r.StartsWith("Nothing", StringComparison.Ordinal) || r.StartsWith("Not running", StringComparison.Ordinal)))
-                ShowText("Allow for 3 minutes", String.Join("\r\n", report.ToArray()));
+                ShowText("Allow for " + span, String.Join("\r\n", report.ToArray()));
             StartScan();
         }
 

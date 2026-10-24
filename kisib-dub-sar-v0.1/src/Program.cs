@@ -21,7 +21,11 @@ namespace Kisib
             Application.SetCompatibleTextRenderingDefault(false);
             ExplorerForm form = new ExplorerForm(directory);
             // Opening a .cer/.crt/.p7b/.sst with kisib shows it read-only; nothing is installed.
-            if (args != null && args.Length > 0 && File.Exists(args[0])) form.PendingFile = Path.GetFullPath(args[0]);
+            foreach (string arg in args ?? new string[0])
+            {
+                if (arg == "--tray") form.StartInTray = true;
+                else if (form.PendingFile == null && File.Exists(arg)) form.PendingFile = Path.GetFullPath(arg);
+            }
             Application.Run(form);
         }
     }

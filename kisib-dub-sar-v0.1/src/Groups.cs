@@ -47,9 +47,10 @@ namespace Kisib
         internal const string OwnersFile = "owners.csv";
 
         // Minimal RFC 4180 reader: quoted fields, doubled quotes, commas inside quotes.
-        internal static List<string[]> ReadCsv(string path)
+        internal static List<string[]> ReadCsv(string path) { return ReadCsv(path, 4L * 1024 * 1024); }
+        internal static List<string[]> ReadCsv(string path, long maxBytes)
         {
-            if (new FileInfo(path).Length > 4 * 1024 * 1024) throw new InvalidDataException(Path.GetFileName(path) + " exceeds 4 MB.");
+            if (new FileInfo(path).Length > maxBytes) throw new InvalidDataException(Path.GetFileName(path) + " exceeds " + (maxBytes / 1024 / 1024) + " MB.");
             string text = File.ReadAllText(path, new UTF8Encoding(false, true));
             List<string[]> rows = new List<string[]>(); List<string> row = new List<string>(); StringBuilder field = new StringBuilder();
             bool quoted = false;
@@ -155,6 +156,8 @@ namespace Kisib
                     foreach (string tag in Split(owner.Tags)) get(tags, "tag", tag, tag).Add(cert.Identity, why);
                     if (owner.Country.Length == 2) countryClaims.Add(new KeyValuePair<string, string>(owner.Country, why));
                 }
+                string ccadbOwner = Ccadb.OwnerOf(cert.Identity);
+                if (ccadbOwner != null) get(byOwner, "owner", ccadbOwner, ccadbOwner).Add(cert.Identity, "CCADB CA Owner: " + ccadbOwner);
                 foreach (KeyValuePair<string, string> claim in countryClaims)
                 {
                     CountryRow row;
@@ -170,6 +173,7 @@ namespace Kisib
                         foreach (string tag in Split(crown.Tags)) get(tags, "tag", tag, tag).Add(cert.Identity, why + " (crown territory of " + row.CrownOf + ")");
                 }
             }
+            foreach (MyTagHit hit in MyTags.Matches(snapshot)) get(tags, "tag", hit.Tag, hit.Tag).Add(hit.Identity, hit.Why);
             root.Tags.AddRange(tags.Values.OrderBy(g => g.Label, StringComparer.Ordinal));
             root.Countries.AddRange(byCountry.Values.OrderBy(g => g.Label, StringComparer.OrdinalIgnoreCase));
             root.Owners.AddRange(byOwner.Values.OrderBy(g => g.Label, StringComparer.OrdinalIgnoreCase));

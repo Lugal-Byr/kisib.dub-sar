@@ -93,7 +93,8 @@ namespace Kisib
             };
             tray = new NotifyIcon { Icon = SystemIcons.Shield, Text = "kisib.dub-sar", Visible = true };
             tray.BalloonTipClicked += delegate { ShowDenials(); };
-            tray.DoubleClick += delegate { WindowState = FormWindowState.Normal; Activate(); };
+            tray.DoubleClick += delegate { RestoreFromTray(); };
+            InitializeTrayMenu();
             Shown += delegate { if (!File.Exists(WatchOffFlag)) StartWatching(false); };
             FormClosed += delegate { StopWatching(); tray.Visible = false; tray.Dispose(); };
         }
@@ -152,10 +153,11 @@ namespace Kisib
                 if (hits.Count > 0) d.BlockedBy = String.Join(", ", hits.ToArray());
             }
             denials.Add(d);
+            SaveDenial(d);
             if (denials.Count > 2000) denials.RemoveAt(0);
             if (d.Noise) return;
             string text = d.Program + " was refused " + d.Subject + "\r\n" + d.Reason + (d.BlockedBy != null ? "\r\nBlocked by your Disallowed list: " + d.BlockedBy : "");
-            tray.ShowBalloonTip(8000, "kisib: certificate denied", text.Length > 250 ? text.Substring(0, 250) : text, ToolTipIcon.Warning);
+            ShowDenialToast(d, text);
             FLASHWINFO flash = new FLASHWINFO { cbSize = (uint)Marshal.SizeOf(typeof(FLASHWINFO)), hwnd = Handle, dwFlags = 3 | 12, uCount = 0, dwTimeout = 0 }; // all + until foreground
             FlashWindowEx(ref flash);
             status.Text = "DENIED: " + d.Program + " → " + d.Subject + " (" + d.Code + ")" + (d.BlockedBy != null ? " — your block" : "");
@@ -175,14 +177,21 @@ namespace Kisib
                 }
                 Label note = new Label { Dock = DockStyle.Bottom, Height = 40, Text = "Red = refused because of your Disallowed list. Grey = revocation server unreachable (common, not an alert).\r\n" +
                     "Source: Microsoft-Windows-CAPI2/Operational events 11 and 30. Chrome and Firefox check certificates themselves and do not appear here." };
-                Button allow = new Button { Text = "Allow selected for 3 minutes", Dock = DockStyle.Bottom, Height = 30 };
-                allow.Click += delegate
+                FlowLayoutPanel allow = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 34, Padding = new Padding(2) };
+                allow.Controls.Add(new Label { Text = "Allow selected for:", AutoSize = true, Padding = new Padding(0, 6, 0, 0) });
+                foreach (int minutes in new int[] { 3, 10, 60 })
                 {
-                    if (grid.SelectedItems.Count == 0) return;
-                    Denial d = (Denial)grid.SelectedItems[0].Tag;
-                    dialog.Close();
-                    AllowTemporarily(CertificatesBehind(d), d.Subject);
-                };
+                    int m = minutes;
+                    Button b = new Button { Text = m + " min", AutoSize = true };
+                    b.Click += delegate
+                    {
+                        if (grid.SelectedItems.Count == 0) return;
+                        Denial d = (Denial)grid.SelectedItems[0].Tag;
+                        dialog.Close();
+                        AllowTemporarily(CertificatesBehind(d), d.Subject, TimeSpan.FromMinutes(m), true);
+                    };
+                    allow.Controls.Add(b);
+                }
                 Button close = new Button { Text = "Close", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
                 dialog.Controls.Add(grid); dialog.Controls.Add(note); dialog.Controls.Add(allow); dialog.Controls.Add(close); dialog.CancelButton = close;
                 dialog.ShowDialog(this);
