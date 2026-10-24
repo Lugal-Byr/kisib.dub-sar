@@ -23,6 +23,7 @@ namespace Kisib
             block.MenuItems.Add(new MenuItem("U&nblock selected certificate", delegate { UnblockSelectedCertificate(); }));
             block.MenuItems.Add(new MenuItem("-"));
             block.MenuItems.Add(new MenuItem("Block &history", delegate { ShowBlockHistory(); }));
+            InitializeRules(block);
             menu.MenuItems.Add(menu.MenuItems.Count - 1, block);
             Button blockGroup = new Button { Text = "Block group...", AutoSize = true };
             Button blockCert = new Button { Text = "Block certificate...", AutoSize = true };
@@ -102,17 +103,17 @@ namespace Kisib
             if (snapshot == null || group == null) { ShowText("Block group", "Select a group (or its Enabled branch) under Groups in the left tree first."); return; }
             GroupNode source = group.Filter == "all" ? group : group.Parent ?? group;
             List<CertificateRecord> chosen = source.Members.Select(id => snapshot.Certificates[id]).ToList();
-            ShowBlockDialog(chosen, delegate(CertificateRecord c) { SortedSet<string> why; return source.Why.TryGetValue(c.Identity, out why) ? String.Join("; ", why.ToArray()) : ""; }, source.Kind + " " + source.Label);
+            ShowBlockDialog(chosen, delegate(CertificateRecord c) { SortedSet<string> why; return source.Why.TryGetValue(c.Identity, out why) ? String.Join("; ", why.ToArray()) : ""; }, source.Kind + " " + source.Label, source);
         }
 
         private void BlockSelectedCertificate()
         {
             CertificateRecord cert = SelectedCertificate();
             if (snapshot == null || cert == null) { ShowText("Block certificate", "Select a certificate in the list first."); return; }
-            ShowBlockDialog(new List<CertificateRecord> { cert }, delegate { return "selected certificate"; }, "certificate " + cert.SubjectShortName);
+            ShowBlockDialog(new List<CertificateRecord> { cert }, delegate { return "selected certificate"; }, "certificate " + cert.SubjectShortName, null);
         }
 
-        private void ShowBlockDialog(List<CertificateRecord> chosen, Func<CertificateRecord, string> reason, string label)
+        private void ShowBlockDialog(List<CertificateRecord> chosen, Func<CertificateRecord, string> reason, string label, GroupNode ruleGroup)
         {
             bool elevated = BlockEngine.IsElevated();
             using (Form dialog = new Form { Text = "Block — preview: " + label, Size = new Size(1150, 600), Font = Font, StartPosition = FormStartPosition.CenterParent })
@@ -124,6 +125,8 @@ namespace Kisib
                 ListView grid = new ListView();
                 SetupGrid(grid, new string[] { "Action", "Subject CN", "Issuer CN", "C=", "Why", "Found in (physical stores)", "SHA-256" }, new int[] { 130, 210, 210, 45, 330, 330, 460 });
                 Label info = new Label { Dock = DockStyle.Bottom, Height = 78 };
+                CheckBox keep = new CheckBox { Dock = DockStyle.Bottom, Height = 26, Checked = ruleGroup != null, Enabled = ruleGroup != null,
+                    Text = "Keep this group blocked: block new matches after every scan (rescans every 60 seconds)" };
                 Button go = new Button { Dock = DockStyle.Bottom, Height = 32 };
                 Button cancel = new Button { Text = "Cancel", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
                 List<BlockItem> plan = null;
@@ -143,7 +146,8 @@ namespace Kisib
                     grid.EndUpdate();
                     int add = plan.Count(i => !i.AlreadyBlocked), roots = plan.Count(i => !i.AlreadyBlocked && i.Certificate.FoundIn.Any(p => p.IndexOf("\\Root\\", StringComparison.OrdinalIgnoreCase) >= 0));
                     go.Text = add == 0 ? "Nothing to block" : "Block " + add + " certificate" + (add == 1 ? "" : "s");
-                    go.Enabled = add > 0;
+                    go.Enabled = add > 0 || keep.Checked;
+                    if (add == 0 && keep.Checked) go.Text = "Save rule";
                     info.Text = add + " will be added to " + (machine.Checked ? "LOCAL_MACHINE" : "CURRENT_USER") + "\\Disallowed (" + roots + " of them are trusted roots); " +
                         (plan.Count - add) + " already blocked. Certificates sharing a key with a chosen one are included.\r\n" +
                         "Nothing is deleted from Root or CA, so a Windows root update cannot bring them back: Disallowed wins.\r\n" +
@@ -151,18 +155,27 @@ namespace Kisib
                         "Undo: Block > Undo last block. Every change is written to " + BlockEngine.LogPath;
                 };
                 user.CheckedChanged += delegate { refreshPlan(); };
+                keep.CheckedChanged += delegate { refreshPlan(); };
                 refreshPlan();
                 go.Click += delegate
                 {
                     X509Location scope = machine.Checked ? X509Location.LocalMachine : X509Location.CurrentUser;
                     List<BlockLogRow> rows;
-                    try { rows = BlockEngine.Block(plan.Where(i => !i.AlreadyBlocked), scope, label); }
+                    try
+                    {
+                        rows = BlockEngine.Block(plan.Where(i => !i.AlreadyBlocked), scope, label);
+                        if (keep.Checked && ruleGroup != null)
+                        {
+                            BlockRules.Add(ruleGroup.Key, ruleGroup.Label, scope);
+                            if (!autoScanToggle.Checked) { autoScanToggle.Checked = true; historyTimer.Start(); }
+                        }
+                    }
                     catch (Exception ex) { ShowText("Block failed", ex.GetType().Name + ": " + ex.Message + "\r\n\r\nNo log row means no change was made."); return; }
                     dialog.DialogResult = DialogResult.OK; dialog.Close();
                     ShowText("Block result", Report(rows));
                     StartScan();
                 };
-                dialog.Controls.Add(grid); dialog.Controls.Add(scopePanel); dialog.Controls.Add(info); dialog.Controls.Add(go); dialog.Controls.Add(cancel);
+                dialog.Controls.Add(grid); dialog.Controls.Add(scopePanel); dialog.Controls.Add(info); dialog.Controls.Add(keep); dialog.Controls.Add(go); dialog.Controls.Add(cancel);
                 dialog.CancelButton = cancel;
                 dialog.ShowDialog(this);
             }

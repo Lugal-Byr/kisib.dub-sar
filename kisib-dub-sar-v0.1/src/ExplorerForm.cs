@@ -185,6 +185,8 @@ namespace Kisib
                 {
                     scanner = new Scanner(delegate(string message) { Post(delegate { status.Text = HistoryStatus() + " | " + message; }); }, delegate { return closed; }, history);
                     Snapshot result = scanner.Run();
+                    try { MicrosoftList.Merge(result); }
+                    catch (Exception ex) { result.Fail("Microsoft root list", MicrosoftList.SstPath, ex.GetType().Name + ": " + ex.Message); }
                     if (history != null) history.Commit(result);
                     Post(delegate { Display(result); scanning = false; refresh.Enabled = true; refreshMenu.Enabled = true; });
                 }
@@ -247,6 +249,9 @@ namespace Kisib
             status.Text = HistoryStatus() + " | " + ClockStatus(result) + " | " + result.StoreCount + " system / " + result.PhysicalCount + " physical stores | " + result.Certificates.Count +
                 " certificates | PC acceptance: to test";
             errorsLink.Text = result.Errors.Count + " errors";
+            ApplyRules(result);
+            DateTime? msList = MicrosoftList.Updated;
+            status.Text += " | MS list: " + (msList.HasValue ? msList.Value.ToString("yyyy-MM-dd") : "not loaded (Block > Update)") + (ruleStatus.Length > 0 ? " | " + ruleStatus : "");
             OpenPendingFile();
         }
 

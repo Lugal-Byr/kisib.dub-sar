@@ -404,3 +404,13 @@ left; no revocation fetch). File > Open certificate file and command-line
 file argument (S6: read-only, never installs, refuses PFX/P12). Status bar
 clock check (S5 subset: earlier than newest not-before, or >90% expired).
 Not built: CT logs, CAPI2 per-app evidence, per-browser block status.
+
+D036 — Rules and Microsoft's full root list, 2026-10-23
+User: "how do we know we are really blocking all spain ... and know they dont
+popup like a new zit". Block > Update Microsoft root list runs certutil
+-generateSSTFromWU into %LOCALAPPDATA%\kisib.dub-sar\WURoots.sst; every scan
+merges it, so roots Windows has not downloaded yet appear in groups and can
+be blocked ahead of time. "Keep this group blocked" saves a rule
+(rules.csv); after every scan new matches are added to Disallowed and logged
+as "rule: <group>", and the 60-second auto scan turns on while rules exist.
+Not yet: CCADB intermediates (cross-sign back doors not on disk), per-browser.

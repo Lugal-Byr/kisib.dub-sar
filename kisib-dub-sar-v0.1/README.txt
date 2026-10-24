@@ -24,6 +24,13 @@ Blocked certificates go into Windows' Disallowed store (this user; whole PC
 when kisib runs as administrator). Nothing is deleted. Undo last block puts
 it back. Block > Block history shows every change.
 
+KEEP GROUPS BLOCKED
+Block > Update Microsoft root list downloads every root Windows trusts, including
+ones not on this PC yet, so they can be blocked before they ever arrive.
+In the Block group preview, leave "Keep this group blocked" ticked: kisib saves a
+rule and, every 60 seconds, blocks anything new that lands in that group.
+Block > Rules lists and removes rules. The status bar shows what rules caught.
+
 MORE VIEWS
 View > Standings: CA owners grouped by country with roots, intermediates,
 expiring in 12 months, expired, blocked, weak and tags. Click a heading to sort.
