@@ -16,7 +16,8 @@ namespace Kisib
         internal DateTime Time;
         internal string Program, Subject, Code, Reason, Flags, BlockedBy;
         internal readonly List<string> ChainSha1 = new List<string>();
-        internal bool Noise;
+        internal readonly List<string> ChainNames = new List<string>();
+        internal bool Noise, Ok;
     }
 
     internal static class DenialParser
@@ -34,7 +35,8 @@ namespace Kisib
             { "80092013", "CRYPT_E_REVOCATION_OFFLINE — revocation server unreachable" },
         };
 
-        internal static Denial Parse(string xml)
+        internal static Denial Parse(string xml) { return Parse(xml, false); }
+        internal static Denial Parse(string xml, bool includeTrusted)
         {
             if (xml == null || xml.Length > 4 * 1024 * 1024) return null;
             XmlDocument doc = new XmlDocument { XmlResolver = null };
@@ -46,22 +48,27 @@ namespace Kisib
                 string v = e.GetAttribute("value");
                 if (v.Length > 0 && v.Trim('0').Length > 0) { result = v.ToUpperInvariant(); break; }
             }
-            if (result == null) return null;
-            Denial d = new Denial { Time = DateTime.Now, Code = "0x" + result };
+            if (result == null && !includeTrusted) return null;
+            Denial d = new Denial { Time = DateTime.Now, Code = "0x" + (result ?? "0"), Ok = result == null };
             foreach (XmlElement e in doc.GetElementsByTagName("EventAuxInfo")) { d.Program = e.GetAttribute("ProcessName"); break; }
             foreach (XmlElement e in doc.GetElementsByTagName("Certificate"))
             {
                 if (d.Subject == null) d.Subject = e.GetAttribute("subjectName");
                 string file = e.GetAttribute("fileRef");
-                if (file.EndsWith(".cer", StringComparison.OrdinalIgnoreCase)) d.ChainSha1.Add(file.Substring(0, file.Length - 4).ToUpperInvariant());
+                if (file.EndsWith(".cer", StringComparison.OrdinalIgnoreCase))
+                {
+                    string sha1 = file.Substring(0, file.Length - 4).ToUpperInvariant();
+                    if (!d.ChainSha1.Contains(sha1)) { d.ChainSha1.Add(sha1); d.ChainNames.Add(e.GetAttribute("subjectName")); }
+                }
             }
             List<string> flags = new List<string>();
             foreach (XmlElement e in doc.GetElementsByTagName("*"))
                 if (e.LocalName.StartsWith("CERT_TRUST_", StringComparison.Ordinal) && !flags.Contains(e.LocalName)) flags.Add(e.LocalName);
             d.Flags = String.Join(" ", flags.ToArray());
             string reason;
-            d.Reason = Codes.TryGetValue(result.TrimStart('0'), out reason) || Codes.TryGetValue(result, out reason) ? reason : "error " + d.Code;
-            d.Noise = result.EndsWith("92012", StringComparison.Ordinal) || result.EndsWith("92013", StringComparison.Ordinal);
+            if (result == null) d.Reason = "trusted";
+            else d.Reason = Codes.TryGetValue(result.TrimStart('0'), out reason) || Codes.TryGetValue(result, out reason) ? reason : "error " + d.Code;
+            d.Noise = result != null && (result.EndsWith("92012", StringComparison.Ordinal) || result.EndsWith("92013", StringComparison.Ordinal));
             if (String.IsNullOrEmpty(d.Program)) d.Program = "[program not logged]";
             if (String.IsNullOrEmpty(d.Subject)) d.Subject = "[subject not logged]";
             return d;
@@ -122,9 +129,9 @@ namespace Kisib
                 {
                     if (args.EventRecord == null) return;
                     Denial d = null;
-                    try { using (EventRecord record = args.EventRecord) d = DenialParser.Parse(record.ToXml()); }
+                    try { using (EventRecord record = args.EventRecord) d = DenialParser.Parse(record.ToXml(), true); }
                     catch (Exception) { return; }
-                    if (d != null) Post(delegate { OnDenial(d); });
+                    if (d != null) Post(delegate { MapAdd(d); if (!d.Ok) OnDenial(d); });
                 };
                 denialWatcher.Enabled = true;
                 watchToggle.Checked = true;

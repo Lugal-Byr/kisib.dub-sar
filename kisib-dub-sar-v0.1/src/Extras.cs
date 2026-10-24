@@ -72,6 +72,7 @@ namespace Kisib
             ContextMenu menu = new ContextMenu();
             menu.MenuItems.Add("Open kisib", delegate { RestoreFromTray(); });
             menu.MenuItems.Add("Certificate denials", delegate { RestoreFromTray(); ShowDenials(); });
+            menu.MenuItems.Add("Live certificate map", delegate { RestoreFromTray(); OpenLiveMap(); });
             menu.MenuItems.Add("-");
             menu.MenuItems.Add("Exit", delegate { Close(); });
             tray.ContextMenu = menu;

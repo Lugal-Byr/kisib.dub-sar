@@ -448,3 +448,12 @@ block, allow 3/10/60, unblock, tag, find same organization. Tree: copy name,
 path, details/member list, certificate list; block group; expand/collapse.
 Every grid dialog (denials, standings, incidents, rules, block preview, tags):
 copy row, copy cell, copy all rows. Details panes and status bar: copy.
+
+D040 — Live certificate map, 2026-10-23
+User: "those data pictures with all the links and arrows ... a real time thing
+that shows what certs are doing what". View > Live certificate map (Ctrl+M):
+columns Programs -> Sites -> Intermediate CAs -> Roots, built from every CAPI2
+chain check (trusted ones too). Arrows green trusted / red refused / grey
+revocation unchecked; thickness by count; pulse when new; fade with age.
+Boxes show C= and tags; red boxes are in Disallowed. Click = certificate card,
+right-click = copy. Only refused filter, pause, clear, copy as text.
