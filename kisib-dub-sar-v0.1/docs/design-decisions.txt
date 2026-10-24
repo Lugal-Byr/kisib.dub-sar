@@ -439,3 +439,12 @@ certificate tags, with an EU button (27 members + C=EU). Block > Update CCADB
 list downloads the public PEM reports (2010s, 2020s) and merges every
 unexpired CA certificate into each scan with its CA Owner, so rules also block
 intermediates and cross-signs that never reached this PC.
+
+D039 — Right-click everywhere, 2026-10-23
+User: "more right click options ... able to copy stuff (instead of screencap it
+to share)". Certificate list: copy certificate card (all facts as text),
+subject, issuer, SHA-1, SHA-256, SPKI, found in, PEM, all rows; show chain,
+block, allow 3/10/60, unblock, tag, find same organization. Tree: copy name,
+path, details/member list, certificate list; block group; expand/collapse.
+Every grid dialog (denials, standings, incidents, rules, block preview, tags):
+copy row, copy cell, copy all rows. Details panes and status bar: copy.

@@ -78,6 +78,7 @@ namespace Kisib
             InitializeTempAllow(certificate);
             InitializeExtras(file, view);
             InitializeMyTags(certificate, view);
+            InitializeContextMenus();
 
             FlowLayoutPanel toolbar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 34, Padding = new Padding(3), WrapContents = false };
             refresh.Text = "Refresh"; refresh.AutoSize = true; refresh.Click += delegate { StartScan(); };

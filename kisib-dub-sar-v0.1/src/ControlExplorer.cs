@@ -47,6 +47,7 @@ namespace Kisib
             bool ascending = true; int previous = -1;
             grid.ColumnClick += delegate(object sender, ColumnClickEventArgs args)
             { ascending = args.Column != previous || !ascending; previous = args.Column; grid.ListViewItemSorter = new PlainComparer(args.Column, ascending); grid.Sort(); };
+            AddGridMenu(grid);
         }
         private sealed class PlainComparer : System.Collections.IComparer
         {
