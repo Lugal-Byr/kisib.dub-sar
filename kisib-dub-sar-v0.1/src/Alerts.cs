@@ -105,6 +105,7 @@ namespace Kisib
             tray = new NotifyIcon { Icon = AppIcon.Small ?? SystemIcons.Shield, Text = AboutText.Hover, Visible = true };
             tray.BalloonTipClicked += delegate { ShowDenials(); };
             tray.DoubleClick += delegate { RestoreFromTray(); };
+            tray.MouseClick += delegate(object sender, MouseEventArgs e) { if (e.Button == MouseButtons.Left) RestoreFromTray(); };
             InitializeTrayMenu();
             Shown += delegate { if (!File.Exists(WatchOffFlag)) StartWatching(false); };
             FormClosed += delegate { StopWatching(); tray.Visible = false; tray.Dispose(); };
@@ -167,8 +168,11 @@ namespace Kisib
             denials.Add(d);
             SaveDenial(d);
             RefreshWatchTab(); UpdateIndicators();
+            if (denialsRefresh != null) denialsRefresh();
             if (denials.Count > 2000) denials.RemoveAt(0);
             if (d.Noise) return;
+            MarkTrayBadge(d.Verdict == "red");
+            if (QuietMode || QuietSites.IsQuiet(d.Subject)) return;
             if (d.Verdict == "yellow")
             {
                 // A trusted category is failing: one calm notice per hour, not a pop-up per refusal.
@@ -180,25 +184,35 @@ namespace Kisib
             }
             string text = d.Who + "\r\n" + ShortReason(d.Reason) + (d.BlockedBy != null ? "\r\nBlocked by your Disallowed list: " + d.BlockedBy : "");
             ShowDenialToast(d, text);
-            FLASHWINFO flash = new FLASHWINFO { cbSize = (uint)Marshal.SizeOf(typeof(FLASHWINFO)), hwnd = Handle, dwFlags = 3 | 12, uCount = 0, dwTimeout = 0 }; // all + until foreground
-            FlashWindowEx(ref flash);
             status.Text = "DENIED: " + d.Program + " → " + d.Subject + " (" + d.Code + ")" + (d.BlockedBy != null ? " — your block" : "");
         }
 
         private void ShowDenials()
         {
-            using (Form dialog = new Form { Text = "Certificate denials (Windows CAPI2 log, since kisib opened)", Size = new Size(1150, 520), Font = Font, StartPosition = FormStartPosition.CenterParent })
+            Form dialog = new Form { Text = "Certificate denials (Windows CAPI2 log) — double-click one for its card", Size = new Size(1150, 520), Font = Font };
             {
                 ListView grid = new ListView();
                 SetupGrid(grid, new string[] { "Time", "Verdict", "Who is this", "Reason", "Blocked by your list", "Program", "Certificate / site", "Trust flags" }, new int[] { 70, 160, 420, 260, 200, 120, 220, 300 });
-                AddDenialMenu(grid, delegate { dialog.Close(); });
-                foreach (Denial d in denials.AsEnumerable().Reverse())
+                AddDenialMenu(grid, null);
+                Action fill = delegate
                 {
-                    if (d.Verdict == null) Annotate(d);
-                    ListViewItem row = new ListViewItem(new string[] { d.Time.ToString("HH:mm:ss"), VerdictWord(d), (d.Who ?? "").Replace("\r\n", "  |  "), ShortReason(d.Reason), d.BlockedBy ?? "", d.Program, d.Subject, d.Flags });
-                    row.ForeColor = VerdictColor(d.Verdict);
-                    row.Tag = d; grid.Items.Add(row);
-                }
+                    Denial keep = grid.SelectedItems.Count > 0 ? grid.SelectedItems[0].Tag as Denial : null;
+                    grid.BeginUpdate(); grid.Items.Clear();
+                    foreach (Denial d in denials.AsEnumerable().Reverse())
+                    {
+                        if (d.Verdict == null) Annotate(d);
+                        ListViewItem row = new ListViewItem(new string[] { d.Time.ToString("HH:mm:ss"), VerdictWord(d), (d.Who ?? "").Replace("\r\n", "  |  "), ShortReason(d.Reason), d.BlockedBy ?? "", d.Program, d.Subject, d.Flags });
+                        row.ForeColor = VerdictColor(d.Verdict);
+                        row.Tag = d; grid.Items.Add(row);
+                        if (d == keep) row.Selected = true;
+                    }
+                    grid.EndUpdate();
+                };
+                fill();
+                denialsRefresh = fill;
+                dialog.FormClosed += delegate { denialsRefresh = null; };
+                grid.DoubleClick += delegate { if (grid.SelectedItems.Count > 0) OpenRefusalCard((Denial)grid.SelectedItems[0].Tag); };
+                ClearTrayBadge();
                 Label note = new Label { Dock = DockStyle.Bottom, Height = 40, Text = "Red = refused because of your Disallowed list. Grey = harmless (revocation server unreachable, expired time-stamp certificate); listed, no alert.\r\n" +
                     "Source: Microsoft-Windows-CAPI2/Operational events 11 and 30. Chrome and Firefox check certificates themselves and do not appear here." };
                 FlowLayoutPanel allow = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 34, Padding = new Padding(2) };
@@ -211,14 +225,13 @@ namespace Kisib
                     {
                         if (grid.SelectedItems.Count == 0) return;
                         Denial d = (Denial)grid.SelectedItems[0].Tag;
-                        dialog.Close();
                         AllowTemporarily(CertificatesBehind(d), d.Subject, TimeSpan.FromMinutes(m), true);
                     };
                     allow.Controls.Add(b);
                 }
                 Button close = new Button { Text = "Close", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
                 dialog.Controls.Add(grid); dialog.Controls.Add(note); dialog.Controls.Add(allow); dialog.Controls.Add(close); dialog.CancelButton = close;
-                dialog.ShowDialog(this);
+                ShowTool(dialog, "denials");
             }
         }
     }

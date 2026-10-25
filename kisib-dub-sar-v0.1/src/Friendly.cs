@@ -39,6 +39,7 @@ namespace Kisib
             watchList = new ListView();
             SetupGrid(watchList, new string[] { "Time", "Verdict", "Who is this", "Why", "Your block" }, new int[] { 60, 120, 260, 160, 140 });
             AddDenialMenu(watchList, null);
+            watchList.DoubleClick += delegate { if (watchList.SelectedItems.Count > 0) OpenRefusalCard(watchList.SelectedItems[0].Tag as Denial); };
             FlowLayoutPanel buttons = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 66, Padding = new Padding(4) };
             foreach (KeyValuePair<string, Action> b in new Dictionary<string, Action> {
                 { "Live map", OpenLiveMap }, { "All denials", ShowDenials }, { "Rules", ShowRules }, { "Incident check", ShowIncidents } })
@@ -198,6 +199,7 @@ namespace Kisib
             InitializeReputation(tools);
             InitializePrograms(watch, toolbar);
             InitializeReroute(tools, toolbar);
+            InitializeShell(tools);
             Tidy(view); Tidy(block);
 
             // Toolbar: the daily actions.
@@ -251,6 +253,7 @@ namespace Kisib
             refusedLink.LinkColor = today > 0 ? Color.Firebrick : Color.DimGray;
             denialsButton.Text = "Denials (" + today + ")";
             denialsButton.ForeColor = today > 0 ? Color.Firebrick : SystemColors.ControlText;
+            UpdateTrayHover();
         }
     }
 }

@@ -14,6 +14,8 @@ namespace Kisib
             ContextMenu menu = grid.ContextMenu ?? new ContextMenu();
             Func<Denial> selected = delegate { return grid.SelectedItems.Count == 0 ? null : grid.SelectedItems[0].Tag as Denial; };
             List<MenuItem> items = new List<MenuItem>();
+            items.Add(new MenuItem("Open refusal card (app behind it, allow, reroute, quiet)", delegate { OpenRefusalCard(selected()); }));
+            items.Add(new MenuItem("Allow always...", delegate { Denial d = selected(); if (d != null) AllowAlways(CertificatesBehind(d), d.Subject); }));
             items.Add(new MenuItem("Why is this blocked? (groups, rules, who blocked it)", delegate { Denial d = selected(); if (d != null) ShowText("Why — " + d.Subject, ExplainDenial(d)); }));
             items.Add(new MenuItem("Reroute around the block (use a cross-signed path)...", delegate
             {

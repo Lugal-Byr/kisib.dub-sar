@@ -133,7 +133,7 @@ namespace Kisib
         }
 
         private void ShowStoreErrors()
-        { using (Form dialog = CreateStoreErrorsDialog()) dialog.ShowDialog(this); }
+        { ShowTool(CreateStoreErrorsDialog(), "store-errors"); }
 
     }
 }

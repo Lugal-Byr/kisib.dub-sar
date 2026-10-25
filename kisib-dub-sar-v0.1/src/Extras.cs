@@ -14,10 +14,11 @@ namespace Kisib
     internal sealed class DenialToast : Form
     {
         protected override bool ShowWithoutActivation { get { return true; } }
-        internal DenialToast(string title, string text, bool canAllow, Action<int> allow, Action details)
+        // Stays until you answer it: Details opens the refusal card next to it instead of closing it.
+        internal DenialToast(string title, string text, bool canAllow, Action<int> allow, Action details, Action quiet)
         {
             FormBorderStyle = FormBorderStyle.FixedToolWindow; TopMost = true; ShowInTaskbar = false; StartPosition = FormStartPosition.Manual;
-            Text = title; Size = new Size(500, canAllow ? 230 : 200); Font = new Font("Tahoma", 9F); BackColor = SystemColors.Info;
+            Text = title; Size = new Size(520, 210); Font = new Font("Tahoma", 9F); BackColor = SystemColors.Info;
             Rectangle area = Screen.PrimaryScreen.WorkingArea;
             Location = new Point(area.Right - Width - 12, area.Bottom - Height - 12);
             Label body = new Label { Text = text, Dock = DockStyle.Fill, Padding = new Padding(8), ForeColor = SystemColors.InfoText };
@@ -30,19 +31,18 @@ namespace Kisib
                     b.Click += delegate { Close(); allow(m); };
                     buttons.Controls.Add(b);
                 }
-            Button more = new Button { Text = "Details", AutoSize = true }; more.Click += delegate { Close(); details(); };
+            Button more = new Button { Text = "Details...", AutoSize = true }; more.Click += delegate { details(); };
+            Button hush = new Button { Text = "Quiet 1 h", AutoSize = true }; hush.Click += delegate { quiet(); Close(); };
             Button dismiss = new Button { Text = "Dismiss", AutoSize = true }; dismiss.Click += delegate { Close(); };
-            buttons.Controls.Add(more); buttons.Controls.Add(dismiss);
+            buttons.Controls.Add(more); buttons.Controls.Add(hush); buttons.Controls.Add(dismiss);
             Controls.Add(body); Controls.Add(buttons);
-            Timer life = new Timer { Interval = 30000 }; life.Tick += delegate { life.Stop(); Close(); }; life.Start();
-            FormClosed += delegate { life.Dispose(); };
         }
     }
 
     internal sealed partial class ExplorerForm
     {
         internal bool StartInTray;
-        private DenialToast toast;
+        private readonly List<DenialToast> toasts = new List<DenialToast>();
         private string AppFolder { get { return Storage.Folder; } }
         private string DenialLogPath { get { return Storage.File(Storage.Denials); } }
         private string TrayFlag { get { return Storage.File("SETTING - minimize to tray.txt"); } }
@@ -51,19 +51,16 @@ namespace Kisib
         private void InitializeExtras(MenuItem file, MenuItem view)
         {
             MenuItem startup = new MenuItem("Start with &Windows (in tray)");
-            MenuItem toTray = new MenuItem("&Minimize to tray");
+            MenuItem quiet = new MenuItem("&Quiet mode (log refusals, no pop-ups)");
             file.MenuItems.Add(2, startup);
-            file.MenuItems.Add(3, toTray);
+            file.MenuItems.Add(3, quiet);
             file.MenuItems.Add(4, new MenuItem("-"));
-            file.Popup += delegate { startup.Checked = StartupTaskExists(); toTray.Checked = File.Exists(TrayFlag); };
+            file.Popup += delegate { startup.Checked = StartupTaskExists(); quiet.Checked = QuietMode; };
             startup.Click += delegate { ToggleStartup(!StartupTaskExists()); };
-            toTray.Click += delegate
-            {
-                try { Directory.CreateDirectory(AppFolder); if (File.Exists(TrayFlag)) File.Delete(TrayFlag); else File.WriteAllText(TrayFlag, "on"); }
-                catch (IOException ex) { ShowText("Minimize to tray", ex.Message); }
-            };
-            Resize += delegate { if (WindowState == FormWindowState.Minimized && (StartInTray || File.Exists(TrayFlag))) Hide(); };
-            Shown += delegate { if (StartInTray) { WindowState = FormWindowState.Minimized; Hide(); } };
+            quiet.Click += delegate { ToggleQuiet(); };
+            // No taskbar button ever: minimizing or closing the window puts kisib back in the tray.
+            Resize += delegate { if (WindowState == FormWindowState.Minimized) { WindowState = FormWindowState.Normal; HideToTray(); } };
+            Shown += delegate { if (StartInTray) Hide(); };
             LoadDenials();
         }
 
@@ -71,24 +68,46 @@ namespace Kisib
         {
             ContextMenu menu = new ContextMenu();
             menu.MenuItems.Add("Open kisib", delegate { RestoreFromTray(); });
-            menu.MenuItems.Add("Certificate denials", delegate { RestoreFromTray(); ShowDenials(); });
+            menu.MenuItems.Add("Certificate denials", delegate { ShowDenials(); });
+            menu.MenuItems.Add("Block by bloc and continent...", delegate { RestoreFromTray(); OpenBlocBoard(); });
             menu.MenuItems.Add("Live certificate map", delegate { RestoreFromTray(); OpenLiveMap(); });
             menu.MenuItems.Add("-");
-            menu.MenuItems.Add("Exit", delegate { Close(); });
+            MenuItem quiet = new MenuItem("Quiet mode (no pop-ups)", delegate { ToggleQuiet(); });
+            menu.MenuItems.Add(quiet);
+            menu.Popup += delegate { quiet.Checked = QuietMode; };
+            menu.MenuItems.Add("-");
+            menu.MenuItems.Add("Exit kisib", delegate { ExitApp(); });
             tray.ContextMenu = menu;
         }
 
-        private void RestoreFromTray() { Show(); WindowState = FormWindowState.Normal; Activate(); }
+        private void RestoreFromTray() { Show(); WindowState = FormWindowState.Normal; Activate(); BringToFront(); }
 
+        // Pop-ups stack in the corner (newest at the bottom, four at most) and stay until answered.
         private void ShowDenialToast(Denial d, string text)
         {
-            if (toast != null && !toast.IsDisposed) toast.Close();
             List<CertificateRecord> behind = d.BlockedBy != null ? CertificatesBehind(d) : new List<CertificateRecord>();
-            toast = new DenialToast("kisib: certificate denied", text, behind.Count > 0,
+            DenialToast t = new DenialToast("kisib: certificate refused · " + d.Time.ToString("HH:mm"), text, behind.Count > 0,
                 delegate(int m) { AllowTemporarily(behind, d.Subject, TimeSpan.FromMinutes(m), false); },
-                delegate { RestoreFromTray(); ShowDenials(); });
-            toast.BackColor = d.Verdict == "yellow" ? Color.LightYellow : d.Verdict == "red" ? Color.MistyRose : SystemColors.Info;
-            toast.Show();
+                delegate { OpenRefusalCard(d); },
+                delegate { QuietSites.Quiet(d.Subject, TimeSpan.FromHours(1)); });
+            t.BackColor = d.Verdict == "yellow" ? Color.LightYellow : d.Verdict == "red" ? Color.MistyRose : SystemColors.Info;
+            t.FormClosed += delegate { toasts.Remove(t); StackToasts(); };
+            while (toasts.Count >= 4) { DenialToast old = toasts[0]; toasts.RemoveAt(0); old.Close(); }
+            toasts.Add(t);
+            StackToasts();
+            t.Show();
+        }
+
+        private void StackToasts()
+        {
+            Rectangle area = Screen.PrimaryScreen.WorkingArea;
+            int y = area.Bottom - 12;
+            for (int i = toasts.Count - 1; i >= 0; i--)
+            {
+                y -= toasts[i].Height;
+                toasts[i].Location = new Point(area.Right - toasts[i].Width - 12, y);
+                y -= 8;
+            }
         }
 
         // ---- Saved denials -----------------------------------------------------------

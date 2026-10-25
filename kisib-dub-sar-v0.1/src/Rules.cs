@@ -87,7 +87,8 @@ namespace Kisib
             switch (key)
             {
                 case "tag:🌿🧱": return "tag:🧱";
-                case "tag:BRICS+ (verify)": return "tag:" + GroupCatalog.BricsPlusLabel;
+                case "tag:BRICS+ (verify)": return "tag:🧱";
+                case "tag:🧱 BRICS+": return "tag:🧱";
                 case "tag:Google": return "owner:Google Trust Services";
                 case "tag:eMudhra": return "owner:eMudhra";
                 default: return key;
@@ -148,6 +149,7 @@ namespace Kisib
             catch (Exception ex) { ruleStatus = "Rules unreadable: " + ex.Message; return; }
             if (rules.Count == 0 || groups == null || groups.Error != null) { ruleRescan = false; return; }
             bool elevated = BlockEngine.IsElevated();
+            AllowedSet allowed = AllowedList.Load();
             int added = 0, skipped = 0, failed = 0, protectedSkipped = 0;
             foreach (BlockRule rule in rules)
             {
@@ -159,7 +161,7 @@ namespace Kisib
                 List<BlockItem> plan = BlockEngine.Plan(result, group.Members.Select(id => result.Certificates[id]),
                     delegate { return "rule: " + rule.Label; }, scope).Where(i => !i.AlreadyBlocked).ToList();
                 int before = plan.Count;
-                plan = plan.Where(i => TrustCategories.ProtectedBy(i.Certificate) == null).ToList();
+                plan = plan.Where(i => TrustCategories.ProtectedBy(i.Certificate) == null && !allowed.Covers(i.Certificate)).ToList();
                 protectedSkipped += before - plan.Count;
                 if (plan.Count == 0) continue;
                 try
@@ -172,7 +174,7 @@ namespace Kisib
             }
             ruleStatus = "Rules: " + rules.Count + " active" + (added > 0 ? ", blocked " + added + " NEW" : ", nothing new") +
                 (skipped > 0 ? ", " + skipped + " whole-PC rules need admin" : "") + (failed > 0 ? ", " + failed + " errors (Block history)" : "") +
-                (protectedSkipped > 0 ? ", " + protectedSkipped + " protected skipped" : "");
+                (protectedSkipped > 0 ? ", " + protectedSkipped + " protected or allowed skipped" : "");
             // Rescan once so the new blocks show as Blocked; the second pass finds nothing new and stops.
             if (added > 0 && !ruleRescan) { ruleRescan = true; BeginInvoke((Action)StartScan); }
             else ruleRescan = false;
@@ -180,7 +182,7 @@ namespace Kisib
 
         private void ShowRules()
         {
-            using (Form dialog = new Form { Text = "Rules — groups kept blocked", Size = new Size(900, 420), Font = Font, StartPosition = FormStartPosition.CenterParent })
+            Form dialog = new Form { Text = "Rules — groups kept blocked", Size = new Size(900, 420), Font = Font, StartPosition = FormStartPosition.CenterParent };
             {
                 ListView grid = new ListView();
                 SetupGrid(grid, new string[] { "Group", "Scope", "Created (UTC)", "Key" }, new int[] { 280, 120, 200, 260 });
@@ -202,7 +204,7 @@ namespace Kisib
                 };
                 Button close = new Button { Text = "Close", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
                 dialog.Controls.Add(grid); dialog.Controls.Add(note); dialog.Controls.Add(remove); dialog.Controls.Add(close); dialog.CancelButton = close;
-                dialog.ShowDialog(this);
+                ShowTool(dialog, "rules");
             }
         }
 

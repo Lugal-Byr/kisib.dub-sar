@@ -44,6 +44,7 @@ namespace Kisib
             try { string versionFile = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "version.txt"); if (File.Exists(versionFile)) version = File.ReadAllText(versionFile).Trim(); } catch (IOException) { }
             Text = "kisib.dub-sar " + version + " — certificate explorer";
             Icon = AppIcon.Full ?? SystemIcons.Application;
+            ShowInTaskbar = false;   // tray only: the seal in the tray is the way in
             Font = new Font("Tahoma", 9F);
             BackColor = SystemColors.Control;
             StartPosition = FormStartPosition.CenterScreen;
@@ -53,7 +54,7 @@ namespace Kisib
 
             MainMenu menu = new MainMenu();
             MenuItem file = new MenuItem("&File");
-            file.MenuItems.Add(new MenuItem("E&xit", delegate { Close(); }));
+            file.MenuItems.Add(new MenuItem("E&xit kisib", delegate { ExitApp(); }));
             MenuItem view = new MenuItem("&View");
             refreshMenu = new MenuItem("&Refresh", delegate { StartScan(); }, Shortcut.F5);
             view.MenuItems.Add(refreshMenu);
@@ -269,6 +270,7 @@ namespace Kisib
             DateTime? msList = MicrosoftList.Updated;
             status.Text += " | MS list: " + (msList.HasValue ? msList.Value.ToString("yyyy-MM-dd") : "not loaded (Block > Update)") + " | CCADB: " + (Ccadb.Updated.HasValue ? Ccadb.Updated.Value.ToString("yyyy-MM-dd") : "not loaded") + (ruleStatus.Length > 0 ? " | " + ruleStatus : "");
             int leaks = LeakCount();
+            lastLeaks = leaks;
             if (leaks > 0) status.Text += " | LEAKS: " + leaks + " blocked CAs still have a way in (Tools > Reroute check)";
             if (blocBoardRefresh != null) blocBoardRefresh();
             OpenPendingFile();
@@ -526,8 +528,8 @@ namespace Kisib
             try
             {
                 string[] files = history.JournalFiles();
-                using (Form dialog = new Form { Text = sha256 == null ? "History log — retained sessions" : "Certificate history — " + sha256,
-                    Size = new Size(1040, 620), StartPosition = FormStartPosition.CenterParent, Font = Font })
+                Form dialog = new Form { Text = sha256 == null ? "History log — retained sessions" : "Certificate history — " + sha256,
+                    Size = new Size(1040, 620), StartPosition = FormStartPosition.CenterParent, Font = Font };
                 {
                     FlowLayoutPanel controls = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 36, WrapContents = false };
                     ComboBox dates = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 140 };
@@ -555,7 +557,7 @@ namespace Kisib
                     dialog.Controls.Add(text); dialog.Controls.Add(controls); dialog.Controls.Add(path); dialog.Controls.Add(closeButton);
                     dialog.CancelButton = closeButton;
                     if (files.Length > 0) dates.SelectedIndex = files.Length - 1; else loadPage();
-                    dialog.ShowDialog(this);
+                    ShowTool(dialog, "history");
                 }
             }
             catch (Exception ex) { ShowText("History read failed", ex.ToString()); }
@@ -568,13 +570,12 @@ namespace Kisib
         }
         private void ShowText(string title, string content)
         {
-            using (Form dialog = new Form { Text = title, Size = new Size(950, 570), StartPosition = FormStartPosition.CenterParent, Font = Font })
-            {
-                TextBox text = new TextBox { Dock = DockStyle.Fill, Text = CleanText(content), ReadOnly = true, Multiline = true,
-                    ScrollBars = ScrollBars.Both, WordWrap = false, Font = new Font("Consolas", 9F), BackColor = SystemColors.Window };
-                Button close = new Button { Text = "Close", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
-                dialog.Controls.Add(text); dialog.Controls.Add(close); dialog.CancelButton = close; dialog.ShowDialog(this);
-            }
+            Form dialog = new Form { Text = title, Size = new Size(950, 570), Font = Font };
+            TextBox text = new TextBox { Dock = DockStyle.Fill, Text = CleanText(content), ReadOnly = true, Multiline = true,
+                ScrollBars = ScrollBars.Both, WordWrap = false, Font = new Font("Consolas", 9F), BackColor = SystemColors.Window };
+            Button close = new Button { Text = "Close", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
+            dialog.Controls.Add(text); dialog.Controls.Add(close); dialog.CancelButton = close;
+            ShowTool(dialog, "text:" + title);
         }
         private sealed class CertificateComparer : IComparer
         {

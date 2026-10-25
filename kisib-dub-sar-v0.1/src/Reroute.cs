@@ -586,7 +586,7 @@ namespace Kisib
 
         private void ShowRoutes()
         {
-            using (Form dialog = new Form { Text = "Routes kisib installed (cross-signs in Intermediate Certification Authorities)", Size = new Size(1000, 420), Font = Font, StartPosition = FormStartPosition.CenterParent })
+            Form dialog = new Form { Text = "Routes kisib installed (cross-signs in Intermediate Certification Authorities)", Size = new Size(1000, 420), Font = Font, StartPosition = FormStartPosition.CenterParent };
             {
                 ListView grid = new ListView();
                 SetupGrid(grid, new string[] { "Scope", "Certificate", "Added (UTC)", "SHA-1" }, new int[] { 110, 360, 200, 320 });
@@ -616,7 +616,7 @@ namespace Kisib
                 Button close = new Button { Text = "Close", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
                 dialog.Controls.Add(grid); dialog.Controls.Add(note); dialog.Controls.Add(remove); dialog.Controls.Add(removeAll); dialog.Controls.Add(close);
                 dialog.CancelButton = close;
-                dialog.ShowDialog(this);
+                ShowTool(dialog, "routes");
             }
         }
 
@@ -640,7 +640,7 @@ namespace Kisib
                 ") + CCADB (" + (Ccadb.Updated.HasValue ? Ccadb.Updated.Value.ToString("yyyy-MM-dd") : "NOT LOADED: Tools > Update CCADB list, needed to see cross-signs not on this PC") + ").\r\n" +
                 "Windows picks the path itself and can only take one it can find (on this PC, or sent by the site) [to test]. LibreWolf/Firefox use their own list for web pages.";
             Action after = null;
-            using (Form dialog = new Form { Text = "Reroute check — blocked CAs, leaks and the other ways in (cross-signs)", Size = new Size(1300, 680), Font = Font, StartPosition = FormStartPosition.CenterParent })
+            Form dialog = new Form { Text = "Reroute check — blocked CAs, leaks and the other ways in (cross-signs)", Size = new Size(1300, 680), Font = Font, StartPosition = FormStartPosition.CenterParent };
             {
                 Label top = new Label { Dock = DockStyle.Top, Height = 76, Padding = new Padding(6, 4, 6, 0), Text = summary };
                 FlowLayoutPanel filters = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 30, Padding = new Padding(4, 2, 4, 0) };
@@ -745,9 +745,9 @@ namespace Kisib
                 dialog.Controls.Add(grid); dialog.Controls.Add(filters); dialog.Controls.Add(top);
                 dialog.Controls.Add(save); dialog.Controls.Add(routes); dialog.Controls.Add(close);
                 dialog.CancelButton = close;
-                dialog.ShowDialog(this);
+                dialog.FormClosed += delegate { if (after != null) after(); };
+                ShowTool(dialog, "reroute");
             }
-            if (after != null) after();
         }
 
         private Action BlockKeyAction(string key, CertificateRecord rep)

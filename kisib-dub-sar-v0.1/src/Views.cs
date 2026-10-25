@@ -73,7 +73,7 @@ namespace Kisib
                     Tags = String.Join(" ", g.SelectMany(c => TagsOf(c).Split(' ')).Where(t => t.Length > 0).Distinct().ToArray())
                 })
                 .OrderBy(r => r.Country, StringComparer.OrdinalIgnoreCase).ThenByDescending(r => r.Total).ToList();
-            using (Form dialog = new Form { Text = "Standings — CA owners by country", Size = new Size(1150, 650), Font = Font, StartPosition = FormStartPosition.CenterParent })
+            Form dialog = new Form { Text = "Standings — CA owners by country", Size = new Size(1150, 650), Font = Font, StartPosition = FormStartPosition.CenterParent };
             {
                 ListView grid = new ListView();
                 SetupGrid(grid, new string[] { "C=", "Owner", "Roots", "Intermediates", "Expiring 12 mo", "Expired", "Blocked", "Weak", "Total", "Tags" },
@@ -93,7 +93,7 @@ namespace Kisib
                     "Roots = in Root/AuthRoot, Intermediates = in CA. Grey = fully blocked, red = partly blocked, yellow = weak key or signature. Click a heading to sort." };
                 Button close = new Button { Text = "Close", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
                 dialog.Controls.Add(grid); dialog.Controls.Add(note); dialog.Controls.Add(close); dialog.CancelButton = close;
-                dialog.ShowDialog(this);
+                ShowTool(dialog, "standings");
             }
         }
 
@@ -121,7 +121,7 @@ namespace Kisib
                 }
             }
             catch (Exception ex) { status = "Chain build failed: " + ex.GetType().Name + ": " + ex.Message; }
-            using (Form dialog = new Form { Text = "Chain — " + label, Size = new Size(1150, 470), Font = Font, StartPosition = FormStartPosition.CenterParent })
+            Form dialog = new Form { Text = "Chain — " + label, Size = new Size(1150, 470), Font = Font, StartPosition = FormStartPosition.CenterParent };
             {
                 FlowLayoutPanel bracket = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoScroll = true, WrapContents = false, FlowDirection = FlowDirection.LeftToRight, Padding = new Padding(8) };
                 HashSet<string> blocked = snapshot == null ? new HashSet<string>() : GroupCatalog.BlockedIdentities(snapshot);
@@ -151,7 +151,7 @@ namespace Kisib
                 Label info = new Label { Dock = DockStyle.Bottom, Height = 40, Text = status + "\r\nBuilt by Windows (CertGetCertificateChain via X509Chain); revocation not checked here." };
                 Button close = new Button { Text = "Close", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
                 dialog.Controls.Add(bracket); dialog.Controls.Add(info); dialog.Controls.Add(close); dialog.CancelButton = close;
-                dialog.ShowDialog(this);
+                ShowTool(dialog, "chain");
             }
         }
 

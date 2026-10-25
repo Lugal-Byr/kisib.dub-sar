@@ -144,6 +144,6 @@ namespace Kisib
         }
 
         private void ShowIncidents()
-        { using (Form dialog = CreateIncidentDialog()) dialog.ShowDialog(this); }
+        { ShowTool(CreateIncidentDialog(), "incidents"); }
     }
 }

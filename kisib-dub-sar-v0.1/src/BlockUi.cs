@@ -99,7 +99,7 @@ namespace Kisib
             {
                 address.Text = "Groups";
                 nodeDetails = "Groups are built from the data folder and your own tags:\r\n" +
-                    "  Blocs: 👑 monarchy  🏛️ EU  🧱 BRIC  🧱 BRICS+  🌿 Basel / CBDC  💃 supranational corporations\r\n" +
+                    "  Blocs: 👑 monarchy  🏛️ EU  🧱 BRIC (with the BRICS members)  🌿 Basel / CBDC  💃 supranational corporations\r\n" +
                     "  Continents: the seven continents from the UN country list (M49); Middle East is a region inside Asia\r\n" +
                     "  countries_monarchy_bric.csv: continent, region, monarchy, crown_territory_of, eu, bric_core, brics_plus, basel, tags, your_group, with sources\r\n" +
                     "  owners.csv: CA owner by subject/issuer O= (exact or contains), with tags; CCADB adds every listed CA owner\r\n" +
@@ -154,6 +154,7 @@ namespace Kisib
                 Button go = new Button { Dock = DockStyle.Bottom, Height = 32 };
                 Button cancel = new Button { Text = "Cancel", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
                 List<BlockItem> plan = null;
+                AllowedSet allowedSet = AllowedList.Load();
                 Action refreshPlan = delegate
                 {
                     X509Location scope = machine.Checked ? X509Location.LocalMachine : X509Location.CurrentUser;
@@ -163,14 +164,14 @@ namespace Kisib
                     {
                         CertificateRecord c = item.Certificate;
                         string guard = TrustCategories.ProtectedBy(c);
-                        string action = item.AlreadyBlocked ? "already blocked" : guard != null && !includeProtected.Checked ? "SKIP: protected (" + guard + ")" : guard != null ? "add — PROTECTED (" + guard + ")" : "add to Disallowed";
+                        string action = item.AlreadyBlocked ? "already blocked" : allowedSet.Covers(c) ? "SKIP: you allowed it (ALLOWED list)" : guard != null && !includeProtected.Checked ? "SKIP: protected (" + guard + ")" : guard != null ? "add — PROTECTED (" + guard + ")" : "add to Disallowed";
                         ListViewItem row = new ListViewItem(new string[] { action, c.SubjectShortName, c.IssuerShortName,
                             c.SubjectCountry ?? "—", item.Reason, c.FoundInText, c.Sha256 });
                         if (item.AlreadyBlocked) row.ForeColor = SystemColors.GrayText; else if (guard != null) row.ForeColor = Color.DarkGoldenrod;
                         grid.Items.Add(row);
                     }
                     grid.EndUpdate();
-                    plan = plan.Where(i => i.AlreadyBlocked || includeProtected.Checked || TrustCategories.ProtectedBy(i.Certificate) == null).ToList();
+                    plan = plan.Where(i => i.AlreadyBlocked || ((includeProtected.Checked || TrustCategories.ProtectedBy(i.Certificate) == null) && !allowedSet.Covers(i.Certificate))).ToList();
                     int add = plan.Count(i => !i.AlreadyBlocked), roots = plan.Count(i => !i.AlreadyBlocked && i.Certificate.FoundIn.Any(p => p.IndexOf("\\Root\\", StringComparison.OrdinalIgnoreCase) >= 0));
                     go.Text = add == 0 ? "Nothing to block" : "Block " + add + " certificate" + (add == 1 ? "" : "s");
                     go.Enabled = add > 0 || keep.Checked;

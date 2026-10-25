@@ -27,8 +27,8 @@ namespace Kisib
     {
         private void ShowAbout()
         {
-            using (Form dialog = new Form { Text = "About kisib.dub-sar", Size = new Size(620, 470), Font = Font, StartPosition = FormStartPosition.CenterParent,
-                FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false })
+            Form dialog = new Form { Text = "About kisib.dub-sar", Size = new Size(620, 470), Font = Font, StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false };
             {
                 PictureBox picture = new PictureBox { Dock = DockStyle.Left, Width = 170, SizeMode = PictureBoxSizeMode.CenterImage, Padding = new Padding(10) };
                 try { if (AppIcon.Full != null) picture.Image = new Icon(AppIcon.Full, 128, 128).ToBitmap(); } catch (Exception) { }
@@ -60,7 +60,7 @@ namespace Kisib
                 buttons.Controls.AddRange(new Control[] { close, site, license });
                 dialog.Controls.Add(right); dialog.Controls.Add(picture); dialog.Controls.Add(buttons);
                 dialog.CancelButton = close;
-                dialog.ShowDialog(this);
+                ShowTool(dialog, "about");
             }
         }
     }

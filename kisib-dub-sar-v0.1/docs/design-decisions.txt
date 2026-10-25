@@ -553,3 +553,13 @@ D049 Agent rules reset (user, 2026-10-24): AGENTS.md rewritten to the owner's ac
 files are marked HISTORY ONLY; the stale Screen-1-only paragraph left README.txt.
 Emoji (👑 🏛️ 🧱 🌿 💃) are drawn in Segoe UI Emoji runs in the group tree, main list,
 bloc tiles and bloc grid (Tahoma showed boxes). All seven continents always show.
+
+D050 Tray-only shell and refusal card (user, 2026-10-24). ShowInTaskbar off; X and minimize hide
+to the tray; Exit only from the tray or File menu; single instance via a Local mutex + show event.
+Tool windows go through ShowTool: modeless, one per kind, remembered bounds, Esc closes; a confirm
+dialog that is already open keeps the old modal behavior. Refusal pop-ups stack (max 4) and stay
+until answered; Details opens the refusal card (app behind lsass/svchost by matching open TCP
+connections to the site's addresses [to test], Allow 3/10/60, Allow always + ALLOWED list that rules
+and block previews skip by SHA-1 and key, Reroute, Quiet site 1 h). Tray badge red/yellow, hover
+counts. Quiet mode setting. Weekly Microsoft list + CCADB refresh, old copy kept offline.
+BRICS+ folded into 🧱 BRIC (user): one bloc for BRIC and the later BRICS members.

@@ -246,7 +246,7 @@ namespace Kisib
         private void ShowCategories()
         {
             List<TrustCategory> cats = TrustCategories.Read();
-            using (Form dialog = new Form { Text = "Trusted categories", Size = new Size(820, 460), Font = Font, StartPosition = FormStartPosition.CenterParent })
+            Form dialog = new Form { Text = "Trusted categories", Size = new Size(820, 460), Font = Font, StartPosition = FormStartPosition.CenterParent };
             {
                 CheckedListBox box = new CheckedListBox { Dock = DockStyle.Fill, CheckOnClick = true };
                 foreach (TrustCategory c in cats) box.Items.Add(c.Name, c.Enabled);
@@ -266,7 +266,7 @@ namespace Kisib
                     dialog.Close(); StartScan();
                 };
                 dialog.Controls.Add(box); dialog.Controls.Add(note); dialog.Controls.Add(detail); dialog.Controls.Add(save);
-                dialog.ShowDialog(this);
+                ShowTool(dialog, "categories");
             }
         }
 

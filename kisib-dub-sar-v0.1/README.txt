@@ -22,8 +22,9 @@ C= is the certificate's own declaration, not an owner or affiliation finding.
 Find filters rows while keeping every native branch and count.
 GROUPS AND BLOCKING
 The Groups tab sorts every certificate six ways:
-  Blocs       👑 monarchy  🏛️ EU  🧱 BRIC  🧱 BRICS+  🌿 Basel / CBDC  💃 supranational
-              corporations. Tags stack: Spain is 👑🏛️, the UAE is 👑 🧱+ 🌿.
+  Blocs       👑 monarchy  🏛️ EU  🧱 BRIC (Brazil, Russia, India, China and the
+              later BRICS members)  🌿 Basel / CBDC  💃 supranational corporations.
+              Tags stack: Spain is 👑🏛️, the UAE is 👑 🧱 🌿.
   Continents  all seven (UN country list); Middle East is a region inside Asia.
   Countries   from the C= on the certificate (subject and issuer).
   Owners      CA owner by O= (data\owners.csv) and every owner listed in CCADB.
@@ -71,6 +72,27 @@ Block > Update CCADB list downloads every CA certificate the browser root
 programs know, including intermediates and cross-signs never seen on this PC.
 Rules then block those too, so a Spanish CA signed by a British root still
 gets caught.
+
+LIVES IN THE TRAY
+kisib never sits on the taskbar. The seal next to the clock is the way in:
+click it to open kisib; right-click for denials, blocs, quiet mode and Exit.
+Closing or minimizing the window puts it back in the tray; Exit kisib quits.
+The seal gets a red dot when one of your blocks refused something and a yellow
+dot for other refusals; hover it for counts, leaks and temp-allow time left.
+Starting kisib again just opens the copy already running.
+Tool windows (denials, reroute check, rules, standings...) are normal windows:
+the main window stays usable, each reopens where you left it, Esc closes it.
+
+POP-UPS AND THE REFUSAL CARD
+A refusal pop-up stays in the corner until you answer it (up to four stack).
+Details... opens the refusal card next to it: who asked (for lsass.exe or
+svchost.exe, kisib matches the open connection to name the real app [to test]),
+why, and every way out: Allow 3 / 10 / 60 min, Allow always, Reroute, Keep
+blocked, Quiet this site for 1 hour. Allow always takes the block out for good
+and lists it in ALLOWED (never block).txt so rules skip it; Tools > Allowed
+removes entries. Quiet mode (tray or File menu) logs refusals with no pop-ups.
+The Microsoft list and CCADB refresh weekly by themselves when online; offline
+keeps the old copy (Tools menu switch).
 
 DENIAL ALERTS
 When any program on this PC is refused a certificate (curl, winget, Edge,

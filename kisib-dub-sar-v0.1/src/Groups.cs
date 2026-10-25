@@ -178,7 +178,7 @@ namespace Kisib
                     string why = claim.Value + " " + claim.Key;
                     foreach (string tag in Split(row.Tags)) get(tags, "tag", tag, tag).Add(cert.Identity, why);
                     foreach (string group in Split(row.YourGroup)) get(tags, "tag", group, group).Add(cert.Identity, why + " (your_group)");
-                    if (String.Equals(row.BricsPlus, "Y", StringComparison.OrdinalIgnoreCase)) get(tags, "tag", BricsPlusLabel, BricsPlusLabel).Add(cert.Identity, why + " (BRICS expansion member)");
+                    if (String.Equals(row.BricsPlus, "Y", StringComparison.OrdinalIgnoreCase)) get(tags, "tag", "🧱", "🧱").Add(cert.Identity, why + " (BRICS member, part of 🧱 BRIC)");
                     if (row.Continent.Length > 0) get(byContinent, "continent", row.Continent, row.Continent).Add(cert.Identity, why + " (" + row.Continent + ")");
                     if (row.Region.Length > 0) get(byRegion, "region", row.Region, row.Region + " (part of " + row.Continent + ")").Add(cert.Identity, why + " (" + row.Region + ")");
                     CountryRow crown;
@@ -207,7 +207,7 @@ namespace Kisib
         }
 
         internal const string BricsPlusLabel = "🧱 BRICS+";
-        private static readonly string[] Blocs = { "👑", "🏛️", "🧱", BricsPlusLabel, "🌿", "💃" };
+        private static readonly string[] Blocs = { "👑", "🏛️", "🧱", "🌿", "💃" };
         internal static readonly string[] ContinentNames = { "Africa", "Antarctica", "Asia", "Europe", "North America", "Oceania", "South America" };
         private static string ParentContinent(string regionLabel)
         { int i = regionLabel.IndexOf("(part of ", StringComparison.Ordinal); return i < 0 ? regionLabel : regionLabel.Substring(i + 9).TrimEnd(')'); }
@@ -222,8 +222,8 @@ namespace Kisib
             List<string> list = Split(row.Tags).ToList();
             CountryRow crown;
             if (row.CrownOf.Length == 2 && root.CountryRows.TryGetValue(row.CrownOf, out crown)) foreach (string t in Split(crown.Tags)) if (t == "👑" && !list.Contains(t)) list.Add(t);
-            if (String.Equals(row.BricsPlus, "Y", StringComparison.OrdinalIgnoreCase)) list.Add("🧱+");
-            return String.Join(" ", list.OrderBy(t => BlocOrder(t == "🧱+" ? BricsPlusLabel : t)).ToArray());
+            if (String.Equals(row.BricsPlus, "Y", StringComparison.OrdinalIgnoreCase) && !list.Contains("🧱")) list.Add("🧱");
+            return String.Join(" ", list.OrderBy(t => BlocOrder(t)).ToArray());
         }
 
         // Status groups: what kisib did, what Windows already had, and what is only on the lists.

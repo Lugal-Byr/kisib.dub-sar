@@ -1,6 +1,6 @@
 ﻿iso2,iso3,name,continent,region,monarchy,monarchy_type,crown_territory_of,eu,bric_core,brics_plus,basel,tags,your_group,note,review,source,date
 AD,AND,Andorra,Europe,,Y,co-principality,,N,N,N,N,👑,,two co-princes: President of France and Bishop of Urgell,,https://unstats.un.org/unsd/methodology/m49/overview/ https://thecrownsociety.org/other-reigning-monarchies,2026-10-24
-AE,ARE,United Arab Emirates,Asia,Middle East,Y,federal (elective among emirs),,N,N,Y,Y,👑;🌿,,federation of seven emirates; Basel: your call: CBDC / Basel-aligned central bank,,https://unstats.un.org/unsd/methodology/m49/overview/ https://thecrownsociety.org/other-reigning-monarchies https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10 user decision 2026-10-24,2026-10-24
+AE,ARE,United Arab Emirates,Asia,Middle East,Y,federal (elective among emirs),,N,N,Y,Y,👑;🧱;🌿,,federation of seven emirates; Basel: your call: CBDC / Basel-aligned central bank,,https://unstats.un.org/unsd/methodology/m49/overview/ https://thecrownsociety.org/other-reigning-monarchies https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10 user decision 2026-10-24,2026-10-24
 AF,AFG,Afghanistan,Asia,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
 AG,ATG,Antigua and Barbuda,North America,,Y,constitutional (Commonwealth realm),,N,N,N,N,👑,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://thecrownsociety.org/other-reigning-monarchies,2026-10-24
 AI,AIA,Anguilla,North America,,N,,GB,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://thecrownsociety.org/other-reigning-monarchies,2026-10-24
@@ -63,11 +63,11 @@ DO,DOM,Dominican Republic,North America,,N,,,N,N,N,N,,,,,https://unstats.un.org/
 DZ,DZA,Algeria,Africa,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
 EC,ECU,Ecuador,South America,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
 EE,EST,Estonia,Europe,,N,,,Y,N,N,N,🏛️,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://european-union.europa.eu/principles-countries-history/eu-countries_en,2026-10-24
-EG,EGY,Egypt,Africa,,N,,,N,N,Y,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10,2026-10-24
+EG,EGY,Egypt,Africa,,N,,,N,N,Y,N,🧱,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10,2026-10-24
 EH,ESH,Western Sahara,Africa,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
 ER,ERI,Eritrea,Africa,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
 ES,ESP,Spain,Europe,,Y,constitutional,,Y,N,N,N,👑;🏛️,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://thecrownsociety.org/other-reigning-monarchies https://european-union.europa.eu/principles-countries-history/eu-countries_en,2026-10-24
-ET,ETH,Ethiopia,Africa,,N,,,N,N,Y,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10,2026-10-24
+ET,ETH,Ethiopia,Africa,,N,,,N,N,Y,N,🧱,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10,2026-10-24
 FI,FIN,Finland,Europe,,N,,,Y,N,N,N,🏛️,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://european-union.europa.eu/principles-countries-history/eu-countries_en,2026-10-24
 FJ,FJI,Fiji,Oceania,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
 FK,FLK,Falkland Islands (Malvinas),South America,,N,,GB,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://thecrownsociety.org/other-reigning-monarchies,2026-10-24
@@ -99,14 +99,14 @@ HN,HND,Honduras,North America,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/metho
 HR,HRV,Croatia,Europe,,N,,,Y,N,N,N,🏛️,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://european-union.europa.eu/principles-countries-history/eu-countries_en,2026-10-24
 HT,HTI,Haiti,North America,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
 HU,HUN,Hungary,Europe,,N,,,Y,N,N,N,🏛️,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://european-union.europa.eu/principles-countries-history/eu-countries_en,2026-10-24
-ID,IDN,Indonesia,Asia,,N,,,N,N,Y,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10,2026-10-24
+ID,IDN,Indonesia,Asia,,N,,,N,N,Y,N,🧱,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10,2026-10-24
 IE,IRL,Ireland,Europe,,N,,,Y,N,N,N,🏛️,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://european-union.europa.eu/principles-countries-history/eu-countries_en,2026-10-24
 IL,ISR,Israel,Asia,Middle East,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
 IM,IMN,Isle of Man,Europe,,N,,GB,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://thecrownsociety.org/other-reigning-monarchies,2026-10-24
 IN,IND,India,Asia,,N,,,N,Y,N,N,🧱,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10,2026-10-24
 IO,IOT,British Indian Ocean Territory,Africa,,N,,GB,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://thecrownsociety.org/other-reigning-monarchies,2026-10-24
 IQ,IRQ,Iraq,Asia,Middle East,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
-IR,IRN,"Iran, Islamic Republic of",Asia,Middle East,N,,,N,N,Y,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10,2026-10-24
+IR,IRN,"Iran, Islamic Republic of",Asia,Middle East,N,,,N,N,Y,N,🧱,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10,2026-10-24
 IS,ISL,Iceland,Europe,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
 IT,ITA,Italy,Europe,,N,,,Y,N,N,N,🏛️,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://european-union.europa.eu/principles-countries-history/eu-countries_en,2026-10-24
 JE,JEY,Jersey,Europe,,N,,GB,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://thecrownsociety.org/other-reigning-monarchies,2026-10-24
@@ -191,7 +191,7 @@ RO,ROU,Romania,Europe,,N,,,Y,N,N,N,🏛️,,,,https://unstats.un.org/unsd/method
 RS,SRB,Serbia,Europe,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
 RU,RUS,Russian Federation,Europe,,N,,,N,Y,N,N,🧱,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10,2026-10-24
 RW,RWA,Rwanda,Africa,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
-SA,SAU,Saudi Arabia,Asia,Middle East,Y,absolute,,N,N,Y,N,👑,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://thecrownsociety.org/other-reigning-monarchies https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10,2026-10-24
+SA,SAU,Saudi Arabia,Asia,Middle East,Y,absolute,,N,N,Y,N,👑;🧱,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://thecrownsociety.org/other-reigning-monarchies https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10,2026-10-24
 SB,SLB,Solomon Islands,Oceania,,Y,constitutional (Commonwealth realm),,N,N,N,N,👑,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://thecrownsociety.org/other-reigning-monarchies,2026-10-24
 SC,SYC,Seychelles,Africa,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
 SD,SDN,Sudan,Africa,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
@@ -245,7 +245,7 @@ WF,WLF,Wallis and Futuna,Oceania,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/me
 WS,WSM,Samoa,Oceania,,N,,,N,N,N,N,,,head of state chosen by parliament from chiefly titles; not counted as a monarchy,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
 YE,YEM,Yemen,Asia,Middle East,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
 YT,MYT,Mayotte,Africa,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
-ZA,ZAF,South Africa,Africa,,N,,,N,N,Y,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10,2026-10-24
+ZA,ZAF,South Africa,Africa,,N,,,N,N,Y,N,🧱,,,,https://unstats.un.org/unsd/methodology/m49/overview/ https://www.businesstoday.in/india/story/bt-explainerbrics-decoded-the-origin-evolution-members-partners-and-future-of-the-summit-554110-2026-09-10,2026-10-24
 ZM,ZMB,Zambia,Africa,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
 ZW,ZWE,Zimbabwe,Africa,,N,,,N,N,N,N,,,,,https://unstats.un.org/unsd/methodology/m49/overview/,2026-10-24
 EU,,"European Union (exceptionally reserved, not an assigned ISO country)",Europe,,N,,,Y,N,N,N,🏛️,,appears in some certificate names,,https://unstats.un.org/unsd/methodology/m49/overview/ https://european-union.europa.eu/principles-countries-history/eu-countries_en,2026-10-24

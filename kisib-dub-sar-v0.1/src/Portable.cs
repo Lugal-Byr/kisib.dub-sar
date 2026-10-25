@@ -51,6 +51,7 @@ namespace Kisib
         internal const string Denials = "DENIALS (refused certificates log).txt";
         internal const string Settings = "SETTINGS.txt";
         internal const string RouteList = "ROUTES (cross-signs kisib added so Windows can go around blocks).txt";
+        internal const string AllowedList = "ALLOWED (never block).txt";
 
         // New version unzipped next to an older one: carry the newest older PORTABLE BACKUP LISTS over.
         private static void CarryFromOlderVersion(string target)
@@ -115,6 +116,7 @@ namespace Kisib
                     BlockHistory + "  - every block, unblock, allow and re-block, with time\r\n" +
                     TempAllows + "  - blocks lifted for a few minutes; kisib puts them back\r\n" +
                     RouteList + "  - cross-signed certificates added so Windows can reach a site through another root\r\n" +
+                    AllowedList + "  - certificates you allowed for good; rules never block them\r\n" +
                     Denials + "  - certificates Windows refused, and which program asked\r\n" +
                     "SETTING - *.txt  - on/off switches: the file existing means the switch is on\r\n" +
                     "microsoft-root-list.sst, ccadb-list-*.csv  - downloaded lists (Tools menu refreshes them)\r\n\r\n" +

@@ -125,7 +125,7 @@ namespace Kisib
         {
             List<MyTag> tags;
             try { tags = MyTags.Read(); } catch (Exception ex) { ShowText("My tags", ex.Message); return; }
-            using (Form dialog = new Form { Text = "My tags — " + MyTags.PathName, Size = new Size(820, 520), Font = Font, StartPosition = FormStartPosition.CenterParent })
+            Form dialog = new Form { Text = "My tags — " + MyTags.PathName, Size = new Size(820, 520), Font = Font, StartPosition = FormStartPosition.CenterParent };
             {
                 ListView grid = new ListView();
                 SetupGrid(grid, new string[] { "Kind", "Value", "Tag" }, new int[] { 120, 360, 280 });
@@ -169,7 +169,7 @@ namespace Kisib
                 Label note = new Label { Dock = DockStyle.Bottom, Height = 44, Text = "country = 2-letter code on the certificate's subject or issuer C=.  organization = text found in subject or issuer O=.\r\n" +
                     "certificate = SHA-256.  Tags show under Groups > Tags and can be blocked and kept blocked like any group." };
                 dialog.Controls.Add(grid); dialog.Controls.Add(note); dialog.Controls.Add(add); dialog.Controls.Add(actions);
-                dialog.ShowDialog(this);
+                ShowTool(dialog, "mytags");
             }
         }
     }
