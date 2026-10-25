@@ -563,3 +563,7 @@ connections to the site's addresses [to test], Allow 3/10/60, Allow always + ALL
 and block previews skip by SHA-1 and key, Reroute, Quiet site 1 h). Tray badge red/yellow, hover
 counts. Quiet mode setting. Weekly Microsoft list + CCADB refresh, old copy kept offline.
 BRICS+ folded into 🧱 BRIC (user): one bloc for BRIC and the later BRICS members.
+
+D051 Live map right-click (user, 2026-10-24): CA and root boxes get Block / Unblock / Allow 3-10-60 /
+Allow always / Why blocked / Who vouches (paths) / Show in list; site boxes offer blocking or allowing
+the CA that signed them. Box colors refresh after every scan.

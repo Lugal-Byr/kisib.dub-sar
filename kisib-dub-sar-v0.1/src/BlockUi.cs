@@ -232,11 +232,17 @@ namespace Kisib
         {
             CertificateRecord cert = SelectedCertificate();
             if (cert == null) { ShowText("Unblock certificate", "Select a certificate in the list first."); return; }
+            UnblockCertificates(new List<CertificateRecord> { cert }, "unblock selected");
+        }
+
+        internal void UnblockCertificates(List<CertificateRecord> certs, string reason)
+        {
+            string[] hashes = certs.Select(c => c.Sha256).Distinct().ToArray();
             List<BlockLogRow> result = new List<BlockLogRow>();
             try
             {
-                result.AddRange(BlockEngine.Unblock(new string[] { cert.Sha256 }, X509Location.CurrentUser, "unblock selected"));
-                if (BlockEngine.IsElevated()) result.AddRange(BlockEngine.Unblock(new string[] { cert.Sha256 }, X509Location.LocalMachine, "unblock selected"));
+                result.AddRange(BlockEngine.Unblock(hashes, X509Location.CurrentUser, reason));
+                if (BlockEngine.IsElevated()) result.AddRange(BlockEngine.Unblock(hashes, X509Location.LocalMachine, reason));
             }
             catch (Exception ex) { ShowText("Unblock failed", ex.GetType().Name + ": " + ex.Message); return; }
             ShowText("Unblock result", Report(result) + "\r\nkisib only removes Disallowed entries it added itself; Microsoft's own entries stay."); StartScan();

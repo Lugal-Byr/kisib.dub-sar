@@ -273,6 +273,7 @@ namespace Kisib
             lastLeaks = leaks;
             if (leaks > 0) status.Text += " | LEAKS: " + leaks + " blocked CAs still have a way in (Tools > Reroute check)";
             if (blocBoardRefresh != null) blocBoardRefresh();
+            if (liveMap != null && !liveMap.IsDisposed) liveMap.RefreshBlocked();
             OpenPendingFile();
         }
 

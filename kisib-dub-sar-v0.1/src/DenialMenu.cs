@@ -62,6 +62,34 @@ namespace Kisib
             grid.ContextMenu = menu;
         }
 
+        internal string WhyBlockedText(CertificateRecord c)
+        {
+            StringBuilder t = new StringBuilder();
+            bool isBlocked = snapshot != null && GroupCatalog.BlockedIdentities(snapshot).Contains(c.Identity);
+            t.AppendLine(c.SubjectShortName + (c.SubjectCountry != null ? " (" + c.SubjectCountry + ")" : "") + (isBlocked ? "  BLOCKED" : "  not blocked"));
+            string owner = WhoIsWho.Owner(c);
+            if (owner != null) t.AppendLine("  owner     " + owner);
+            List<BlockLogRow> mine = BlockEngine.ReadLog().Where(r => String.Equals(r.Sha1, c.Sha1, StringComparison.OrdinalIgnoreCase)).ToList();
+            BlockLogRow lastBlock = mine.LastOrDefault(r => r.Action == "block" && r.Result == "added");
+            BlockLogRow lastUndo = mine.LastOrDefault(r => r.Action == "unblock" && r.Result == "removed");
+            if (isBlocked)
+                t.AppendLine(lastBlock != null && (lastUndo == null || String.CompareOrdinal(lastUndo.Time, lastBlock.Time) < 0)
+                    ? "  blocked   by kisib on " + lastBlock.Time.Replace("T", " ").Substring(0, Math.Min(19, lastBlock.Time.Length)) + " UTC — " + lastBlock.Group + " (" + lastBlock.Scope + ")"
+                    : "  blocked   before kisib: already in Disallowed (Microsoft's own untrusted list, or an earlier hardening).");
+            List<BlockRule> rules = BlockRules.Read();
+            if (groups != null)
+                foreach (GroupNode g in AllGroups(groups).Where(g => g.Members.Contains(c.Identity)))
+                    t.AppendLine("  group     " + g.Kind + ": " + g.Label + (rules.Any(r => r.GroupKey == g.Key) ? "   ← a RULE keeps this group blocked" : "") + "   (" + String.Join("; ", g.Why[c.Identity].ToArray()) + ")");
+            string tags = TagsOf(c);
+            if (tags.Length > 0) t.AppendLine("  tags      " + tags);
+            string guard = TrustCategories.ProtectedBy(c);
+            if (guard != null) t.AppendLine("  NOTE      protected by trusted category " + guard + " — blocking it breaks that category");
+            if (AllowedList.Load().Covers(c)) t.AppendLine("  allowed   on your ALLOWED (never block) list");
+            t.AppendLine();
+            t.AppendLine("Path to a trusted root: " + PathSummary(c));
+            return t.ToString();
+        }
+
         internal string ExplainDenial(Denial d)
         {
             if (d.Verdict == null) Annotate(d);

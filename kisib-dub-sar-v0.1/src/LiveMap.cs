@@ -45,12 +45,13 @@ namespace Kisib
         private readonly Func<string, string> describe;
         private readonly Func<string, bool> isBlocked;
         private readonly Action<string> openCertificate;
+        private readonly Action<string, string> act;
         private readonly Timer repaint = new Timer { Interval = 1000 };
         private MapNode hover;
 
-        internal LiveMap(Func<string, string> describe, Func<string, bool> isBlocked, Action<string> openCertificate, string status)
+        internal LiveMap(Func<string, string> describe, Func<string, bool> isBlocked, Action<string> openCertificate, Action<string, string> act, string status)
         {
-            this.describe = describe; this.isBlocked = isBlocked; this.openCertificate = openCertificate;
+            this.describe = describe; this.isBlocked = isBlocked; this.openCertificate = openCertificate; this.act = act;
             Text = "kisib — live certificate map"; Size = new Size(1300, 760); StartPosition = FormStartPosition.CenterParent;
             Font = new Font("Tahoma", 8.5F);
             FlowLayoutPanel bar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 32, Padding = new Padding(4) };
@@ -62,7 +63,7 @@ namespace Kisib
             info.Text = status;
             bar.Controls.AddRange(new Control[] { paused, onlyRefused, clear, copy, info });
             Label legend = new Label { Dock = DockStyle.Bottom, Height = 22, Padding = new Padding(6, 4, 0, 0),
-                Text = "Green = trusted   Red = refused   Grey = revocation could not be checked   Red box = in your Disallowed list   Thicker = more often   Faded = older.   Click a box for details, right-click to copy." };
+                Text = "Green = trusted   Red = refused   Grey = revocation could not be checked   Red box = in your Disallowed list   Thicker = more often   Faded = older.   Click a box for details; right-click to block, unblock, allow or copy." };
             Controls.Add(canvas); Controls.Add(bar); Controls.Add(legend);
             canvas.Paint += delegate(object s, PaintEventArgs e) { Draw(e.Graphics); };
             canvas.MouseMove += delegate(object s, MouseEventArgs e) { MapNode h = Hit(e.Location); if (h != hover) { hover = h; canvas.Invalidate(); } };
@@ -79,6 +80,13 @@ namespace Kisib
         }
 
         internal void SetStatus(string text) { info.Text = text; }
+
+        // After a block, unblock or allow: recolor the boxes from the new scan.
+        internal void RefreshBlocked()
+        {
+            foreach (MapNode n in nodes.Values) if (n.Sha1 != null) { n.Blocked = isBlocked(n.Sha1); string d = describe(n.Sha1); if (d != null) n.Detail = d; }
+            canvas.Invalidate();
+        }
 
         internal void Add(Denial d)
         {
@@ -131,6 +139,32 @@ namespace Kisib
         private ContextMenu NodeMenu(MapNode n)
         {
             ContextMenu m = new ContextMenu();
+            bool known = n.Sha1 != null && n.Detail != null;
+            if (n.Sha1 != null && n.Column >= 2 || known)
+            {
+                if (n.Blocked)
+                {
+                    m.MenuItems.Add("Why is it blocked? (groups, rules, who blocked it)", delegate { act(n.Sha1, "why"); });
+                    foreach (int minutes in new int[] { 3, 10, 60 }) { string verb = "allow" + minutes; m.MenuItems.Add("Allow for " + minutes + " minutes", delegate { act(n.Sha1, verb); }); }
+                    m.MenuItems.Add("Allow always...", delegate { act(n.Sha1, "always"); });
+                    m.MenuItems.Add("Unblock (kisib's own block)", delegate { act(n.Sha1, "unblock"); });
+                }
+                else m.MenuItems.Add("Block this certificate...", delegate { act(n.Sha1, "block"); });
+                m.MenuItems.Add("Who vouches for it (paths, cross-signs)...", delegate { act(n.Sha1, "paths"); });
+                m.MenuItems.Add("Show in main list", delegate { act(n.Sha1, "list"); });
+                m.MenuItems.Add("-");
+            }
+            else if (n.Column == 1)
+            {
+                MapEdge up = edges.Values.Where(e => e.From == n && e.To.Sha1 != null).OrderByDescending(e => e.Last).FirstOrDefault();
+                if (up != null)
+                {
+                    MapNode issuer = up.To;
+                    m.MenuItems.Add(issuer.Blocked ? "Allow the CA that signed it for 10 minutes (" + issuer.Label + ")" : "Block the CA that signed it (" + issuer.Label + ")...",
+                        delegate { act(issuer.Sha1, issuer.Blocked ? "allow10" : "block"); });
+                    m.MenuItems.Add("-");
+                }
+            }
             m.MenuItems.Add("Copy name", delegate { ExplorerForm.CopyText(n.Label); });
             m.MenuItems.Add("Copy connections", delegate { ExplorerForm.CopyText(NodeText(n)); });
             if (n.Sha1 != null) m.MenuItems.Add("Copy SHA-1", delegate { ExplorerForm.CopyText(n.Sha1); });
@@ -231,9 +265,35 @@ namespace Kisib
                     CertificateRecord c = FindBySha1(sha1);
                     ShowText("Certificate " + sha1, c != null ? CertificateCard(c) : "SHA-1 " + sha1 + "\r\nNot in any scanned store on this PC (Windows got it from the site or downloaded it).");
                 },
+                MapAct,
                 status);
             foreach (Denial d in recentChecks) liveMap.Add(d);
             liveMap.Show(this);
+        }
+
+        // Right-click actions from the live map.
+        private void MapAct(string sha1, string verb)
+        {
+            CertificateRecord c = FindBySha1(sha1);
+            if (c == null) { ShowText("Live map", "This certificate is not in any store on this PC (the site sent it), so kisib can't block it directly.\r\nRight-click the CA above it instead."); return; }
+            HashSet<string> blocked = snapshot == null ? new HashSet<string>() : GroupCatalog.BlockedIdentities(snapshot);
+            List<CertificateRecord> sameKey = snapshot.Certificates.Values.Where(x => blocked.Contains(x.Identity) && (x == c || (c.SpkiSha256 != null && x.SpkiSha256 == c.SpkiSha256))).ToList();
+            switch (verb)
+            {
+                case "block": ShowBlockDialog(new List<CertificateRecord> { c }, delegate { return "blocked from the live map"; }, "certificate " + c.SubjectShortName, null); break;
+                case "unblock": UnblockCertificates(sameKey.Count > 0 ? sameKey : new List<CertificateRecord> { c }, "unblock from live map"); break;
+                case "allow3": AllowTemporarily(sameKey, c.SubjectShortName, TimeSpan.FromMinutes(3), true); break;
+                case "allow10": AllowTemporarily(sameKey, c.SubjectShortName, TimeSpan.FromMinutes(10), true); break;
+                case "allow60": AllowTemporarily(sameKey, c.SubjectShortName, TimeSpan.FromMinutes(60), true); break;
+                case "always": AllowAlways(sameKey, c.SubjectShortName); break;
+                case "why": ShowText("Why — " + c.SubjectShortName, WhyBlockedText(c)); break;
+                case "paths": ShowText("Paths — " + c.SubjectShortName, PathsReport(c)); break;
+                case "list":
+                    RestoreFromTray(); leftTabs.SelectedTab = storesTab;
+                    if (tree.Nodes.Count > 0) tree.SelectedNode = tree.Nodes[0];
+                    findIssuer.Text = c.Sha256;
+                    break;
+            }
         }
 
         private void MapAdd(Denial d)
