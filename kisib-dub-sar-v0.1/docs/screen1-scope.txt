@@ -1,3 +1,5 @@
+HISTORY ONLY — superseded 2026-10-24. Current rules: AGENTS.md at the repo root.
+
 kisib.dub-sar — CURRENT TASK: Screen 1 only
 Authoritative scope reset, 2026-10-08 UTC
 

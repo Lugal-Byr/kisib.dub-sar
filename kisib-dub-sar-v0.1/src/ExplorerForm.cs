@@ -380,7 +380,8 @@ namespace Kisib
             Color foreground = collision ? Color.White : selected ? SystemColors.HighlightText : blockedRow ? Color.Firebrick : warning ? SystemColors.InfoText : SystemColors.WindowText;
             using (Brush brush = new SolidBrush(background)) e.Graphics.FillRectangle(brush, e.Bounds);
             Rectangle bounds = e.Bounds; bounds.X += 4; bounds.Width = Math.Max(0, bounds.Width - 8);
-            TextRenderer.DrawText(e.Graphics, e.SubItem.Text, list.Font, bounds, foreground,
+            if (EmojiText.Has(e.SubItem.Text)) EmojiText.Draw(e.Graphics, e.SubItem.Text, list.Font, bounds, foreground);
+            else TextRenderer.DrawText(e.Graphics, e.SubItem.Text, list.Font, bounds, foreground,
                 TextFormatFlags.EndEllipsis | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
             if (selected && list.Focused && e.ColumnIndex == 0) ControlPaint.DrawFocusRectangle(e.Graphics, e.Bounds, foreground, background);
         }

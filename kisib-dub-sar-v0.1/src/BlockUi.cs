@@ -35,6 +35,7 @@ namespace Kisib
             Button blocs = new Button { Text = "Blocs...", AutoSize = true };
             blocs.Click += delegate { OpenBlocBoard(); };
             toolbar.Controls.AddRange(new Control[] { blocs, blockGroup, blockCert, undo });
+            EmojiText.AttachTo(groupTree);
             groupTree.NodeMouseDoubleClick += delegate(object sender, TreeNodeMouseClickEventArgs e)
             { string tag = e.Node.Tag as string; if (tag == "groups:board" || tag == "groups:Blocs" || tag == "groups:Continents") OpenBlocBoard(); };
         }

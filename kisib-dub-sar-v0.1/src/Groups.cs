@@ -192,6 +192,9 @@ namespace Kisib
                 (tags.ContainsKey(hit.Tag) ? get(tags, "tag", hit.Tag, hit.Tag) : get(mine, "tag", hit.Tag, hit.Tag)).Add(hit.Identity, hit.Why);
             root.Tags.AddRange(tags.Values.OrderBy(g => BlocOrder(g.Label)).ThenBy(g => g.Label, StringComparer.Ordinal));
             root.Mine.AddRange(mine.Values.OrderBy(g => g.Label, StringComparer.Ordinal));
+            // All seven continents always show, even with nothing on this PC from them.
+            foreach (string name in ContinentNames) get(byContinent, "continent", name, name);
+            foreach (CountryRow r in countries.Values) if (r.Region.Length > 0) get(byRegion, "region", r.Region, r.Region + " (part of " + r.Continent + ")");
             // Seven continents, alphabetical; a region (Middle East) sits right after the continent it is part of.
             root.Continents.AddRange(byContinent.Values.Concat(byRegion.Values).OrderBy(g => ContinentOrder(g.Kind == "region" ? ParentContinent(g.Label) : g.Label))
                 .ThenBy(g => g.Kind == "region" ? 1 : 0).ThenBy(g => g.Label, StringComparer.Ordinal));

@@ -134,18 +134,6 @@ Microsoft terms, Learn URLs and documented/to test tags are in Help > Feature
 sources and docs/feature-sources.csv. API documentation, custom display behavior,
 hosted verification and user-PC acceptance are separate evidence.
 
-ACCEPTANCE — USER PC, NOT CI [to test]
-Leave Optional features off. Expand LOCAL_MACHINE > Root. Type FNMT into Find.
-Take the whole-window screenshot on that PC. Children/counts must reflect Windows.
-Absent documented siblings remain grey references. CI cannot satisfy this gate.
-
-Only Screen 1 is current. Blocking, country/group integration, chain grids,
-observed-app decisions and Explorer associations are parked. Do not build,
-stub or scaffold them before the previous acceptance passes.
-The supplied country CSV is saved unchanged for S3; Screen 1 does not read it.
-Prior implementations and evidence remain in Git and historical documents.
-
-Scope: docs/current-task-and-roadmap.txt and docs/screen1-scope.txt.
 Registers: docs/function-catalog.csv and docs/feature-sources.csv.
 Test.cmd is the read-only consumer-machine suite. Hosted CI separately runs
 collector probes in disposable VMs, GUI regressions and the actual EXE.

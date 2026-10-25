@@ -1,3 +1,5 @@
+HISTORY ONLY — superseded 2026-10-24. Current rules: AGENTS.md at the repo root.
+
 PROJECT: kisib.dub-sar, Windows certificate explorer.
 Win95 Explorer look: tree left, list right, details
 below. Read-only until a stage says otherwise.

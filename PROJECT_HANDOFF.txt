@@ -1,3 +1,5 @@
+HISTORY ONLY — superseded 2026-10-24. Current rules: AGENTS.md at the repo root.
+
 CLAUDE TAKEOVER — 2026-10-23 America/Los_Angeles
 Third commit: Groups tree + Block/Undo/History (D034): src/Groups.cs, src/BlockEngine.cs,
 src/BlockUi.cs, data/owners.csv. Built on user instruction without tests; compiles as C# 5.

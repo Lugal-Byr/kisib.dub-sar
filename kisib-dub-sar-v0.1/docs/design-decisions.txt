@@ -547,3 +547,9 @@ renamed on read (🌿🧱 -> 🧱, BRICS+ (verify) -> 🧱 BRICS+, Google/eMudhr
 Block by bloc and continent is a modeless window (Ctrl+B) with tiles, a per-country
 grid and multi-group rules. The supplied-CSV preservation note in AGENTS.md is
 superseded by the user's instruction.
+
+D049 Agent rules reset (user, 2026-10-24): AGENTS.md rewritten to the owner's actual rules
+(push to main, C# 5, sourced CSV data, portable txt, S-CORP-ION, short replies). Old scope
+files are marked HISTORY ONLY; the stale Screen-1-only paragraph left README.txt.
+Emoji (👑 🏛️ 🧱 🌿 💃) are drawn in Segoe UI Emoji runs in the group tree, main list,
+bloc tiles and bloc grid (Tahoma showed boxes). All seven continents always show.

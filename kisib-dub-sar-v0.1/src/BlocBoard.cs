@@ -46,6 +46,7 @@ namespace Kisib
             summaryPanel.Controls.Add(summary); summaryPanel.Controls.Add(actions);
 
             ListView grid = new ListView();
+            EmojiText.AttachTo(grid, 3);
             SetupGrid(grid, new string[] { "C=", "Country", "Continent", "Blocs", "CA owners", "Roots", "Interm.", "Blocked now", "After this block", "Cross-signs", "Why" },
                 new int[] { 42, 170, 150, 90, 300, 55, 60, 95, 190, 150, 220 });
             Label foot = new Label { Dock = DockStyle.Bottom, Height = 38, Padding = new Padding(8, 4, 8, 0), ForeColor = SystemColors.GrayText,
@@ -58,8 +59,10 @@ namespace Kisib
             Action fillGrid = null;
             Func<GroupNode, string, CheckBox> tile = delegate(GroupNode g, string sub)
             {
-                CheckBox box = new CheckBox { Appearance = Appearance.Button, Width = 205, Height = 56, TextAlign = ContentAlignment.MiddleLeft, Margin = new Padding(3),
-                    Text = g.Label + "\r\n" + sub, Tag = g, Checked = picked.Contains(g.Key), FlatStyle = FlatStyle.Standard };
+                string[] caption = { g.Label, sub };
+                CheckBox box = new CheckBox { Appearance = Appearance.Button, Width = 205, Height = 56, Margin = new Padding(3),
+                    Text = "", AccessibleName = g.Label + " " + sub, Tag = g, Checked = picked.Contains(g.Key), FlatStyle = FlatStyle.Standard };
+                box.Paint += delegate(object s, PaintEventArgs e) { EmojiText.DrawLines(e.Graphics, caption, box.Font, new Rectangle(8, 2, box.Width - 14, box.Height - 4), box.ForeColor); };
                 Action paint = delegate { box.BackColor = box.Checked ? Color.MistyRose : SystemColors.Control; box.ForeColor = box.Checked ? Color.Firebrick : SystemColors.ControlText; };
                 paint();
                 box.CheckedChanged += delegate
