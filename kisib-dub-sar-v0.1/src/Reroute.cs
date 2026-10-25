@@ -399,23 +399,6 @@ namespace Kisib
             return WhoIsWho.Owner(c) ?? Ccadb.OwnerOf(c.Identity) ?? c.SubjectOrganization ?? "—";
         }
 
-        // SHA-1s that are in Disallowed because kisib put them there.
-        private static HashSet<string> KisibBlockedSha1()
-        {
-            HashSet<string> set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            try
-            {
-                foreach (BlockLogRow r in BlockEngine.ReadLog())
-                {
-                    if (r.Sha1 == null) continue;
-                    if ((r.Action == "block" && (r.Result == "added" || r.Result == "already in Disallowed")) || r.Action == "re-apply" || r.Action == "re-block") set.Add(r.Sha1);
-                    else if (r.Action == "unblock" && r.Result == "removed") set.Remove(r.Sha1);
-                }
-            }
-            catch (Exception) { }
-            return set;
-        }
-
         // " · LEAK" / " · rerouted" / " · via leak" / " · cut off" for the Status column.
         internal string RouteNote(CertificateRecord c)
         {
@@ -445,7 +428,7 @@ namespace Kisib
         {
             Reach r = PathsNow();
             if (r == null) return 0;
-            HashSet<string> mine = KisibBlockedSha1();
+            HashSet<string> mine = BlockEngine.KisibBlockedSha1();
             return pathsBlockedKeys.Count(k => r.Has(k) && snapshot.Paths.ByKey[k].Any(c => pathsBlocked.Contains(c.Identity) && mine.Contains(c.Sha1)));
         }
 
@@ -515,21 +498,40 @@ namespace Kisib
             return t.ToString();
         }
 
+        internal sealed class WhatIf
+        {
+            internal List<string> Leaks = new List<string>(), Cut = new List<string>(), Rerouted = new List<string>();
+            internal Reach After;
+            internal HashSet<string> AfterBlocked;
+        }
+
+        // CA keys a block would leave leaking, cut off, or rerouted through another root.
+        internal WhatIf RerouteKeys(IEnumerable<CertificateRecord> adding)
+        {
+            Reach before = PathsNow();
+            List<CertificateRecord> add = adding.Where(c => c != null).ToList();
+            if (before == null || add.Count == 0) return null;
+            TrustGraph g = snapshot.Paths;
+            WhatIf w = new WhatIf { AfterBlocked = new HashSet<string>(pathsBlocked, StringComparer.Ordinal) };
+            foreach (CertificateRecord c in add) w.AfterBlocked.Add(c.Identity);
+            w.After = g.Compute(w.AfterBlocked);
+            HashSet<string> addKeys = new HashSet<string>(add.Where(c => c.SpkiSha256 != null).Select(c => c.SpkiSha256), StringComparer.Ordinal);
+            w.Leaks = addKeys.Where(w.After.Has).ToList();
+            w.Cut = before.Via.Keys.Where(k => !addKeys.Contains(k) && !w.After.Has(k)).ToList();
+            w.Rerouted = before.Via.Keys.Where(k => !addKeys.Contains(k) && w.After.Has(k) && g.Path(before, k).Any(h => addKeys.Contains(h.SpkiSha256))).ToList();
+            return w;
+        }
+
         // What a block would do to everything that hangs under it.
         internal string RerouteWhatIf(IEnumerable<CertificateRecord> adding, out string line)
         {
             line = "";
-            Reach before = PathsNow();
-            List<CertificateRecord> add = adding.Where(c => c != null).ToList();
-            if (before == null || add.Count == 0) return "";
+            WhatIf w = RerouteKeys(adding);
+            if (w == null) return "";
             TrustGraph g = snapshot.Paths;
-            HashSet<string> after = new HashSet<string>(pathsBlocked, StringComparer.Ordinal);
-            foreach (CertificateRecord c in add) after.Add(c.Identity);
-            Reach afterReach = g.Compute(after);
-            HashSet<string> addKeys = new HashSet<string>(add.Where(c => c.SpkiSha256 != null).Select(c => c.SpkiSha256), StringComparer.Ordinal);
-            List<string> leaks = addKeys.Where(afterReach.Has).ToList();
-            List<string> cut = before.Via.Keys.Where(k => !addKeys.Contains(k) && !afterReach.Has(k)).ToList();
-            List<string> rerouted = before.Via.Keys.Where(k => !addKeys.Contains(k) && afterReach.Has(k) && g.Path(before, k).Any(h => addKeys.Contains(h.SpkiSha256))).ToList();
+            HashSet<string> after = w.AfterBlocked;
+            Reach afterReach = w.After;
+            List<string> leaks = w.Leaks, cut = w.Cut, rerouted = w.Rerouted;
             line = "Cross-signs: " + cut.Count + " CAs under this lose every path (cut off); " + rerouted.Count + " stay reachable through another root" +
                 (leaks.Count > 0 ? "; " + leaks.Count + " LEAK (still have a path after the block)" : "") + ".";
             StringBuilder t = new StringBuilder(line).Append("\r\n\r\n");
@@ -623,7 +625,7 @@ namespace Kisib
             Reach r = PathsNow();
             if (r == null) { ShowText("Reroute check", "The cross-sign map is built after a scan. Press F5, wait for it to finish, then try again."); return; }
             TrustGraph g = snapshot.Paths;
-            HashSet<string> mine = KisibBlockedSha1();
+            HashSet<string> mine = BlockEngine.KisibBlockedSha1();
             List<RerouteRow> rows = g.Analyze(pathsBlocked, r);
             foreach (RerouteRow x in rows.Where(x => x.Parent == null))
                 x.ByKisib = g.ByKey[x.Key].Any(c => pathsBlocked.Contains(c.Identity) && mine.Contains(c.Sha1));

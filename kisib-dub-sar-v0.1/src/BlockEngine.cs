@@ -139,6 +139,23 @@ namespace Kisib
             return rows;
         }
 
+        // SHA-1s that are in Disallowed because kisib put them there.
+        internal static HashSet<string> KisibBlockedSha1()
+        {
+            HashSet<string> set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                foreach (BlockLogRow r in ReadLog())
+                {
+                    if (r.Sha1 == null) continue;
+                    if ((r.Action == "block" && (r.Result == "added" || r.Result == "already in Disallowed")) || r.Action == "re-apply" || r.Action == "re-block") set.Add(r.Sha1);
+                    else if (r.Action == "unblock" && r.Result == "removed") set.Remove(r.Sha1);
+                }
+            }
+            catch (Exception) { }
+            return set;
+        }
+
         internal static string LastBatch()
         {
             BlockLogRow last = ReadLog().LastOrDefault(r => r.Action == "block" && r.Result == "added");

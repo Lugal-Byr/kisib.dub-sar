@@ -21,13 +21,26 @@ not-after, SHA-1, SHA-256. Names use CN then O; full DNs stay in Details.
 C= is the certificate's own declaration, not an owner or affiliation finding.
 Find filters rows while keeping every native branch and count.
 GROUPS AND BLOCKING
-Under the store tree is Groups: Tags (👑, 🌿🧱, Google, eMudhra, your_group...),
-Countries and Owners, built from data\countries_monarchy_bric.csv and
-data\owners.csv. Edit those files and press F5. Each group has Enabled and
-Blocked. Select a group, click Block group..., check the preview, click Block.
+The Groups tab sorts every certificate six ways:
+  Blocs       👑 monarchy  🏛️ EU  🧱 BRIC  🧱 BRICS+  🌿 Basel / CBDC  💃 supranational
+              corporations. Tags stack: Spain is 👑🏛️, the UAE is 👑 🧱+ 🌿.
+  Continents  all seven (UN country list); Middle East is a region inside Asia.
+  Countries   from the C= on the certificate (subject and issuer).
+  Owners      CA owner by O= (data\owners.csv) and every owner listed in CCADB.
+  Status      blocked by kisib, blocked before kisib, not on this PC, expired,
+              weak, incident (published compromised keys).
+  My tags     yours only, kept in PORTABLE BACKUP LISTS, never in the public repo.
+Block > Block by bloc and continent (Ctrl+B, or the Blocs... button): click
+blocs and continents, and the grid shows every country they catch: owners,
+roots, intermediates, blocked now, what this block adds, cross-signs that get
+rerouted or cut off, and why. Preview block shows the exact list; Block + keep
+blocked also saves rules so new matches get blocked after every scan.
 Blocked certificates go into Windows' Disallowed store (this user; whole PC
 when kisib runs as administrator). Nothing is deleted. Undo last block puts
 it back. Block > Block history shows every change.
+Data: data\countries_monarchy_bric.csv (continent, region, monarchy, eu,
+bric_core, brics_plus, basel, tags, your_group, with a source on every row)
+and data\owners.csv. Edit them and press F5.
 
 PORTABLE BACKUP LISTS
 Everything kisib remembers is plain .txt in the PORTABLE BACKUP LISTS folder next

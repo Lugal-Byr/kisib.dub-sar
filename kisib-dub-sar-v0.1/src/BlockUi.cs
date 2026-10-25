@@ -18,6 +18,7 @@ namespace Kisib
             MenuItem block = new MenuItem("&Block");
             block.MenuItems.Add(new MenuItem("Block selected &group...", delegate { BlockSelectedGroup(); }));
             block.MenuItems.Add(new MenuItem("Block selected &certificate...", delegate { BlockSelectedCertificate(); }));
+            block.MenuItems.Add(new MenuItem("Block by &bloc and continent...", delegate { OpenBlocBoard(); }, Shortcut.CtrlB));
             block.MenuItems.Add(new MenuItem("-"));
             block.MenuItems.Add(new MenuItem("&Undo last block", delegate { UndoLastBlock(); }));
             block.MenuItems.Add(new MenuItem("U&nblock selected certificate", delegate { UnblockSelectedCertificate(); }));
@@ -31,7 +32,11 @@ namespace Kisib
             blockGroup.Click += delegate { BlockSelectedGroup(); };
             blockCert.Click += delegate { BlockSelectedCertificate(); };
             undo.Click += delegate { UndoLastBlock(); };
-            toolbar.Controls.AddRange(new Control[] { blockGroup, blockCert, undo });
+            Button blocs = new Button { Text = "Blocs...", AutoSize = true };
+            blocs.Click += delegate { OpenBlocBoard(); };
+            toolbar.Controls.AddRange(new Control[] { blocs, blockGroup, blockCert, undo });
+            groupTree.NodeMouseDoubleClick += delegate(object sender, TreeNodeMouseClickEventArgs e)
+            { string tag = e.Node.Tag as string; if (tag == "groups:board" || tag == "groups:Blocs" || tag == "groups:Continents") OpenBlocBoard(); };
         }
 
         // ---- Groups tree -------------------------------------------------------------
@@ -39,14 +44,18 @@ namespace Kisib
         private void AddGroupTree(Snapshot result, HashSet<string> expanded)
         {
             groups = GroupCatalog.Build(result, sourceDirectory);
-            TreeNode root = new TreeNode("Groups (from data\\*.csv and my tags)" + (groups.Error == null ? "" : " [error]")) { Tag = "groups" };
+            TreeNode root = new TreeNode("Groups" + (groups.Error == null ? "" : " [error]")) { Tag = "groups" };
             groupTree.BeginUpdate(); groupTree.Nodes.Clear();
             groupTree.Nodes.Add(root);
             try {
             if (groups.Error != null) { root.Nodes.Add(new TreeNode("Could not load: " + groups.Error) { Tag = "groups:error" }); return; }
-            AddFolder(root, "Tags", groups.Tags, expanded);
+            root.Nodes.Add(new TreeNode("Block by bloc and continent... (double-click)") { Tag = "groups:board", ForeColor = Color.Firebrick });
+            AddFolder(root, "Blocs", groups.Tags, expanded);
+            AddFolder(root, "Continents", groups.Continents, expanded);
             AddFolder(root, "Countries", groups.Countries, expanded);
             AddFolder(root, "Owners", groups.Owners, expanded);
+            AddFolder(root, "Status", groups.Status, expanded);
+            AddFolder(root, "My tags (private)", groups.Mine, expanded);
             root.Expand();
             foreach (TreeNode node in root.Nodes) if (expanded.Contains(NodeKey(node))) node.Expand();
             } finally { groupTree.EndUpdate(); }
@@ -88,10 +97,14 @@ namespace Kisib
             if (folder != null && folder.StartsWith("groups", StringComparison.Ordinal))
             {
                 address.Text = "Groups";
-                nodeDetails = "Groups are built from your CSV files in the data folder:\r\n" +
-                    "  countries_monarchy_bric.csv — tags, your_group, brics_plus_verify, crown_territory_of (joined on subject C= and issuer C=)\r\n" +
-                    "  owners.csv — CA owner by subject/issuer O=, with its country and tags\r\n" +
-                    "Edit those files and press F5 to regroup. Select a group, then Block group... to block it.\r\n" +
+                nodeDetails = "Groups are built from the data folder and your own tags:\r\n" +
+                    "  Blocs: 👑 monarchy  🏛️ EU  🧱 BRIC  🧱 BRICS+  🌿 Basel / CBDC  💃 supranational corporations\r\n" +
+                    "  Continents: the seven continents from the UN country list (M49); Middle East is a region inside Asia\r\n" +
+                    "  countries_monarchy_bric.csv: continent, region, monarchy, crown_territory_of, eu, bric_core, brics_plus, basel, tags, your_group, with sources\r\n" +
+                    "  owners.csv: CA owner by subject/issuer O= (exact or contains), with tags; CCADB adds every listed CA owner\r\n" +
+                    "  Status: blocked by kisib, blocked before kisib, not on this PC, expired, weak, incident\r\n" +
+                    "  My tags: yours only, kept in " + Storage.FolderName + ", never in the public repo\r\n" +
+                    "Double-click 'Block by bloc and continent...' (Ctrl+B) to pick blocs and continents and see what they catch. F5 regroups.\r\n" +
                     (groups != null && groups.Error != null ? "\r\nLoad error: " + groups.Error : "");
                 return true;
             }
@@ -117,6 +130,9 @@ namespace Kisib
         }
 
         private void ShowBlockDialog(List<CertificateRecord> chosen, Func<CertificateRecord, string> reason, string label, GroupNode ruleGroup)
+        { ShowBlockDialog(chosen, reason, label, ruleGroup == null ? new List<GroupNode>() : new List<GroupNode> { ruleGroup }, ruleGroup != null); }
+
+        private void ShowBlockDialog(List<CertificateRecord> chosen, Func<CertificateRecord, string> reason, string label, List<GroupNode> ruleGroups, bool keepDefault)
         {
             bool elevated = BlockEngine.IsElevated();
             using (Form dialog = new Form { Text = "Block — preview: " + label, Size = new Size(1150, 600), Font = Font, StartPosition = FormStartPosition.CenterParent })
@@ -132,8 +148,8 @@ namespace Kisib
                 Button rerouteDetails = new Button { Text = "Cross-sign details: what this block cuts off and what gets rerouted...", Dock = DockStyle.Bottom, Height = 28 };
                 rerouteDetails.Click += delegate { ShowText("If you block this — cross-signs", whatIf.Length > 0 ? whatIf : "Nothing new to block, or the scan is not ready."); };
                 CheckBox includeProtected = new CheckBox { Dock = DockStyle.Bottom, Height = 24, Text = "Also block PROTECTED certificates (trusted categories like Windows essentials need them)", ForeColor = Color.Firebrick };
-                CheckBox keep = new CheckBox { Dock = DockStyle.Bottom, Height = 26, Checked = ruleGroup != null, Enabled = ruleGroup != null,
-                    Text = "Keep this group blocked: block new matches after every scan (rescans every 60 seconds)" };
+                CheckBox keep = new CheckBox { Dock = DockStyle.Bottom, Height = 26, Checked = keepDefault && ruleGroups.Count > 0, Enabled = ruleGroups.Count > 0,
+                    Text = "Keep " + (ruleGroups.Count > 1 ? "these " + ruleGroups.Count + " groups" : "this group") + " blocked: block new matches after every scan (rescans every 60 seconds)" };
                 Button go = new Button { Dock = DockStyle.Bottom, Height = 32 };
                 Button cancel = new Button { Text = "Cancel", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
                 List<BlockItem> plan = null;
@@ -178,9 +194,9 @@ namespace Kisib
                     try
                     {
                         rows = BlockEngine.Block(plan.Where(i => !i.AlreadyBlocked), scope, label);
-                        if (keep.Checked && ruleGroup != null)
+                        if (keep.Checked && ruleGroups.Count > 0)
                         {
-                            BlockRules.Add(ruleGroup.Key, ruleGroup.Label, scope);
+                            foreach (GroupNode ruleGroup in ruleGroups) BlockRules.Add(ruleGroup.Key, ruleGroup.Label, scope);
                             if (!autoScanToggle.Checked) { autoScanToggle.Checked = true; historyTimer.Start(); }
                         }
                     }

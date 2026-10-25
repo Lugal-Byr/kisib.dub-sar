@@ -534,3 +534,16 @@ S-CORP-ION; commercial use by separate license. Exe version resource: title =
 tagline, company S-CORP-ION, copyright line; the release workflow stamps file
 version 0.2.<run>.0. Tray hover, About box, README.md, README.txt and release
 notes carry the tagline and credit. LICENSE ships in the zip.
+
+D048 Groups redesign (user, 2026-10-24). Blocs: 👑 monarchy only, 🏛️ EU (27 + C=EU),
+🧱 BRIC (BR RU IN CN), 🧱 BRICS+ (ZA EG ET IR AE ID SA), 🌿 Basel / CBDC (CH as the BIS seat,
+AE by user decision, plus subject O= containing Bank/Banque/Banco/SWIFT), 💃 supranational
+corporations (global CA companies by O=). Continents: seven, alphabetical, from UN M49
+with Americas split North/South; Middle East is a region of Asia (user: the earlier list
+looked incomplete). Status groups: blocked by kisib / before kisib / not on PC / expired /
+weak / incident. My tags are a private section unless the tag equals a bloc. Every
+country row carries sources; only Jamaica stays marked review. Old rule keys are
+renamed on read (🌿🧱 -> 🧱, BRICS+ (verify) -> 🧱 BRICS+, Google/eMudhra tags -> owners).
+Block by bloc and continent is a modeless window (Ctrl+B) with tiles, a per-country
+grid and multi-group rules. The supplied-CSV preservation note in AGENTS.md is
+superseded by the user's instruction.

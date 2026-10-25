@@ -77,8 +77,21 @@ namespace Kisib
             List<BlockRule> rules = new List<BlockRule>();
             if (!File.Exists(RulesPath)) return rules;
             foreach (string[] f in GroupCatalog.ReadCsv(RulesPath).Skip(1))
-                if (f.Length >= 4) rules.Add(new BlockRule { GroupKey = f[0], Label = f[1], Scope = f[2], Created = f[3] });
+                if (f.Length >= 4) rules.Add(new BlockRule { GroupKey = Renamed(f[0]), Label = f[1], Scope = f[2], Created = f[3] });
             return rules;
+        }
+
+        // Groups renamed in v0.2.18: old saved rules keep working.
+        private static string Renamed(string key)
+        {
+            switch (key)
+            {
+                case "tag:🌿🧱": return "tag:🧱";
+                case "tag:BRICS+ (verify)": return "tag:" + GroupCatalog.BricsPlusLabel;
+                case "tag:Google": return "owner:Google Trust Services";
+                case "tag:eMudhra": return "owner:eMudhra";
+                default: return key;
+            }
         }
 
         internal static void Save(List<BlockRule> rules)
@@ -124,7 +137,7 @@ namespace Kisib
         }
 
         private static IEnumerable<GroupNode> AllGroups(GroupsRoot root)
-        { return root.Tags.Concat(root.Countries).Concat(root.Owners); }
+        { return root.All; }
 
         // Runs after each scan is displayed.
         private void ApplyRules(Snapshot result)

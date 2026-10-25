@@ -44,7 +44,7 @@ namespace Kisib
         private string TagsOf(CertificateRecord cert)
         {
             if (groups == null) return "";
-            return String.Join(" ", groups.Tags.Where(t => t.Members.Contains(cert.Identity)).Select(t => t.Label).ToArray());
+            return String.Join(" ", groups.Tags.Concat(groups.Mine).Where(t => t.Members.Contains(cert.Identity)).Select(t => t.Label).ToArray());
         }
 
         private static bool InStore(CertificateRecord cert, string system)

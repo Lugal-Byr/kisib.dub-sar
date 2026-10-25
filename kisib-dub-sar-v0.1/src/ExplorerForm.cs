@@ -145,7 +145,7 @@ namespace Kisib
             issuerDetails.Text = "Select a certificate to inspect its recorded issuer name.";
             TabControl detailTabs = new TabControl { Dock = DockStyle.Fill };
             TabPage detailTab = new TabPage("Raw");
-            TabPage issuerTab = new TabPage("Issuer 🏛️");
+            TabPage issuerTab = new TabPage("Issuer");
             detailTab.Controls.Add(details); detailTab.Controls.Add(hashToolbar);
             issuerTab.Controls.Add(issuerDetails);
             detailTabs.TabPages.Add(BuildCardTab()); detailTabs.TabPages.Add(detailTab); detailTabs.TabPages.Add(issuerTab);
@@ -270,6 +270,7 @@ namespace Kisib
             status.Text += " | MS list: " + (msList.HasValue ? msList.Value.ToString("yyyy-MM-dd") : "not loaded (Block > Update)") + " | CCADB: " + (Ccadb.Updated.HasValue ? Ccadb.Updated.Value.ToString("yyyy-MM-dd") : "not loaded") + (ruleStatus.Length > 0 ? " | " + ruleStatus : "");
             int leaks = LeakCount();
             if (leaks > 0) status.Text += " | LEAKS: " + leaks + " blocked CAs still have a way in (Tools > Reroute check)";
+            if (blocBoardRefresh != null) blocBoardRefresh();
             OpenPendingFile();
         }
 

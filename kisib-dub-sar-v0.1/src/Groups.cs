@@ -28,12 +28,18 @@ namespace Kisib
         internal readonly List<GroupNode> Tags = new List<GroupNode>();
         internal readonly List<GroupNode> Countries = new List<GroupNode>();
         internal readonly List<GroupNode> Owners = new List<GroupNode>();
+        internal readonly List<GroupNode> Continents = new List<GroupNode>();
+        internal readonly List<GroupNode> Status = new List<GroupNode>();
+        internal readonly List<GroupNode> Mine = new List<GroupNode>();      // my tags: private, from PORTABLE BACKUP LISTS
+        internal readonly Dictionary<string, CountryRow> CountryRows = new Dictionary<string, CountryRow>(StringComparer.OrdinalIgnoreCase);
+        internal readonly Dictionary<string, string> OwnerOf = new Dictionary<string, string>(StringComparer.Ordinal);
+        internal IEnumerable<GroupNode> All { get { return Tags.Concat(Continents).Concat(Countries).Concat(Owners).Concat(Status).Concat(Mine); } }
         internal HashSet<string> Blocked = new HashSet<string>(StringComparer.Ordinal);
     }
 
     internal sealed class CountryRow
     {
-        internal string Iso2, Name, CrownOf, BricCore, BricsPlus, Tags, YourGroup;
+        internal string Iso2, Name, Continent, Region, CrownOf, BricCore, BricsPlus, Tags, YourGroup;
     }
 
     internal sealed class OwnerRow
@@ -96,8 +102,10 @@ namespace Kisib
             Dictionary<string, CountryRow> result = new Dictionary<string, CountryRow>(StringComparer.OrdinalIgnoreCase);
             foreach (string[] row in rows.Skip(1))
             {
+                string plus = Cell(row, h, "brics_plus");
                 CountryRow c = new CountryRow { Iso2 = Cell(row, h, "iso2").ToUpperInvariant(), Name = Cell(row, h, "name"), CrownOf = Cell(row, h, "crown_territory_of").ToUpperInvariant(),
-                    BricCore = Cell(row, h, "bric_core"), BricsPlus = Cell(row, h, "brics_plus_verify"), Tags = Cell(row, h, "tags"), YourGroup = Cell(row, h, "your_group") };
+                    Continent = Cell(row, h, "continent"), Region = Cell(row, h, "region"), BricCore = Cell(row, h, "bric_core"), BricsPlus = plus.Length > 0 ? plus : Cell(row, h, "brics_plus_verify"),
+                    Tags = Cell(row, h, "tags"), YourGroup = Cell(row, h, "your_group") };
                 if (c.Iso2.Length == 2) result[c.Iso2] = c;
             }
             return result;
@@ -110,7 +118,7 @@ namespace Kisib
             Dictionary<string, int> h = Header(rows[0], OwnersFile, "owner", "match", "value", "country", "tags");
             return rows.Skip(1).Select(row => new OwnerRow { Owner = Cell(row, h, "owner"), Match = Cell(row, h, "match").ToLowerInvariant(),
                 Value = Cell(row, h, "value"), Country = Cell(row, h, "country").ToUpperInvariant(), Tags = Cell(row, h, "tags") })
-                .Where(o => o.Owner.Length > 0 && o.Value.Length > 0 && (o.Match == "subject_o" || o.Match == "issuer_o")).ToList();
+                .Where(o => o.Owner.Length > 0 && o.Value.Length > 0 && (o.Match == "subject_o" || o.Match == "issuer_o" || o.Match == "subject_o_contains" || o.Match == "issuer_o_contains")).ToList();
         }
 
         // Each tag is one group label; ';' separates several in one cell. Emoji strings such as 🌿🧱 stay whole.
@@ -136,6 +144,8 @@ namespace Kisib
             Dictionary<string, GroupNode> tags = new Dictionary<string, GroupNode>(StringComparer.Ordinal);
             Dictionary<string, GroupNode> byCountry = new Dictionary<string, GroupNode>(StringComparer.OrdinalIgnoreCase);
             Dictionary<string, GroupNode> byOwner = new Dictionary<string, GroupNode>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, GroupNode> byContinent = new Dictionary<string, GroupNode>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, GroupNode> byRegion = new Dictionary<string, GroupNode>(StringComparer.OrdinalIgnoreCase);
             Func<Dictionary<string, GroupNode>, string, string, string, GroupNode> get = delegate(Dictionary<string, GroupNode> map, string kind, string key, string label)
             {
                 GroupNode node;
@@ -149,9 +159,10 @@ namespace Kisib
                 if (!String.IsNullOrEmpty(cert.IssuerCountry)) countryClaims.Add(new KeyValuePair<string, string>(cert.IssuerCountry.ToUpperInvariant(), "issuer C="));
                 foreach (OwnerRow owner in owners)
                 {
-                    string o = owner.Match == "subject_o" ? cert.SubjectOrganization : cert.IssuerOrganization;
-                    if (o == null || !String.Equals(o.Trim(), owner.Value, StringComparison.OrdinalIgnoreCase)) continue;
-                    string why = "owner " + owner.Owner + " (" + (owner.Match == "subject_o" ? "subject O=" : "issuer O=") + owner.Value + ")";
+                    bool onSubject = owner.Match.StartsWith("subject_o", StringComparison.Ordinal), contains = owner.Match.EndsWith("_contains", StringComparison.Ordinal);
+                    string o = onSubject ? cert.SubjectOrganization : cert.IssuerOrganization;
+                    if (o == null || (contains ? o.IndexOf(owner.Value, StringComparison.OrdinalIgnoreCase) < 0 : !String.Equals(o.Trim(), owner.Value, StringComparison.OrdinalIgnoreCase))) continue;
+                    string why = "owner " + owner.Owner + " (" + (onSubject ? "subject O=" : "issuer O=") + (contains ? " contains " : "") + owner.Value + ")";
                     get(byOwner, "owner", owner.Owner, owner.Owner).Add(cert.Identity, why);
                     foreach (string tag in Split(owner.Tags)) get(tags, "tag", tag, tag).Add(cert.Identity, why);
                     if (owner.Country.Length == 2) countryClaims.Add(new KeyValuePair<string, string>(owner.Country, why));
@@ -167,17 +178,74 @@ namespace Kisib
                     string why = claim.Value + " " + claim.Key;
                     foreach (string tag in Split(row.Tags)) get(tags, "tag", tag, tag).Add(cert.Identity, why);
                     foreach (string group in Split(row.YourGroup)) get(tags, "tag", group, group).Add(cert.Identity, why + " (your_group)");
-                    if (String.Equals(row.BricsPlus, "Y", StringComparison.OrdinalIgnoreCase)) get(tags, "tag", "BRICS+ (verify)", "BRICS+ (verify)").Add(cert.Identity, why + " (brics_plus_verify)");
+                    if (String.Equals(row.BricsPlus, "Y", StringComparison.OrdinalIgnoreCase)) get(tags, "tag", BricsPlusLabel, BricsPlusLabel).Add(cert.Identity, why + " (BRICS expansion member)");
+                    if (row.Continent.Length > 0) get(byContinent, "continent", row.Continent, row.Continent).Add(cert.Identity, why + " (" + row.Continent + ")");
+                    if (row.Region.Length > 0) get(byRegion, "region", row.Region, row.Region + " (part of " + row.Continent + ")").Add(cert.Identity, why + " (" + row.Region + ")");
                     CountryRow crown;
                     if (row.CrownOf.Length == 2 && countries.TryGetValue(row.CrownOf, out crown))
                         foreach (string tag in Split(crown.Tags)) get(tags, "tag", tag, tag).Add(cert.Identity, why + " (crown territory of " + row.CrownOf + ")");
                 }
             }
-            foreach (MyTagHit hit in MyTags.Matches(snapshot)) get(tags, "tag", hit.Tag, hit.Tag).Add(hit.Identity, hit.Why);
-            root.Tags.AddRange(tags.Values.OrderBy(g => g.Label, StringComparer.Ordinal));
+            // My tags: a tag that is also a bloc joins the bloc; the rest stay private under My tags.
+            Dictionary<string, GroupNode> mine = new Dictionary<string, GroupNode>(StringComparer.Ordinal);
+            foreach (MyTagHit hit in MyTags.Matches(snapshot))
+                (tags.ContainsKey(hit.Tag) ? get(tags, "tag", hit.Tag, hit.Tag) : get(mine, "tag", hit.Tag, hit.Tag)).Add(hit.Identity, hit.Why);
+            root.Tags.AddRange(tags.Values.OrderBy(g => BlocOrder(g.Label)).ThenBy(g => g.Label, StringComparer.Ordinal));
+            root.Mine.AddRange(mine.Values.OrderBy(g => g.Label, StringComparer.Ordinal));
+            // Seven continents, alphabetical; a region (Middle East) sits right after the continent it is part of.
+            root.Continents.AddRange(byContinent.Values.Concat(byRegion.Values).OrderBy(g => ContinentOrder(g.Kind == "region" ? ParentContinent(g.Label) : g.Label))
+                .ThenBy(g => g.Kind == "region" ? 1 : 0).ThenBy(g => g.Label, StringComparer.Ordinal));
             root.Countries.AddRange(byCountry.Values.OrderBy(g => g.Label, StringComparer.OrdinalIgnoreCase));
             root.Owners.AddRange(byOwner.Values.OrderBy(g => g.Label, StringComparer.OrdinalIgnoreCase));
+            foreach (KeyValuePair<string, CountryRow> c in countries) root.CountryRows[c.Key] = c.Value;
+            foreach (GroupNode owner in root.Owners) foreach (string id in owner.Members) if (!root.OwnerOf.ContainsKey(id)) root.OwnerOf[id] = owner.Label;
+            BuildStatus(root, snapshot, sourceDirectory);
             return root;
+        }
+
+        internal const string BricsPlusLabel = "🧱 BRICS+";
+        private static readonly string[] Blocs = { "👑", "🏛️", "🧱", BricsPlusLabel, "🌿", "💃" };
+        internal static readonly string[] ContinentNames = { "Africa", "Antarctica", "Asia", "Europe", "North America", "Oceania", "South America" };
+        private static string ParentContinent(string regionLabel)
+        { int i = regionLabel.IndexOf("(part of ", StringComparison.Ordinal); return i < 0 ? regionLabel : regionLabel.Substring(i + 9).TrimEnd(')'); }
+        private static int BlocOrder(string label) { int i = Array.IndexOf(Blocs, label); return i < 0 ? 99 : i; }
+        private static int ContinentOrder(string label) { int i = Array.IndexOf(ContinentNames, label); return i < 0 ? 99 : i; }
+
+        // Blocs a country carries, for the bloc board: its own tags, BRICS+, and the crown it sits under.
+        internal static string BlocsOf(GroupsRoot root, string iso2)
+        {
+            CountryRow row;
+            if (iso2 == null || !root.CountryRows.TryGetValue(iso2, out row)) return "";
+            List<string> list = Split(row.Tags).ToList();
+            CountryRow crown;
+            if (row.CrownOf.Length == 2 && root.CountryRows.TryGetValue(row.CrownOf, out crown)) foreach (string t in Split(crown.Tags)) if (t == "👑" && !list.Contains(t)) list.Add(t);
+            if (String.Equals(row.BricsPlus, "Y", StringComparison.OrdinalIgnoreCase)) list.Add("🧱+");
+            return String.Join(" ", list.OrderBy(t => BlocOrder(t == "🧱+" ? BricsPlusLabel : t)).ToArray());
+        }
+
+        // Status groups: what kisib did, what Windows already had, and what is only on the lists.
+        private static void BuildStatus(GroupsRoot root, Snapshot snapshot, string sourceDirectory)
+        {
+            HashSet<string> mineSha1 = BlockEngine.KisibBlockedSha1();
+            DateTime now = DateTime.UtcNow;
+            Func<string, string, GroupNode> make = delegate(string key, string label) { return new GroupNode { Kind = "status", Key = "status:" + key, Label = label, Filter = "all" }; };
+            GroupNode byKisib = make("blocked-kisib", "Blocked by kisib"), before = make("blocked-before", "Blocked before kisib (Microsoft or earlier hardening)"),
+                lists = make("not-on-pc", "Not on this PC (Microsoft list / CCADB only)"), expired = make("expired", "Expired"), weak = make("weak", "Weak"),
+                incident = make("incident", "Incident (published compromised keys)");
+            foreach (CertificateRecord c in snapshot.Certificates.Values)
+            {
+                if (root.Blocked.Contains(c.Identity)) (mineSha1.Contains(c.Sha1) ? byKisib : before).Add(c.Identity, mineSha1.Contains(c.Sha1) ? "kisib added it to Disallowed (BLOCK HISTORY)" : "in Disallowed, not added by kisib");
+                if (c.FoundIn.Count > 0 && c.FoundIn.All(p => p == MicrosoftList.Label || p == Ccadb.Label) && c.Collections.Count == 0) lists.Add(c.Identity, String.Join(" + ", c.FoundIn.ToArray()));
+                if (c.NotAfter.HasValue && c.NotAfter.Value < now) expired.Add(c.Identity, "expired " + c.NotAfter.Value.ToString("yyyy-MM-dd"));
+                if (c.WeakReasons.Count > 0) weak.Add(c.Identity, String.Join("; ", c.WeakReasons.ToArray()));
+            }
+            try
+            {
+                foreach (IncidentHit hit in IncidentList.Match(snapshot, IncidentList.Read(IncidentList.PathIn(sourceDirectory))))
+                    incident.Add(hit.Certificate.Identity, hit.Entry.IncidentId + " " + hit.Entry.Class + " (" + hit.Entry.Match + ")");
+            }
+            catch (Exception) { }
+            root.Status.AddRange(new GroupNode[] { byKisib, before, lists, expired, weak, incident });
         }
 
         // Blocked = observed in a Disallowed system store (Windows' untrusted list), any location.

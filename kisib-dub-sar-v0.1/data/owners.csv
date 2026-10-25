@@ -1,9 +1,25 @@
 owner,match,value,country,tags,source,date
-Google Trust Services,subject_o,Google Trust Services LLC,US,Google,https://www.ccadb.org/resources,2026-10-23
-Google Trust Services,issuer_o,Google Trust Services LLC,US,Google,https://www.ccadb.org/resources,2026-10-23
-Google Trust Services,subject_o,Google Trust Services,US,Google,https://www.ccadb.org/resources,2026-10-23
-Google Trust Services,issuer_o,Google Trust Services,US,Google,https://www.ccadb.org/resources,2026-10-23
-eMudhra,subject_o,eMudhra Technologies Limited,IN,eMudhra,https://emudhra.we-have-a-problem.com/,2026-10-23
-eMudhra,issuer_o,eMudhra Technologies Limited,IN,eMudhra,https://emudhra.we-have-a-problem.com/,2026-10-23
-eMudhra,subject_o,eMudhra Inc,IN,eMudhra,https://emudhra.we-have-a-problem.com/,2026-10-23
-eMudhra,subject_o,eMudhra BV,IN,eMudhra,https://emudhra.we-have-a-problem.com/,2026-10-23
+Google Trust Services,subject_o,Google Trust Services LLC,US,💃,https://www.ccadb.org/resources,2026-10-24
+Google Trust Services,issuer_o,Google Trust Services LLC,US,💃,https://www.ccadb.org/resources,2026-10-24
+Google Trust Services,subject_o,Google Trust Services,US,💃,https://www.ccadb.org/resources,2026-10-24
+Google Trust Services,issuer_o,Google Trust Services,US,💃,https://www.ccadb.org/resources,2026-10-24
+eMudhra,subject_o,eMudhra Technologies Limited,IN,,https://emudhra.we-have-a-problem.com/,2026-10-23
+eMudhra,issuer_o,eMudhra Technologies Limited,IN,,https://emudhra.we-have-a-problem.com/,2026-10-23
+eMudhra,subject_o,eMudhra Inc,IN,,https://emudhra.we-have-a-problem.com/,2026-10-23
+eMudhra,subject_o,eMudhra BV,IN,,https://emudhra.we-have-a-problem.com/,2026-10-23
+DigiCert,subject_o_contains,DigiCert,,💃,https://www.ccadb.org/resources,2026-10-24
+Sectigo,subject_o_contains,Sectigo,,💃,https://www.ccadb.org/resources,2026-10-24
+Sectigo,subject_o_contains,COMODO,,💃,https://www.ccadb.org/resources,2026-10-24
+Sectigo,subject_o_contains,USERTRUST,,💃,https://www.ccadb.org/resources,2026-10-24
+GlobalSign,subject_o_contains,GlobalSign,,💃,https://www.ccadb.org/resources,2026-10-24
+Microsoft,subject_o_contains,Microsoft Corporation,,💃,https://www.ccadb.org/resources,2026-10-24
+Amazon,subject_o_contains,Amazon,,💃,https://www.ccadb.org/resources,2026-10-24
+Apple,subject_o_contains,Apple Inc,,💃,https://www.ccadb.org/resources,2026-10-24
+Entrust,subject_o_contains,Entrust,,💃,https://www.ccadb.org/resources,2026-10-24
+GoDaddy,subject_o_contains,GoDaddy,,💃,https://www.ccadb.org/resources,2026-10-24
+GoDaddy,subject_o_contains,Starfield Technologies,,💃,https://www.ccadb.org/resources,2026-10-24
+Cloudflare,subject_o_contains,Cloudflare,,💃,https://www.ccadb.org/resources,2026-10-24
+Banks and central banks (name match),subject_o_contains,Bank,,🌿,kisib name match on subject O=,2026-10-24
+Banks and central banks (name match),subject_o_contains,Banque,,🌿,kisib name match on subject O=,2026-10-24
+Banks and central banks (name match),subject_o_contains,Banco,,🌿,kisib name match on subject O=,2026-10-24
+Banks and central banks (name match),subject_o_contains,SWIFT,,🌿,kisib name match on subject O=,2026-10-24
