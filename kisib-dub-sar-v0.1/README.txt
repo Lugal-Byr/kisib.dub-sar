@@ -1,3 +1,8 @@
+kisib.dub-sar — GETTIN’ ROLLED SINCE -2199
+by S-CORP-i0N. Copyright © 2026 S-CORP-ION.
+Free for personal, noncommercial use with credit (PolyForm Noncommercial 1.0.0,
+see LICENSE). Commercial use needs a license from S-CORP-ION.
+
 kisib.dub-sar v0.1 — Screen 1
 Windows 11 Home / Pro; read-only certificate explorer
 

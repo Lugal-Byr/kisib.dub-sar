@@ -70,7 +70,7 @@ namespace Kisib
             { CertificateRecord cert = SelectedCertificate(); if (cert != null) ShowHistory(cert.Sha256); }));
             MenuItem help = new MenuItem("&Help");
             help.MenuItems.Add(new MenuItem("Feature &sources", delegate { ShowSources(); }));
-            help.MenuItems.Add(new MenuItem("&About", delegate { ShowText("About", "kisib.dub-sar v0.1\r\nRead-only Windows system certificate store explorer.\r\n\r\nAPI basis: documented. Windows 11 Home/Pro execution: to test.\r\n\r\nView > Standings, Certificate > Show chain, File > Open certificate file, Groups and Block are included.\r\n\r\nBlocking adds certificates to the Disallowed store only; nothing is deleted from Root or CA. Every block is logged and can be undone."); }));
+            help.MenuItems.Add(new MenuItem("&About", delegate { ShowAbout(); }));
             menu.MenuItems.AddRange(new MenuItem[] { file, certificate, view, help });
             Menu = menu;
             InitializeViews(file, view, certificate);

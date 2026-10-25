@@ -522,5 +522,15 @@ choice remains [to test].
 
 D046 App icon: assets\kisib.ico (clay seal with cuneiform wedges), compiled in with /win32icon
 (exe file icon) and embedded as resource Kisib.kisib.ico for the window and tray.
-Falls back to Windows icons if missing. Placeholder until the user's own microscope
-photo of her Akkadian seal replaces it.
+Falls back to Windows icons if missing.
+v2 (shipped): the user's Akkadian cylinder seal (black serpentine, 2350-2200 BCE,
+presentation scene) drawn as the seal rolling out its impression on clay. Original
+drawing of the motif; no auction photo used.
+
+D047 Branding and license. Tagline GETTIN’ ROLLED SINCE -2199 (2200 BCE in
+astronomical year numbering). Owner: S-CORP-ION (registered name; styled S-CORP-i0N).
+LICENSE = PolyForm Noncommercial 1.0.0 with Required Notice Copyright 2026
+S-CORP-ION; commercial use by separate license. Exe version resource: title =
+tagline, company S-CORP-ION, copyright line; the release workflow stamps file
+version 0.2.<run>.0. Tray hover, About box, README.md, README.txt and release
+notes carry the tagline and credit. LICENSE ships in the zip.

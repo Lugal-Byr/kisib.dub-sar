@@ -22,10 +22,11 @@ jobs:
           $out = "out\kisib.dub-sar-$tag"
           New-Item -ItemType Directory -Force $out | Out-Null
           $refs = @('System.dll','System.Core.dll','System.Security.dll','System.Runtime.Serialization.dll','System.Xml.dll','System.Drawing.dll','System.Windows.Forms.dll') | ForEach-Object { "/reference:$_" }
+          Set-Content -Path "$p\src\BuildVersion.cs" -Encoding ASCII -Value @(('[assembly: System.Reflection.AssemblyFileVersion("0.2.{0}.0")]' -f $env:GITHUB_RUN_NUMBER), ('[assembly: System.Reflection.AssemblyInformationalVersion("{0}")]' -f $tag))
           $src = @(Get-ChildItem "$p\src\*.cs" | Select-Object -ExpandProperty FullName)
           & $csc /nologo /target:winexe /platform:anycpu /optimize+ "/win32manifest:$p\app.manifest" "/win32icon:$p\assets\kisib.ico" "/resource:$p\assets\kisib.ico,Kisib.kisib.ico" "/out:$out\kisib.dub-sar.exe" @refs @src
           if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
-          Copy-Item -Recurse "$p\data", "$p\docs", "$p\README.txt" $out
+          Copy-Item -Recurse "$p\data", "$p\docs", "$p\README.txt", "LICENSE" $out
           Set-Content -Path "$out\version.txt" -Value $tag -Encoding ASCII
           Compress-Archive -Path $out -DestinationPath "out\kisib.dub-sar-$tag-windows.zip"
       - name: Publish release
@@ -34,4 +35,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = "v0.2.$env:GITHUB_RUN_NUMBER"
-          gh release create $tag "out\kisib.dub-sar-$tag-windows.zip" --target $env:GITHUB_SHA --latest --title "kisib.dub-sar $tag" --notes "Windows build. Download the zip, Extract All, double-click kisib.dub-sar.exe. Unsigned: if Windows warns, click More info then Run anyway."
+          gh release create $tag "out\kisib.dub-sar-$tag-windows.zip" --target $env:GITHUB_SHA --latest --title "kisib.dub-sar $tag" --notes "GETTIN' ROLLED SINCE -2199. kisib.dub-sar by S-CORP-i0N. Free for personal use with credit (PolyForm Noncommercial 1.0.0, see LICENSE); commercial use needs a license from S-CORP-ION. Windows build. Download the zip, Extract All, double-click kisib.dub-sar.exe. Unsigned: if Windows warns, click More info then Run anyway."
