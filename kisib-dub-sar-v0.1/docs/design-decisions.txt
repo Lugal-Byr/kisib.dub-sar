@@ -519,3 +519,8 @@ Authorities (LOCAL_MACHINE when elevated, else CURRENT_USER), records them in
 ROUTES (...).txt, re-applies them on start, and removes only what it added.
 The block preview shows what a block would cut off/reroute. Windows path
 choice remains [to test].
+
+D046 App icon: assets\kisib.ico (clay seal with cuneiform wedges), compiled in with /win32icon
+(exe file icon) and embedded as resource Kisib.kisib.ico for the window and tray.
+Falls back to Windows icons if missing. Placeholder until the user's own microscope
+photo of her Akkadian seal replaces it.

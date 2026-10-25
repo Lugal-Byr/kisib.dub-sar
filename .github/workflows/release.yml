@@ -23,7 +23,7 @@ jobs:
           New-Item -ItemType Directory -Force $out | Out-Null
           $refs = @('System.dll','System.Core.dll','System.Security.dll','System.Runtime.Serialization.dll','System.Xml.dll','System.Drawing.dll','System.Windows.Forms.dll') | ForEach-Object { "/reference:$_" }
           $src = @(Get-ChildItem "$p\src\*.cs" | Select-Object -ExpandProperty FullName)
-          & $csc /nologo /target:winexe /platform:anycpu /optimize+ "/win32manifest:$p\app.manifest" "/out:$out\kisib.dub-sar.exe" @refs @src
+          & $csc /nologo /target:winexe /platform:anycpu /optimize+ "/win32manifest:$p\app.manifest" "/win32icon:$p\assets\kisib.ico" "/resource:$p\assets\kisib.ico,Kisib.kisib.ico" "/out:$out\kisib.dub-sar.exe" @refs @src
           if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
           Copy-Item -Recurse "$p\data", "$p\docs", "$p\README.txt" $out
           Set-Content -Path "$out\version.txt" -Value $tag -Encoding ASCII

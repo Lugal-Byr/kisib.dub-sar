@@ -102,7 +102,7 @@ namespace Kisib
                 if (denialWatcher != null) { StopWatching(); try { Directory.CreateDirectory(Path.GetDirectoryName(WatchOffFlag)); File.WriteAllText(WatchOffFlag, "off"); } catch (IOException) { } }
                 else { try { if (File.Exists(WatchOffFlag)) File.Delete(WatchOffFlag); } catch (IOException) { } StartWatching(true); }
             };
-            tray = new NotifyIcon { Icon = SystemIcons.Shield, Text = "kisib.dub-sar", Visible = true };
+            tray = new NotifyIcon { Icon = AppIcon.Small ?? SystemIcons.Shield, Text = "kisib.dub-sar", Visible = true };
             tray.BalloonTipClicked += delegate { ShowDenials(); };
             tray.DoubleClick += delegate { RestoreFromTray(); };
             InitializeTrayMenu();
