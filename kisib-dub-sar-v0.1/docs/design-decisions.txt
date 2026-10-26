@@ -623,3 +623,16 @@ state; Rules, Undo last block, Quiet mode and the never-block list are in the To
 would otherwise run with admin rights; PORTABLE BACKUP LISTS stays user-writable; turning it off restores
 normal permissions. Opening a certificate file refuses PFX content whatever its extension. DENIALS log
 rolls over at 8 MB and only its tail is read at start.
+
+D058 Claude stays reachable and can drive kisib (user, 2026-10-26: "it wont even connect to u on the
+desktop"). The Claude app (Electron) honors the Windows Disallowed store, so a bloc block on ISRG or GTS
+roots cut it off quietly. New category flag "keep reachable": after every scan (once per change, at most
+hourly when nothing changes) kisib unblocks those roots and their key twins, puts its pinned seals back into
+Trusted Root when admin, and lifts anything blocked behind a recent refusal of the category's programs or
+sites; this overrides bloc rules and goes on the never-block list. [Claude (Anthropic)] ships with it on;
+shipped categories missing from the user's TRUSTED CATEGORIES.txt are appended on start. Repairs were split
+into row builders (BuildRepair) so the window, the automatic check and commands share one code path.
+kisib.dub-sar.exe --do "<command>" sends one line over the named pipe kisib.dub-sar.do to the running copy
+and prints the reply (status, refusals, find, cert, rescan, repair, allow, unblock, reblock, unblock-bloc,
+quiet, log). The pipe allows the current user, Administrators and SYSTEM, denies NETWORK; no extra prompt,
+by the user's call (no safety friction). Commands run on the window thread; nothing opens a dialog.

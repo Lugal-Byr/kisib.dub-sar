@@ -1,6 +1,7 @@
 # TRUSTED CATEGORIES.  A category that is on:
 #  - its roots (and the CAs right under them) are PROTECTED: rules skip them, the block preview warns before blocking them
 #  - refusals for its programs or sites are labelled "expected service broken" (one notice, not a pop-up storm)
+# keep reachable = on: kisib unblocks and repairs this category's roots by itself (Claude needs them to connect).
 # enabled = on / off.  Lists are comma-separated.  *.example.com matches example.com and anything under it.
 
 [Windows essentials]
@@ -8,6 +9,13 @@ enabled = on
 programs = MsMpEng.exe, NisSrv.exe, MpCmdRun.exe, MpDefenderCoreService.exe, SecurityHealthService.exe, smartscreen.exe, wuauclt.exe, UsoClient.exe, MoUsoCoreWorker.exe, TiWorker.exe, TrustedInstaller.exe
 sites = ctldl.windowsupdate.com, *.update.microsoft.com, *.windowsupdate.com, *.delivery.mp.microsoft.com, *.dsp.mp.microsoft.com, *.smartscreen.microsoft.com, *.smartscreen-prod.microsoft.com, *.wdcp.microsoft.com, *.wd.microsoft.com, definitionupdates.microsoft.com, *.msftconnecttest.com
 roots = Microsoft Root Certificate Authority 2010, Microsoft Root Certificate Authority 2011, Microsoft Root Authority, Microsoft RSA Root Certificate Authority 2017, Microsoft ECC Root Certificate Authority 2017, Microsoft Identity Verification Root Certificate Authority 2020, DigiCert Global Root G2, DigiCert Global Root CA, DigiCert Global Root G3, DigiCert Assured ID Root CA, Baltimore CyberTrust Root
+
+[Claude (Anthropic)]
+enabled = on
+programs = claude.exe, Claude.exe, claude-code.exe
+sites = claude.ai, *.claude.ai, *.claude.com, *.anthropic.com, *.claudeusercontent.com
+roots = ISRG Root X1, ISRG Root X2, GTS Root R1, GTS Root R2, GTS Root R3, GTS Root R4
+keep reachable = on
 
 [Microsoft account and OneDrive]
 enabled = off

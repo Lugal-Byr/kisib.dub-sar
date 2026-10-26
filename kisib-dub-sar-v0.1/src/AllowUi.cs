@@ -156,7 +156,7 @@ namespace Kisib
         private DateTime lastSayAt;
         internal void Say(string text)
         {
-            lastSay = text; lastSayAt = DateTime.Now;
+            lastSay = text; lastSayAt = DateTime.Now; saidCount++;
             status.Text = text;
             sessionLog.Add(DateTime.UtcNow.ToString("o") + "\t" + text);
             if (tray != null) try { tray.ShowBalloonTip(6000, "kisib", text.Length > 250 ? text.Substring(0, 250) + "..." : text, ToolTipIcon.Info); } catch (Exception) { }

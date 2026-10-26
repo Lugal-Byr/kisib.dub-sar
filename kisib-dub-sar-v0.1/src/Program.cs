@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -12,6 +13,12 @@ namespace Kisib
         {
             if (Environment.OSVersion.Platform != PlatformID.Win32NT)
                 throw new PlatformNotSupportedException("kisib.dub-sar v0.1 requires Windows.");
+            // kisib.dub-sar.exe --do "status": ask the running kisib (Claude uses this from the desktop app).
+            if (args != null && args.Length > 0 && args[0].Equals("--do", StringComparison.OrdinalIgnoreCase))
+            {
+                Environment.ExitCode = CommandClient.Run(String.Join(" ", args.Skip(1).ToArray()));
+                return;
+            }
             string directory = Environment.GetEnvironmentVariable("KISIB_SOURCE_DIR");
             if (String.IsNullOrEmpty(directory))
             {
@@ -32,6 +39,14 @@ namespace Kisib
                 catch (Exception) { MessageBox.Show("kisib is already running (look for the seal in the tray, next to the clock).", "kisib.dub-sar"); }
                 return;
             }
+            // So a command line (or Claude) can find this copy of kisib wherever it was unzipped.
+            try
+            {
+                string where = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "kisib.dub-sar");
+                Directory.CreateDirectory(where);
+                File.WriteAllText(Path.Combine(where, "where is kisib.txt"), Application.ExecutablePath + "\r\n");
+            }
+            catch (Exception) { }
             ExplorerForm form = new ExplorerForm(directory);
             // Opening a .cer/.crt/.p7b/.sst with kisib shows it read-only; nothing is installed.
             foreach (string arg in args ?? new string[0])

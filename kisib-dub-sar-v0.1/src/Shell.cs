@@ -91,6 +91,7 @@ namespace Kisib
             tools.Popup += delegate { weekly.Checked = !Storage.Setting("lists auto-refresh off"); quietItem.Checked = quietMode; };
             weekly.Click += delegate { Storage.Setting("lists auto-refresh off", !Storage.Setting("lists auto-refresh off")); };
 
+            StartCommandServer();
             // A second copy of kisib only wakes this one up.
             try { showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, @"Local\kisib.dub-sar.show"); } catch (Exception) { showSignal = null; }
             if (showSignal != null)

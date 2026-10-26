@@ -31,6 +31,9 @@ namespace Kisib
                 new ToolRow { Name = "Repair: What this PC uses", What = "Blocked or missing roots behind refusals in the last 7 days", Now = () => denials.Count(d => !d.Ok && !d.Noise && d.Time > DateTime.Now.AddDays(-7)) + " refusals this week", Run = RepairUsed },
                 new ToolRow { Name = "Repair: Reset to the standard seals", What = "All seals back, one-off blocks lifted; only your blocs stay blocked", Now = () => snapshot == null ? "after a scan" : snapshot.Blocked.Count + " blocked now", Run = RepairReset },
                 new ToolRow { Name = "Repair: Put back what was blocked before kisib", What = "Re-blocks what you unblocked by hand from Microsoft's untrusted list", Now = () => UnblockedByHand.Read().Count + " on the list", Run = RepairPutBack },
+                new ToolRow { Name = "Keep Claude reachable", What = "After every scan, the roots the Claude app needs are unblocked and put back, even inside a blocked bloc", Now = () => (Storage.Setting("keep claude reachable off") ? "off" : "on") + " · " + ClaudeState(), Run = () => { Storage.Setting("keep claude reachable off", !Storage.Setting("keep claude reachable off")); Say("Keep Claude reachable is " + (Storage.Setting("keep claude reachable off") ? "off." : "on.")); if (!Storage.Setting("keep claude reachable off")) KeepReachable(true); } },
+                new ToolRow { Name = "Fix Claude's connection", What = "Do the Claude check now (also in the tray menu)", Now = () => ClaudeState(), Run = () => KeepReachable(true) },
+                new ToolRow { Name = "Let Claude run kisib", What = "Copies the command line Claude uses from the desktop app: status, refusals, repairs, allows, unblocks", Now = () => "--do \"help\"", Run = CopyClaudeLine },
                 new ToolRow { Name = "Block by bloc and continent", What = "Pick 👑 🏛️ 🧱 🌿 💃 or continents, see what they catch, block or unblock", Now = () => RuledSummary(), Run = OpenBlocBoard },
                 new ToolRow { Name = "Rules (groups kept blocked)", What = "Groups kisib keeps blocked as new certificates show up", Now = () => BlockRules.Read().Count + " rules", Run = ShowRules },
                 new ToolRow { Name = "Undo last block", What = "Takes out the last batch kisib blocked", Now = () => { BlockLogRow r = BlockEngine.ReadLog().LastOrDefault(x => x.Action == "block" && x.Result == "added"); return r == null ? "nothing to undo" : r.Group + " · " + r.Time.Replace("T", " ").Substring(0, Math.Min(16, r.Time.Length)) + " UTC"; }, Run = UndoLastBlock },
@@ -55,6 +58,21 @@ namespace Kisib
                 new ToolRow { Name = "My tags", What = "Your own tags on countries, organizations or certificates", Now = () => { try { return MyTags.Read().Count + " tags"; } catch (Exception) { return "?"; } }, Run = ShowMyTags },
                 new ToolRow { Name = "Incident check", What = "Published compromised certificates and keys, checked against this PC", Now = () => "", Run = ShowIncidents },
             };
+        }
+
+        private string ClaudeState()
+        {
+            if (snapshot == null) return "after a scan";
+            List<RepairRow> rows = BuildRepair("claude").Rows;
+            int blocked = rows.Count(r => r.Blocked), missing = rows.Count(r => r.Cert != null && !r.Trusted);
+            return blocked == 0 && missing == 0 ? "Claude's roots fine" : (blocked > 0 ? blocked + " of Claude's roots blocked" : "") + (blocked > 0 && missing > 0 ? ", " : "") + (missing > 0 ? missing + " not in Trusted Root" : "");
+        }
+
+        private void CopyClaudeLine()
+        {
+            string line = CommandLine("status");
+            try { Clipboard.SetText(line); Say("Copied. Paste it to Claude: " + line); }
+            catch (Exception ex) { Say(line + "  (could not copy: " + ex.Message + ")"); }
         }
 
         private string RuledSummary()

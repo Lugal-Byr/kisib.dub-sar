@@ -70,6 +70,9 @@ namespace Kisib
             menu.MenuItems.Add(openNow);
             menu.MenuItems.Add("Tools...", delegate { RestoreFromTray(); ShowToolsPage(); });
             menu.MenuItems.Add("-");
+            menu.MenuItems.Add("Fix Claude's connection", delegate { KeepReachable(true); });
+            menu.MenuItems.Add("Copy the line that lets Claude run kisib", delegate { CopyClaudeLine(); });
+            menu.MenuItems.Add("-");
             MenuItem quiet = new MenuItem("Quiet mode (no pop-ups)", delegate { ToggleQuiet(); });
             menu.MenuItems.Add(quiet);
             menu.Popup += delegate { quiet.Checked = QuietMode; };

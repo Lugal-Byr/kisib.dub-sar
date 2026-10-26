@@ -38,7 +38,30 @@ namespace Kisib
                 try { if (!File.Exists(target) && source != null && File.Exists(source)) File.Copy(source, target); } catch (IOException) { }
             }
             MergeNewSites();
+            MergeNewCategories();
             ensured = SourceDirectory != null;
+        }
+
+        // New shipped categories (like Claude) get added to your copy; categories you already have are left as you set them.
+        private static void MergeNewCategories()
+        {
+            try
+            {
+                string target = Storage.File(CategoriesFile), source = SourceDirectory == null ? null : Path.Combine(SourceDirectory, "data", "trusted-categories.txt");
+                if (source == null || !File.Exists(source) || !File.Exists(target)) return;
+                string mine = File.ReadAllText(target);
+                List<string> lines = File.ReadAllLines(source).ToList();
+                StringBuilder add = new StringBuilder();
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    string l = lines[i].Trim();
+                    if (!l.StartsWith("[", StringComparison.Ordinal) || !l.EndsWith("]", StringComparison.Ordinal) || mine.IndexOf(l, StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                    add.Append("\r\n").Append(lines[i]).Append("\r\n");
+                    for (int j = i + 1; j < lines.Count && !lines[j].Trim().StartsWith("[", StringComparison.Ordinal); j++) if (lines[j].Trim().Length > 0) add.Append(lines[j]).Append("\r\n");
+                }
+                if (add.Length > 0) File.AppendAllText(target, add.ToString(), new UTF8Encoding(false));
+            }
+            catch (Exception) { }
         }
 
         // New shipped site names get added to your copy (yours stays first, so your edits win).
@@ -141,7 +164,7 @@ namespace Kisib
     internal sealed class TrustCategory
     {
         internal string Name;
-        internal bool Enabled;
+        internal bool Enabled, KeepReachable;
         internal List<string> Programs = new List<string>(), Sites = new List<string>(), Roots = new List<string>();
         private List<Regex> siteMatch;
         internal List<Regex> SiteMatch { get { if (siteMatch == null) siteMatch = Sites.Select(WhoIsWho.Wildcard).ToList(); return siteMatch; } }
@@ -188,6 +211,7 @@ namespace Kisib
                 else if (key == "programs") current.Programs = values;
                 else if (key == "sites") current.Sites = values;
                 else if (key == "roots") current.Roots = values;
+                else if (key == "keep reachable") current.KeepReachable = values.Count > 0 && values[0].Equals("on", StringComparison.OrdinalIgnoreCase);
             }
             cache = list; stamp = t;
             return list;

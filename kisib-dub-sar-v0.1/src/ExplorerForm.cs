@@ -235,7 +235,7 @@ namespace Kisib
                         result.LeakCount = CountLeaks(result);
                     }
                     if (history != null) history.Commit(result);
-                    Post(delegate { Display(result, rules, stamp); FinishScan(); if (rules.Added > 0) StartScan(true); });
+                    Post(delegate { Display(result, rules, stamp); FinishScan(); if (rules.Added > 0) StartScan(true); else KeepReachable(false); });
                 }
                 catch (Exception ex)
                 {
