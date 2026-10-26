@@ -33,6 +33,11 @@ namespace Kisib
             Mutex single = null;
             try { single = new Mutex(true, @"Local\kisib.dub-sar", out first); }
             catch (UnauthorizedAccessException) { first = false; }
+            // A copy started by an update or an install waits for the old one to close.
+            if (!first && single != null && args != null && args.Contains("--restarted"))
+            {
+                try { first = single.WaitOne(30000); } catch (AbandonedMutexException) { first = true; }
+            }
             if (!first)
             {
                 try { using (EventWaitHandle show = EventWaitHandle.OpenExisting(@"Local\kisib.dub-sar.show")) show.Set(); }
@@ -52,6 +57,8 @@ namespace Kisib
             foreach (string arg in args ?? new string[0])
             {
                 if (arg == "--tray") form.StartInTray = true;
+                else if (arg == "--installed-startup") form.RepointStartup = true;
+                else if (arg.StartsWith("--", StringComparison.Ordinal)) { }
                 else if (form.PendingFile == null && File.Exists(arg)) form.PendingFile = Path.GetFullPath(arg);
             }
             Application.Run(form);

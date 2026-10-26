@@ -183,6 +183,17 @@ admin or not). Double-click to run one. Arrange: by what they do (🔧 Fix and
 repair, 🚫 Block, ✅ Allow, 👀 Watch, 📋 Lists and info, ⚙️ kisib itself) or A to Z;
 kisib remembers the choice.
 
+INSTALL TO C:\CERTS\KISIB AND AUTO UPDATE
+Tools page > Install to C:\certs\kisib copies kisib and your PORTABLE BACKUP LISTS
+there, moves Start with Windows to that copy, and runs it from there. Any copy of a
+release (not a dev build) checks GitHub a minute after it starts and every 12
+hours. When a newer release is out it downloads the zip over HTTPS, checks it
+against GitHub's own SHA-256 for that file, swaps the program files in place
+(PORTABLE BACKUP LISTS is never touched) and restarts in the tray. Tools page >
+Auto update turns it off; Update kisib now and tray > Check for updates check by
+hand. With Start with Windows on, the folder is admin-only, so updates happen
+from the copy that runs as administrator.
+
 NEVER LIFTED
 Whatever you press (Allow, Unblock, Get what it asked for, Required for app,
 Import, a repair, Keep Claude reachable), these stay blocked and the result says

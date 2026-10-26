@@ -712,3 +712,12 @@ header rows with color emoji, or A to Z; the choice is a SETTINGS switch.
 
 D067 The 🌀 stays on the trusted-service card (v0.2.31 swapped it for 🔌 after the user had stopped that change;
 this puts it back). It is saved for something about an honorable journey, when the user picks it.
+
+D068 Install to C:\certs\kisib and auto update (user, 2026-10-26: "can this app auto update from the git repo ... a
+folder c:/certs/kisib/"). Updater: GitHub API releases/latest, tag v0.2.N compared with version.txt (dev builds
+never update themselves), the -windows.zip asset only from github.com/Lugal-Byr/kisib.dub-sar, SHA-256 checked
+against the asset digest in the same API answer, unpacked with PowerShell Expand-Archive into an admin-only temp
+folder when elevated, copied over the program files (running exe renamed to *.old, deleted next start; lists
+folder skipped), then "--tray --restarted" (the new copy waits up to 30 s for the old one's single-instance
+mutex). Install copies the folder (lists only if the target has none), starts the copy with
+--installed-startup when Start with Windows was on so the logon task and folder lock move to it.

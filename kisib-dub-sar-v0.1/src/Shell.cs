@@ -93,6 +93,7 @@ namespace Kisib
             weekly.Click += delegate { Storage.Setting("lists auto-refresh off", !Storage.Setting("lists auto-refresh off")); };
 
             StartCommandServer();
+            InitializeUpdates();
             // A second copy of kisib only wakes this one up.
             try { showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, @"Local\kisib.dub-sar.show"); } catch (Exception) { showSignal = null; }
             if (showSignal != null)
