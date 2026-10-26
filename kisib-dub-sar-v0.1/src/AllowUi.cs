@@ -298,7 +298,9 @@ namespace Kisib
         private List<CertificateRecord> CertificatesBehind(Denial d)
         {
             if (snapshot == null) return new List<CertificateRecord>();
-            List<CertificateRecord> hits = d.ChainSha1.Select(snapshot.BySha1).Where(c => c != null && snapshot.IsBlocked(c)).Distinct().ToList();
+            // Exact copies, plus copies with the same key or the exact same name: Windows refuses a certificate when
+            // another issue of it is in Disallowed, so "not blocked" by SHA-1 alone was wrong.
+            List<CertificateRecord> hits = BlockedBehind(d);
             if (hits.Count == 0) return GuessedBehind(d);
             HashSet<string> orgs = new HashSet<string>(hits.Select(c => Org(c)).Where(o => o.Length > 0), StringComparer.OrdinalIgnoreCase);
             HashSet<string> keys = new HashSet<string>(hits.Where(c => c.SpkiSha256 != null).Select(c => c.SpkiSha256), StringComparer.Ordinal);
@@ -315,6 +317,37 @@ namespace Kisib
             return snapshot.Blocked.Select(id => snapshot.Certificates[id])
                 .Where(c => Org(c).IndexOf(owner, StringComparison.OrdinalIgnoreCase) >= 0 || (c.SubjectCn ?? "").StartsWith(owner + " ", StringComparison.OrdinalIgnoreCase))
                 .Where(c => TrustGraph.Live(c, DateTime.UtcNow)).ToList();
+        }
+
+        internal List<CertificateRecord> BlockedBehind(Denial d)
+        {
+            List<CertificateRecord> chain = d.ChainSha1.Select(snapshot.BySha1).Where(c => c != null).ToList();
+            return chain.Where(snapshot.IsBlocked)
+                .Concat(chain.SelectMany(c => snapshot.SameKey(c)).Where(snapshot.IsBlocked))
+                .Concat(chain.SelectMany(SameNameBlocked))
+                .Concat(NameOnlyBlocked(d))
+                .GroupBy(c => c.Sha1).Select(g => g.First()).ToList();
+        }
+
+        // Blocked certificates with exactly this subject (another issue or cross-sign of the same CA).
+        internal List<CertificateRecord> SameNameBlocked(CertificateRecord c)
+        {
+            if (c == null || String.IsNullOrEmpty(c.Subject)) return new List<CertificateRecord>();
+            bool root = c.Subject == c.Issuer;
+            return snapshot.Blocked.Select(id => snapshot.Certificates[id]).Where(x => x.Subject == c.Subject && (x.Subject == x.Issuer) == root).ToList();
+        }
+
+        // Chain certificates kisib has never seen: match blocked CAs by the name Windows logged.
+        private List<CertificateRecord> NameOnlyBlocked(Denial d)
+        {
+            List<CertificateRecord> result = new List<CertificateRecord>();
+            for (int i = 0; i < d.ChainSha1.Count && i < d.ChainNames.Count; i++)
+            {
+                if (snapshot.BySha1(d.ChainSha1[i]) != null || d.ChainNames[i].Length < 4) continue;
+                string name = d.ChainNames[i];
+                result.AddRange(snapshot.Blocked.Select(id => snapshot.Certificates[id]).Where(x => String.Equals(x.SubjectCn, name, StringComparison.OrdinalIgnoreCase) || String.Equals(x.SubjectShortName, name, StringComparison.OrdinalIgnoreCase)));
+            }
+            return result;
         }
 
         internal static bool IsBlockedCaRefusal(Denial d)

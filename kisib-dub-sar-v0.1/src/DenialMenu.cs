@@ -20,6 +20,7 @@ namespace Kisib
                 Denial d = selected();
                 return d == null ? new AllowTarget { Certs = delegate { return new List<CertificateRecord>(); }, NothingWhy = "Select a refusal first." } : TargetFor(d);
             }));
+            items.Add(new MenuItem("Get what it asked for (unblock, import, or fetch the root)", delegate { Denial d = selected(); if (d != null) GetRequested(d); }));
             items.Add(new MenuItem("Get the missing root from Microsoft (what Windows would download)", delegate
             {
                 Denial d = selected();
@@ -103,9 +104,10 @@ namespace Kisib
             List<CertificateRecord> behind = CertificatesBehind(d);
             if (behind.Count == 0)
             {
-                t.AppendLine("Not caused by a block. Windows refused it for its own reason:");
+                t.AppendLine("Not caused by a block kisib can see (checked by SHA-1, by key and by name). Windows refused it for its own reason:");
                 if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase)) t.AppendLine("  the root at the top of the chain is not in Trusted Root, and Windows could not download it.\r\n  Fix: right-click > Get the missing root from Microsoft (what Windows would download), or Tools > Repair > Get online for the roots kisib carries." + (RootAutoUpdateOff() ? "\r\n  Windows' automatic root download is switched off on this PC (policy DisableRootAutoUpdate), which is why it didn't fetch it itself." : ""));
                 else if (d.Code.EndsWith("B0101", StringComparison.OrdinalIgnoreCase)) t.AppendLine("  a certificate in the chain is expired (or your clock is off; see Clock in the status bar).");
+                else if (d.Code.EndsWith("92010", StringComparison.OrdinalIgnoreCase)) t.AppendLine("  " + d.Reason + "\r\n  With no block on this PC, that means its issuer revoked it, or Microsoft's own untrusted list has it.\r\n  Get what it asked for checks again (and fetches it from crt.sh if kisib has never seen it).");
                 else t.AppendLine("  " + d.Reason);
                 return t.ToString();
             }

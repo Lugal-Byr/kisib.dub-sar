@@ -68,3 +68,11 @@ git.exe = Git = version control
 ssh.exe = OpenSSH client = secure remote shell
 nvcontainer.exe = NVIDIA container = NVIDIA driver services
 kisib.dub-sar.exe = kisib = this app
+APSDaemon.exe = Apple Push Service = keeps iCloud's push connection open (new mail, Find My, sync nudges)
+iCloud.exe = iCloud for Windows = the iCloud sign-in and settings window
+iCloudServices.exe = iCloud services = background iCloud sync
+iCloudDrive.exe = iCloud Drive = syncs iCloud Drive files
+iCloudPrefs.exe = iCloud settings = the iCloud settings and sign-in
+iCloudCKKS.exe = iCloud keychain sync = syncs iCloud Passwords (CloudKit keychain)
+iCloudPasswordsService.exe = iCloud Passwords = passwords and keychain for browsers
+AppleMobileDeviceService.exe = Apple Mobile Device = talks to a plugged-in iPhone or iPad

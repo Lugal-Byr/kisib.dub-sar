@@ -44,6 +44,7 @@ namespace Kisib
                 try { if (!File.Exists(target) && source != null && File.Exists(source)) File.Copy(source, target); } catch (IOException) { }
             }
             MergeNewSites();
+            MergeNewLines(ProgramsFile, "who-programs.txt");
             MergeNewCategories();
             ensured = SourceDirectory != null;
         }
@@ -85,6 +86,24 @@ namespace Kisib
                 // Specific names go before the broad "*.microsoft.com" style lines so they match first.
                 int broad = mine.FindIndex(l => l.StartsWith("*.microsoft.com", StringComparison.OrdinalIgnoreCase));
                 if (broad < 0) mine.AddRange(add); else mine.InsertRange(broad, add);
+                File.WriteAllLines(target, mine.ToArray(), new UTF8Encoding(false));
+            }
+            catch (Exception) { }
+        }
+
+        // New shipped "file.exe = name = what" lines get added to the end of your copy; yours are left as they are.
+        private static void MergeNewLines(string file, string shipped)
+        {
+            try
+            {
+                string target = Storage.File(file), source = SourceDirectory == null ? null : Path.Combine(SourceDirectory, "data", shipped);
+                if (source == null || !File.Exists(source) || !File.Exists(target)) return;
+                List<string> mine = File.ReadAllLines(target).ToList();
+                HashSet<string> have = new HashSet<string>(mine.Select(l => l.Split(new string[] { " = " }, 2, StringSplitOptions.None)[0].Trim()), StringComparer.OrdinalIgnoreCase);
+                List<string> add = File.ReadAllLines(source).Where(l => l.Trim().Length > 0 && !l.TrimStart().StartsWith("#", StringComparison.Ordinal) &&
+                    !have.Contains(l.Split(new string[] { " = " }, 2, StringSplitOptions.None)[0].Trim())).ToList();
+                if (add.Count == 0) return;
+                mine.AddRange(add);
                 File.WriteAllLines(target, mine.ToArray(), new UTF8Encoding(false));
             }
             catch (Exception) { }

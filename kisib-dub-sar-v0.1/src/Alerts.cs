@@ -250,7 +250,9 @@ namespace Kisib
                 if (denials[i].Program == d.Program && denials[i].Subject == d.Subject && denials[i].Code == d.Code) return;
             if (snapshot != null)
             {
-                List<string> hits = d.ChainSha1.Select(snapshot.BySha1).Where(c => c != null && snapshot.IsBlocked(c)).Select(c => c.SubjectShortName).Distinct().ToList();
+                List<string> hits;
+                try { hits = BlockedBehind(d).Select(c => c.SubjectShortName).Distinct().ToList(); }
+                catch (Exception ex) { CrashLog.Write("refusal: blocked behind", ex); hits = new List<string>(); }
                 if (hits.Count > 0) d.BlockedBy = String.Join(", ", hits.ToArray());
             }
             Annotate(d);

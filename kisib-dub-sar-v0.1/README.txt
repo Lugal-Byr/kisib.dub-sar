@@ -175,6 +175,16 @@ Tools > Tools page (Ctrl+T, or the Tools button): every tool on one list with wh
 it does and how it stands right now (lists loaded, leaks, rules, open allows,
 admin or not). Double-click to run one.
 
+GET WHAT IT ASKED FOR
+On a refusal (card, live map, denials list, --do get <site|program>): kisib takes
+each certificate the program asked for, from this PC, its CCADB / Microsoft lists,
+or crt.sh online (checked by SHA-1), and fixes what is in the way. Blocked (that
+copy, another copy with the same key, or a CA with the exact same name): unblocked
+for good. A CA certificate missing from this PC: imported into Intermediate
+Certification Authorities (kept in ROUTES, put back after a reformat). The root
+missing: fetched from Microsoft's list. If none of that applies, it says so: a
+revoked certificate stays revoked, and no import changes that.
+
 MISSING ROOTS (NOT YOUR BLOCK)
 "root not trusted (not your block)" means Windows needed a root it doesn't have and
 didn't download it (Apple Root CA for iCloud, say). Right-click the refusal or the
@@ -208,7 +218,8 @@ things from the desktop app's shell. Commands: status, claude, fix claude,
 keep-claude on|off, denials [n], find <text>, cert <sha1>, rescan,
 repair <essentials|online|windows|categories|claude|used|reset|putback> [list],
 allow <sha1|site> <3|10|60|restart|always>, unblock <sha1|site>, reblock, rules,
-unblock-bloc <name>, get-root <sha1|name>, quiet on|off, log [n], crashlog [n].
+unblock-bloc <name>, get <site|program|name>, get-root <sha1|name>, quiet on|off,
+log [n], crashlog [n].
 "--do help" lists them.
 If kisib isn't running, --do starts it in the tray first. The answer is also
 saved in LAST COMMAND (for Claude).txt. Where kisib lives is written to

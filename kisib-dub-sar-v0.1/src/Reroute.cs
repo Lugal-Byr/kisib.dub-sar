@@ -211,6 +211,9 @@ namespace Kisib
         private static string Q(string v) { v = v ?? ""; return v.IndexOfAny(new char[] { ',', '"' }) >= 0 ? "\"" + v.Replace("\"", "\"\"") + "\"" : v; }
 
         internal static List<string> Install(List<CertificateRecord> certs, X509Location scope)
+        { return Install(certs, scope, "cross-sign added to Intermediate Certification Authorities"); }
+
+        internal static List<string> Install(List<CertificateRecord> certs, X509Location scope, string note)
         {
             List<string> report = new List<string>();
             List<string[]> rows = Read();
@@ -227,7 +230,7 @@ namespace Kisib
                             store.Add(cert);
                             rows.RemoveAll(r => r[0] == scope.ToString() && String.Equals(r[1], c.Sha1, StringComparison.OrdinalIgnoreCase));
                             rows.Add(new string[] { scope.ToString(), c.Sha1, c.Sha256, c.SubjectShortName, DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture), Convert.ToBase64String(c.Der) });
-                            BlockEngine.Note("route", scope, c.Sha256, c.Sha1, c.SubjectShortName, "cross-sign added to Intermediate Certification Authorities");
+                            BlockEngine.Note("route", scope, c.Sha256, c.Sha1, c.SubjectShortName, note);
                             report.Add("added  " + scope + "\\CA  " + c.SubjectShortName + "  issued by " + c.IssuerShortName + "  " + c.Sha1);
                         }
                     }

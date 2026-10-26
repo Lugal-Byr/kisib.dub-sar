@@ -656,3 +656,13 @@ take only the matching self-signed root, add to LocalMachine Root (admin) or Cur
 never a root the user blocked, never one Microsoft doesn't list. Repairs fetch missing Microsoft-listed roots
 the same way; the automatic Claude check never runs certutil. A refusal logged as "blocked CA" with no chain
 lets Allow offer the site owner's blocked CAs (who-is-who site owner), labelled as a guess.
+
+D061 Get what it asked for (user, 2026-10-26: "we need a thing to just import that requested cert either via
+internet or local update"). APSDaemon.exe was refused Apple Public Server RSA CA 12 - G1 with CRYPT_E_REVOKED
+and kisib said "not caused by a block" because it only compared SHA-1s; a blocked copy with the same key or
+name, or a copy kisib had never seen, was missed. Refusals now check blocks by SHA-1, key and exact name
+(BlockedBehind). The new action finds each requested certificate (PC, CCADB/Microsoft lists, then crt.sh by
+SHA-1, result checked against the SHA-1), lifts blocks for good, imports missing CA certificates into
+Intermediate CAs (recorded in ROUTES), and fetches a missing root from Microsoft's list. When nothing applies
+to a CRYPT_E_REVOKED refusal it says the issuer revoked it; an import can't change that, so kisib doesn't
+pretend. Apple's iCloud programs added to who-is-who; new shipped program names merge into the user's copy.

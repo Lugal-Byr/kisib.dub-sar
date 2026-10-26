@@ -42,6 +42,7 @@ namespace Kisib
             actions.Controls.Add(allow);
             button(route == null ? "Reroute: no other path" : missing.Count == 0 ? "Reroute: path already on PC" : "Reroute around the block...", route != null && missing.Count > 0)
                 .Click += delegate { InstallRoute(missing, d.Subject); };
+            button("Get what it asked for", true).Click += delegate { GetRequested(d); };
             if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase))
                 button("Get " + MissingRootName(d) + " from Microsoft", true).Click += delegate { FetchRoot(d); };
             if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase))
