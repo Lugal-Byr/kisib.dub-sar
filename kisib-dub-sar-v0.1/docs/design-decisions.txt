@@ -727,3 +727,9 @@ blocked, so the path uses another issue of the same CA key; Fix it installs that
 D070 The expired rule in Never lifted would have refused "What Windows ships with" for Thawte Timestamping CA (expired,
 kept by Windows for old time stamps; blocked by the user's BRICS bloc). Kisib's pinned seals and roots on Windows'
 own trusted list are exempt from the expiry rule; the compromised and Windows-untrusted rules still apply.
+
+D071 Where Windows keeps it (user, 2026-10-26: "can the live map link me to where that shits blocked in the windows cert
+util"). MMC can't be deep-linked to one certificate, so kisib names each store the way certlm.msc / certmgr.msc do
+(.LocalMachine copies collapse into the one whole-PC place; Group Policy flagged), opens those snap-ins and
+Windows' own certificate dialog (X509Certificate2UI), copies the thumbprint, and offers Unblock for good. Live map
+CA boxes not stored on this PC now say that this is normal for a CA a site sends along.

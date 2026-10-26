@@ -512,6 +512,9 @@ namespace Kisib
             string guard = TrustCategories.ProtectedBy(c);
             line(n.Label + (c.SubjectCountry != null ? " (" + c.SubjectCountry + ")" : "") + "  ·  " + OwnerName(c) + (certs.Count > 1 ? "  ·  " + certs.Count + " certificates" : ""));
             bool missingRoot = !n.Blocked && c.Subject == c.Issuer && !TrustGraph.InRootStore(c);
+            // Dashed box: not in any store here. Normal for a CA a site sends along; for a root, nothing can trust it.
+            if (!missingRoot && c.Subject != c.Issuer && !TrustGraph.OnPcForPath(c) && !n.Blocked)
+                line("Not stored on this PC: the site or program sends it along each time (normal for a CA)");
             line(n.Blocked ? "Blocked: " + WhyLine(c) : missingRoot ? "Not your block: this root isn't in Trusted Root here, and Windows didn't download it" + (RootAutoUpdateOff() ? " (its automatic root download is switched off)" : "") :
                 guard != null ? "Trusted, protected by trusted category " + guard : "Trusted");
             m.MenuItems.Add("-");
@@ -536,6 +539,7 @@ namespace Kisib
                 }
                 m.MenuItems.Add("What breaks if I block it...", delegate { ShowText("If you block " + c.SubjectShortName, WhatBreaks(n, certs)); });
             }
+            m.MenuItems.Add("Where Windows keeps it (certlm.msc / certmgr.msc)...", delegate { ShowWhereInWindows(c); });
             m.MenuItems.Add("Who vouches for it (paths, cross-signs)...", delegate { ShowText("Paths — " + c.SubjectShortName, PathsReport(c)); });
             m.MenuItems.Add("Show in main list", delegate
             {

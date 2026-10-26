@@ -51,6 +51,8 @@ namespace Kisib
             around
                 .Click += delegate { InstallRoute(missing, d.Subject); };
             button("Get what it asked for", true).Click += delegate { GetRequested(d); };
+            CertificateRecord shown = blocked.FirstOrDefault() ?? d.ChainSha1.Select(FindBySha1).FirstOrDefault(x => x != null);
+            if (shown != null) button("Where Windows keeps it", true).Click += delegate { ShowWhereInWindows(shown); };
             if (IsRevocationRefusal(d)) button("Check revocation servers", true).Click += delegate { CheckRevocation(d); };
             if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase))
                 button("Get " + MissingRootName(d) + " from Microsoft", true).Click += delegate { FetchRoot(d); };

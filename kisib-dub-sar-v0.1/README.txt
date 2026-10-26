@@ -237,6 +237,19 @@ Certification Authorities (kept in ROUTES, put back after a reformat). The root
 missing: fetched from Microsoft's list. If none of that applies, it says so: a
 revoked certificate stays revoked, and no import changes that.
 
+WHERE WINDOWS KEEPS IT
+Right-click a certificate (live map box, main list) or the refusal card >
+Where Windows keeps it: every store it sits in, named the way Windows'
+certificate manager names them (certlm.msc for the whole PC, certmgr.msc for
+you, Group Policy when only a policy can remove it), with buttons to open those,
+open Windows' own certificate window, copy the SHA-1 (Windows calls it
+Thumbprint), and, when it's blocked, Unblock for good. Deleting it from Untrusted
+Certificates in Windows unblocks it there, but a kisib bloc rule can put it back
+on the next scan; Unblock for good does both.
+Dashed boxes on the live map are certificates not stored on this PC: normal for a
+CA a site sends along with its own certificate; for a root it means nothing can
+trust the chain.
+
 🌀 ROUTE AROUND
 On a refusal (card, live map, denials list): if another path to a root you trust
 exists, kisib installs the missing cross-signs into Intermediate CAs so Windows

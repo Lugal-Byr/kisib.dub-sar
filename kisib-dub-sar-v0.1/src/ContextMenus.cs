@@ -108,6 +108,7 @@ namespace Kisib
                 return c == null ? new AllowTarget { Certs = delegate { return new List<CertificateRecord>(); }, NothingWhy = "Select a certificate first." } : TargetFor(c);
             }));
             certMenu.MenuItems.Add("Unblock for good (rules won't put it back)", delegate { UnblockSelectedCertificate(); });
+            certMenu.MenuItems.Add("Where Windows keeps it (certlm.msc / certmgr.msc)...", delegate { CertificateRecord c = sel(); if (c != null) ShowWhereInWindows(c); });
             certMenu.MenuItems.Add("-");
             certMenu.MenuItems.Add("Tag this certificate...", delegate
             {
