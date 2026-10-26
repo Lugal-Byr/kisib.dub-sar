@@ -175,6 +175,17 @@ Tools > Tools page (Ctrl+T, or the Tools button): every tool on one list with wh
 it does and how it stands right now (lists loaded, leaks, rules, open allows,
 admin or not). Double-click to run one.
 
+MISSING ROOTS (NOT YOUR BLOCK)
+"root not trusted (not your block)" means Windows needed a root it doesn't have and
+didn't download it (Apple Root CA for iCloud, say). Right-click the refusal or the
+dashed root box > Get <root> from Microsoft: kisib asks Windows Update for
+Microsoft's current root list (certutil -generateSSTFromWU, checked against
+Microsoft's signed list) and puts only that root into Trusted Root, the way Windows
+would have. Whole PC as administrator; otherwise this user, and Windows asks first.
+Roots Microsoft doesn't list, and roots you blocked, are never added. Repairs do
+the same for missing roots on Microsoft's list. When Windows logs "a blocked CA"
+without saying which, Allow offers the blocked CAs of whoever owns the site.
+
 KEEP CLAUDE REACHABLE
 The Claude app checks certificates through Windows, so blocking a bloc that holds
 Let's Encrypt (ISRG) or Google Trust Services can cut it off without a pop-up.
@@ -197,7 +208,8 @@ things from the desktop app's shell. Commands: status, claude, fix claude,
 keep-claude on|off, denials [n], find <text>, cert <sha1>, rescan,
 repair <essentials|online|windows|categories|claude|used|reset|putback> [list],
 allow <sha1|site> <3|10|60|restart|always>, unblock <sha1|site>, reblock, rules,
-unblock-bloc <name>, quiet on|off, log [n], crashlog [n]. "--do help" lists them.
+unblock-bloc <name>, get-root <sha1|name>, quiet on|off, log [n], crashlog [n].
+"--do help" lists them.
 If kisib isn't running, --do starts it in the tray first. The answer is also
 saved in LAST COMMAND (for Claude).txt. Where kisib lives is written to
 %LOCALAPPDATA%\kisib.dub-sar\where is kisib.txt each start. Tray > Copy the line

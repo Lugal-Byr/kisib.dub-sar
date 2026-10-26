@@ -646,3 +646,13 @@ kisib can't add it (no admin), the blocked root that cross-signed it is lifted t
 list fill now always end their BeginUpdate (an exception left the tree or list frozen blank and, because
 FinishScan never ran, stopped all further scans); a draw failure is shown in the window and logged; emoji
 drawing falls back to plain text; EnsureFiles is locked. --do crashlog [n] reads the last caught errors.
+
+D060 Menus that did nothing; iCloud refused (user screenshots, 2026-10-26). The live map shows its menu with
+ContextMenu.Show on a control whose ContextMenu isn't that menu, so Windows' WM_INITMENUPOPUP for submenus
+never reaches it and the lazy Allow submenu stayed on "(building)". Allow submenus are now filled when the menu
+is built (Popup still refreshes them where it fires). "root not trusted (not your block)" (Apple Root CA not on
+this PC) gets "Get <root> from Microsoft": certutil -generateSSTFromWU into a fresh admin-only temp folder,
+take only the matching self-signed root, add to LocalMachine Root (admin) or CurrentUser Root (Windows asks);
+never a root the user blocked, never one Microsoft doesn't list. Repairs fetch missing Microsoft-listed roots
+the same way; the automatic Claude check never runs certutil. A refusal logged as "blocked CA" with no chain
+lets Allow offer the site owner's blocked CAs (who-is-who site owner), labelled as a guess.

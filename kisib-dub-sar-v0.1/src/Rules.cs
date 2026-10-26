@@ -25,6 +25,16 @@ namespace Kisib
         {
             Directory.CreateDirectory(Path.GetDirectoryName(SstPath));
             string temp = SstPath + ".new";
+            string error = Generate(temp);
+            if (error != null) return error;
+            if (File.Exists(SstPath)) File.Delete(SstPath);
+            File.Move(temp, SstPath);
+            return null;
+        }
+
+        // certutil checks the list against Microsoft's signed root list (authroot.stl) as it writes it.
+        internal static string Generate(string temp)
+        {
             if (File.Exists(temp)) File.Delete(temp);
             ProcessStartInfo info = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "certutil.exe"), "-generateSSTFromWU \"" + temp + "\"")
             { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
@@ -34,8 +44,6 @@ namespace Kisib
                 if (!process.WaitForExit(180000)) { try { process.Kill(); } catch (InvalidOperationException) { } return "certutil timed out.\r\n" + output; }
                 if (process.ExitCode != 0 || !File.Exists(temp)) return "certutil failed (exit " + process.ExitCode + ").\r\n" + output;
             }
-            if (File.Exists(SstPath)) File.Delete(SstPath);
-            File.Move(temp, SstPath);
             return null;
         }
 

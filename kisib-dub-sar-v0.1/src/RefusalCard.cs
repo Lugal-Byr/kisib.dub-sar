@@ -43,6 +43,8 @@ namespace Kisib
             button(route == null ? "Reroute: no other path" : missing.Count == 0 ? "Reroute: path already on PC" : "Reroute around the block...", route != null && missing.Count > 0)
                 .Click += delegate { InstallRoute(missing, d.Subject); };
             if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase))
+                button("Get " + MissingRootName(d) + " from Microsoft", true).Click += delegate { FetchRoot(d); };
+            if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase))
                 button("Repair: Get online...", true).Click += delegate { RepairSeals("Get online", s => s.Set == "online" || s.Set == "microsoft", "The roots most websites hang under, carried inside kisib."); };
             button("Keep blocked", true).Click += delegate { f.Close(); };
             button("Quiet this site 1 hour", true).Click += delegate { QuietSites.Quiet(d.Subject, TimeSpan.FromHours(1)); f.Close(); };

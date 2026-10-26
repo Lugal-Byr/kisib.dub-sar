@@ -17,6 +17,7 @@ namespace Kisib
         internal CertificateRecord Cert;
         internal byte[] SealDer;          // only kisib's own pinned seals ever go into Trusted Root
         internal bool Trusted, Blocked, Check = true;
+        internal bool FromMicrosoft;      // missing root on Microsoft's list: fetched fresh from Windows Update
         internal string[] PutBack;        // "put back what was blocked before kisib": scope, sha1, sha256, subject, time, der
     }
 
@@ -71,7 +72,8 @@ namespace Kisib
                 Name = use.SubjectShortName, Owner = OwnerName(use), Country = use.SubjectCountry ?? "—", Blocs = snapshot == null ? "" : TagsOf(use), Fixes = fixes,
                 Cert = use, SealDer = sealDer, Trusted = TrustGraph.InRootStore(use), Blocked = snapshot != null && snapshot.IsBlocked(use), RuledBy = inRule ? rule : null
             };
-            row.Check = (row.Blocked || (!row.Trusted && sealDer != null)) && !inRule;
+            row.FromMicrosoft = sealDer == null && !row.Trusted && use.Subject == use.Issuer && use.FoundIn.Contains(MicrosoftList.Label);
+            row.Check = (row.Blocked || (!row.Trusted && (sealDer != null || row.FromMicrosoft))) && !inRule;
             if (inRule) row.Note = "stays blocked: in your " + rule + " rule (tick to repair anyway)";
             return row;
         }
@@ -82,7 +84,8 @@ namespace Kisib
             List<string> parts = new List<string>();
             if (r.Blocked) parts.Add("take out of Disallowed");
             if (!r.Trusted && r.SealDer != null) parts.Add("put into Trusted Root (from kisib's own copy)");
-            if (!r.Trusted && r.SealDer == null && !r.Blocked) parts.Add("not on this PC; Windows downloads it when needed");
+            if (!r.Trusted && r.FromMicrosoft) parts.Add("put into Trusted Root (fresh from Microsoft's list)");
+            if (!r.Trusted && r.SealDer == null && !r.FromMicrosoft && !r.Blocked) parts.Add("not on this PC; Windows downloads it when needed");
             return parts.Count == 0 ? "nothing, already fine" : String.Join("; ", parts.ToArray());
         }
 
@@ -346,6 +349,8 @@ namespace Kisib
             List<RepairRow> picked = set.Rows.Where(r => r.Check && WillDo(r) != "nothing, already fine").ToList();
             // Without admin, a root missing from Trusted Root can't be added; don't retry that every scan.
             if (!Elevation.IsElevated) picked = picked.Where(r => r.Blocked).ToList();
+            // The automatic check never runs certutil on its own; Microsoft-list roots are for repairs you start.
+            picked = picked.Where(r => r.Blocked || r.SealDer != null).ToList();
             string text;
             if (picked.Count == 0)
             {
@@ -420,6 +425,14 @@ namespace Kisib
             if (keep.Count > 0) said.Add("Unblocked: " + LiftForGood(WithTwins(keep), reason, reason));
             if (oneOff.Count > 0) said.Add("One-off blocks lifted: " + Lift(WithTwins(oneOff), reason, new List<string>()));
             try { AllowedList.AddRange(fix.Where(r => r.SealDer != null || !reset).Select(r => r.Cert), reason); } catch (IOException) { }
+            // 1b. Missing roots on Microsoft's list: fetched fresh from Windows Update in the background.
+            List<RepairRow> fetch = fix.Where(r => !r.Trusted && r.FromMicrosoft && r.SealDer == null).ToList();
+            if (fetch.Count > 0)
+            {
+                HashSet<string> want = new HashSet<string>(fetch.Select(r => r.Cert.Sha1), StringComparer.OrdinalIgnoreCase);
+                FetchFromMicrosoft(c => want.Contains(c.Sha1), String.Join(", ", fetch.Select(r => r.Name).ToArray()));
+                said.Add("Getting " + fetch.Count + " root" + (fetch.Count == 1 ? "" : "s") + " from Microsoft's list (a line will say when it's done).");
+            }
             // 2. Missing roots from kisib's own pinned copies into Trusted Root (whole PC, needs admin).
             List<RepairRow> add = fix.Where(r => !r.Trusted && r.SealDer != null).ToList();
             if (add.Count > 0)

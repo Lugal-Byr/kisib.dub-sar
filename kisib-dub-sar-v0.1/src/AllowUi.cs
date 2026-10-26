@@ -50,12 +50,16 @@ namespace Kisib
         internal MenuItem AllowSubmenu(string text, Func<AllowTarget> target)
         {
             MenuItem root = new MenuItem(text);
-            root.MenuItems.Add("(building)");   // a submenu needs a child before Popup fires
-            root.Popup += delegate
+            // Filled right away: a menu shown on the spot (live map, a button) never gets the submenu's Popup event
+            // from Windows, so a lazy submenu stayed stuck on "(building)". Popup still refreshes it where it fires.
+            Action fill = delegate
             {
                 root.MenuItems.Clear();
-                foreach (MenuItem item in AllowItems(target())) root.MenuItems.Add(item);
+                try { foreach (MenuItem item in AllowItems(target())) root.MenuItems.Add(item); }
+                catch (Exception ex) { root.MenuItems.Add(new MenuItem("Couldn't work out what to allow: " + ex.Message) { Enabled = false }); CrashLog.Write("allow menu", ex); }
             };
+            fill();
+            root.Popup += delegate { fill(); };
             return root;
         }
 
@@ -113,9 +117,10 @@ namespace Kisib
 
         internal AllowTarget TargetFor(Denial d)
         {
+            bool guessed = IsBlockedCaRefusal(d) && d.ChainSha1.Count <= 1;
             return new AllowTarget
             {
-                Label = d.Subject, Program = d.Program, Site = d.Subject,
+                Label = d.Subject + (guessed ? " (the site owner's blocked CAs; Windows didn't log which one)" : ""), Program = d.Program, Site = d.Subject,
                 Certs = delegate { return CertificatesBehind(d); },
                 NothingWhy = "Nothing to allow: not one of your blocks (" + ShortReason(d.Reason) + ")"
             };
@@ -294,11 +299,37 @@ namespace Kisib
         {
             if (snapshot == null) return new List<CertificateRecord>();
             List<CertificateRecord> hits = d.ChainSha1.Select(snapshot.BySha1).Where(c => c != null && snapshot.IsBlocked(c)).Distinct().ToList();
-            if (hits.Count == 0) return hits;
+            if (hits.Count == 0) return GuessedBehind(d);
             HashSet<string> orgs = new HashSet<string>(hits.Select(c => Org(c)).Where(o => o.Length > 0), StringComparer.OrdinalIgnoreCase);
             HashSet<string> keys = new HashSet<string>(hits.Where(c => c.SpkiSha256 != null).Select(c => c.SpkiSha256), StringComparer.Ordinal);
             return snapshot.Blocked.Select(id => snapshot.Certificates[id]).Where(c => hits.Contains(c) || orgs.Contains(Org(c)) || (c.SpkiSha256 != null && keys.Contains(c.SpkiSha256))).ToList();
         }
+        // Windows logged "a blocked CA" without the chain: take the blocked CAs of whoever owns the site
+        // (gsa.apple.com = Apple -> Apple's blocked CAs). Only for that kind of refusal, and only by owner name.
+        private List<CertificateRecord> GuessedBehind(Denial d)
+        {
+            List<CertificateRecord> none = new List<CertificateRecord>();
+            if (!IsBlockedCaRefusal(d) || d.ChainSha1.Count > 1) return none;
+            string owner = SiteOwner(d.Site ?? d.Subject);
+            if (owner == null || owner.Length < 3) return none;
+            return snapshot.Blocked.Select(id => snapshot.Certificates[id])
+                .Where(c => Org(c).IndexOf(owner, StringComparison.OrdinalIgnoreCase) >= 0 || (c.SubjectCn ?? "").StartsWith(owner + " ", StringComparison.OrdinalIgnoreCase))
+                .Where(c => TrustGraph.Live(c, DateTime.UtcNow)).ToList();
+        }
+
+        internal static bool IsBlockedCaRefusal(Denial d)
+        {
+            return d.Code.EndsWith("92010", StringComparison.OrdinalIgnoreCase) || d.Code.EndsWith("B0111", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string SiteOwner(string host)
+        {
+            string said = WhoIsWho.Site(host);   // "host = Owner = what"
+            if (said == null) return null;
+            string[] parts = said.Split(new string[] { " = " }, StringSplitOptions.None);
+            return parts.Length >= 2 ? parts[1].Trim() : null;
+        }
+
         private static string Org(CertificateRecord c)
         { string o = c.SubjectOrganization ?? ""; int slash = o.IndexOf('/'); return (slash >= 0 ? o.Substring(0, slash) : o).Trim(); }
     }

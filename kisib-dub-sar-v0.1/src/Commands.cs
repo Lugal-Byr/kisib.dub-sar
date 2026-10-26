@@ -148,6 +148,7 @@ namespace Kisib
             "  allow <sha1|site> <3|10|60|restart|always>\r\n" +
             "  unblock <sha1|site>          unblock for good (never-block list)\r\n" +
             "  reblock                      close everything open right now (temporary allows)\r\n" +
+            "  get-root <sha1|name>         put a missing root into Trusted Root, fresh from Microsoft's list\r\n" +
             "  rules                        groups kept blocked\r\n" +
             "  unblock-bloc <name>          drop a bloc/continent/country rule and lift what kisib blocked for it\r\n" +
             "  quiet on|off                 refusal pop-ups\r\n" +
@@ -211,6 +212,14 @@ namespace Kisib
                         if (certs == null) return label;
                         return Said(() => UnblockCertificates(certs, "unblocked by command: " + label));
                     }, 30000) + "\r\n" + AfterRescan();
+                case "get-root":
+                {
+                    if (rest.Length < 3) return "get-root <sha1|name>";
+                    string want = rest.Replace(" ", "").Replace(":", "");
+                    string started = OnWindow(() => { FetchFromMicrosoft(c => c.Sha1.StartsWith(want, StringComparison.OrdinalIgnoreCase) || String.Equals(c.SubjectShortName, rest, StringComparison.OrdinalIgnoreCase) || String.Equals(c.SubjectCn, rest, StringComparison.OrdinalIgnoreCase), rest); return lastSay; }, 10000);
+                    WaitFor(() => !fetchingRoots, 200);
+                    return started + "\r\n" + OnWindow(() => lastSay, 10000);
+                }
                 case "reblock":
                     return OnWindow(() => { List<TempAllowEntry> done = TempAllow.RestoreNow(e => true); StartScan(true); return done.Count == 0 ? "Nothing was open." : "Re-blocked " + done.Count + " (" + String.Join(", ", done.Select(e => e.Subject).Distinct().ToArray()) + ")."; }, 30000);
                 case "rules":

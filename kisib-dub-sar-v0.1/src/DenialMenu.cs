@@ -20,6 +20,13 @@ namespace Kisib
                 Denial d = selected();
                 return d == null ? new AllowTarget { Certs = delegate { return new List<CertificateRecord>(); }, NothingWhy = "Select a refusal first." } : TargetFor(d);
             }));
+            items.Add(new MenuItem("Get the missing root from Microsoft (what Windows would download)", delegate
+            {
+                Denial d = selected();
+                if (d == null) return;
+                if (!d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase)) { Say("This refusal isn't a missing root (" + ShortReason(d.Reason ?? "") + ")."); return; }
+                FetchRoot(d);
+            }));
             items.Add(new MenuItem("Why was this refused? (groups, rules, who blocked it)", delegate { Denial d = selected(); if (d != null) ShowText("Why — " + d.Subject, ExplainDenial(d)); }));
             items.Add(new MenuItem("Reroute around the block (use a cross-signed path)...", delegate
             {
@@ -97,7 +104,7 @@ namespace Kisib
             if (behind.Count == 0)
             {
                 t.AppendLine("Not caused by a block. Windows refused it for its own reason:");
-                if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase)) t.AppendLine("  the root at the top of the chain is not in Trusted Root, and Windows could not download it.\r\n  Fix: Tools > Repair > Get online (or Windows essentials). kisib carries those roots itself, no download needed.");
+                if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase)) t.AppendLine("  the root at the top of the chain is not in Trusted Root, and Windows could not download it.\r\n  Fix: right-click > Get the missing root from Microsoft (what Windows would download), or Tools > Repair > Get online for the roots kisib carries." + (RootAutoUpdateOff() ? "\r\n  Windows' automatic root download is switched off on this PC (policy DisableRootAutoUpdate), which is why it didn't fetch it itself." : ""));
                 else if (d.Code.EndsWith("B0101", StringComparison.OrdinalIgnoreCase)) t.AppendLine("  a certificate in the chain is expired (or your clock is off; see Clock in the status bar).");
                 else t.AppendLine("  " + d.Reason);
                 return t.ToString();

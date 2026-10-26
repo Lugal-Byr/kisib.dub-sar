@@ -496,14 +496,23 @@ namespace Kisib
                 line(n.Label + ": not on this PC or in kisib's lists (the site sent it).");
                 line("Block or allow the CA above it instead, or load Tools > Update CCADB list so kisib knows it.");
                 m.MenuItems.Add("-");
+                if (n.Column == 3 && n.Sha1s.Count > 0)
+                {
+                    List<string> wanted = new List<string>(n.Sha1s);
+                    m.MenuItems.Add("Get " + n.Label + " from Microsoft (what Windows would download)", delegate { FetchFromMicrosoft(x => wanted.Contains(x.Sha1, StringComparer.OrdinalIgnoreCase), n.Label); });
+                }
                 m.MenuItems.Add("Copy SHA-1", delegate { CopyText(String.Join("\r\n", n.Sha1s.ToArray())); });
                 return m;
             }
             CertificateRecord c = certs[0];
             string guard = TrustCategories.ProtectedBy(c);
             line(n.Label + (c.SubjectCountry != null ? " (" + c.SubjectCountry + ")" : "") + "  ·  " + OwnerName(c) + (certs.Count > 1 ? "  ·  " + certs.Count + " certificates" : ""));
-            line(n.Blocked ? "Blocked: " + WhyLine(c) : guard != null ? "Trusted, protected by trusted category " + guard : "Trusted");
+            bool missingRoot = !n.Blocked && c.Subject == c.Issuer && !TrustGraph.InRootStore(c);
+            line(n.Blocked ? "Blocked: " + WhyLine(c) : missingRoot ? "Not your block: this root isn't in Trusted Root here, and Windows didn't download it" + (RootAutoUpdateOff() ? " (its automatic root download is switched off)" : "") :
+                guard != null ? "Trusted, protected by trusted category " + guard : "Trusted");
             m.MenuItems.Add("-");
+            if (missingRoot)
+                m.MenuItems.Add("Get " + c.SubjectShortName + " from Microsoft (what Windows would download)", delegate { FetchFromMicrosoft(x => certs.Any(y => String.Equals(y.Sha1, x.Sha1, StringComparison.OrdinalIgnoreCase)), c.SubjectShortName); });
             if (n.Blocked)
             {
                 m.MenuItems.Add(AllowSubmenu("Allow", delegate { return MapTarget(n, certs); }));
@@ -556,6 +565,8 @@ namespace Kisib
                 if (missing.Count == 0) { Say("The other path for " + d.Subject + " is already on this PC; Windows should take it on the next try."); return; }
                 InstallRoute(missing, d.Subject);
             });
+            if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase))
+                m.MenuItems.Add("Get " + MissingRootName(d) + " from Microsoft (what Windows would download)", delegate { FetchRoot(d); });
             if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase))
                 m.MenuItems.Add("Repair: Get online (roots kisib carries)...", delegate { RepairSeals("Get online", s => s.Set == "online" || s.Set == "microsoft", "The roots most websites hang under."); });
         }
