@@ -683,3 +683,18 @@ records matching the request or the root's name; a candidate is added only if th
 its bytes come from kisib's lists, Windows Update's own <SHA-1>.crt download or certutil, checked by SHA-1.
 Without a stored list it falls back to certutil and says why (and if the automatic root download is off).
 --do status shows the list's size and sync date.
+
+D064 Readable refusal card, Required for app, Import, color emoji, the clown bloc (user, 2026-10-26).
+Refusal card opened with its text selected in small Consolas: now bold Comic Sans header, word-wrapped
+Comic Sans body on white, nothing selected, focus on the first button, and no repeat of the header lines.
+"Required for app": every check (trusted or refused) records app -> top of chain -> CAs in between
+(REQUIRED FOR APP file, saved every 2 minutes and on exit); a checkbox tree app > root > intermediates,
+ticking a parent ticks its children; Keep lifts blocks for good (source "required for app"), fetches
+missing roots only if Windows' own list names them, and unticking removes kisib's own confirmation.
+Import > File... (Certificate menu and live map, also on empty map space): roots to Trusted Root, asking only
+when Windows' list doesn't name them; CAs to Intermediate CAs (recorded in ROUTES); PFX refused.
+Root fetch takes explicit SHA-1s, so a root kisib has never seen is still fetched when Windows' list names it
+(Windows Update file, then crt.sh). GDI draws emoji black and white and small, so EmojiText now draws
+Microsoft's Fluent Emoji (MIT) pictures at 1.25x the text height for the emoji kisib uses. Basel / CBDC
+became the clown bloc (🌿 -> 🤡, saved rules migrated): "crowns lookin like clowns"; bloc titles on the board
+and tree: the crowns, EU columns and committees, BRICS the bricks, supranational corps runnin mad.

@@ -67,6 +67,9 @@ namespace Kisib
             certificate.MenuItems.Add(new MenuItem("Copy SHA-&1", delegate { CopyHash(false); }));
             certificate.MenuItems.Add(new MenuItem("Copy SHA-&256", delegate { CopyHash(true); }));
             certificate.MenuItems.Add(new MenuItem("Copy &SPKI SHA-256", delegate { CopySpkiHash(); }));
+            MenuItem import = new MenuItem("&Import");
+            import.MenuItems.Add(new MenuItem("&File...", delegate { ImportFromFile(); }));
+            certificate.MenuItems.Add(import);
             certificate.MenuItems.Add(new MenuItem("Certificate &history", delegate
             { CertificateRecord cert = SelectedCertificate(); if (cert != null) ShowHistory(cert.Sha256); }));
             MenuItem help = new MenuItem("&Help");

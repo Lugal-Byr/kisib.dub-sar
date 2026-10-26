@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace Kisib
 {
-    // Block by bloc and continent: pick 👑 🏛️ 🧱 🌿 💃 and continents, see every country they catch, then block.
+    // Block by bloc and continent: pick 👑 🏛️ 🧱 🤡 💃 and continents, see every country they catch, then block.
     // A normal window (not modal): the main window stays usable while it is open, and it refreshes after every scan.
     internal sealed partial class ExplorerForm
     {
@@ -68,8 +68,8 @@ namespace Kisib
                 bool ruled = ruleKeys.Contains(g.Key);
                 int blocked = g.Members.Count(id => groups.Blocked.Contains(id)), total = g.Members.Count;
                 string state = ruled ? "● kept blocked · " + blocked + " of " + total : blocked == 0 ? "○ not blocked" : blocked == total ? "● all blocked (no rule)" : "◐ " + blocked + " of " + total + " blocked (no rule)";
-                string[] caption = { g.Label, sub, state };
-                CheckBox box = new CheckBox { Appearance = Appearance.Button, Width = 215, Height = 72, Margin = new Padding(3),
+                string[] caption = { g.Kind == "tag" ? GroupCatalog.BlocTitle(g.Label) : g.Label, sub, state };
+                CheckBox box = new CheckBox { Appearance = Appearance.Button, Width = g.Kind == "tag" ? 300 : 215, Height = 72, Margin = new Padding(3),
                     Text = "", AccessibleName = g.Label + " " + sub + " " + state, Tag = g, Checked = picked.Contains(g.Key), FlatStyle = FlatStyle.Standard };
                 box.Paint += delegate(object s, PaintEventArgs e)
                 {

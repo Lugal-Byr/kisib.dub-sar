@@ -111,6 +111,7 @@ namespace Kisib
             openNow.Popup += delegate { FillOpenNow(openNow); };
             menu.MenuItems.Add(openNow);
             menu.MenuItems.Add("Tools...", delegate { RestoreFromTray(); ShowToolsPage(); });
+            menu.MenuItems.Add("Required for app...", delegate { RestoreFromTray(); ShowRequiredForApp(); });
             menu.MenuItems.Add("-");
             menu.MenuItems.Add("Fix Claude's connection", delegate { KeepReachable(true); });
             menu.MenuItems.Add("Copy the line that lets Claude run kisib", delegate { CopyClaudeLine(); });

@@ -48,13 +48,21 @@ namespace Kisib
         // 2. Approved only if Windows' own trusted-root list names its SHA-1 (authroot.stl in HKLM, kept by Windows).
         // 3. The certificate itself from the first source that has it, checked by SHA-1: kisib's lists, Windows
         //    Update's root download (the same file Windows fetches), or a fresh certutil list.
-        internal void FetchFromMicrosoft(Func<CertificateRecord, bool> wanted, string label)
+        internal void FetchFromMicrosoft(Func<CertificateRecord, bool> wanted, string label) { FetchFromMicrosoft(wanted, label, null); }
+
+        internal void FetchFromMicrosoft(Func<CertificateRecord, bool> wanted, string label, IEnumerable<string> sha1s)
         {
             if (fetchingRoots) { Say("Already getting roots from Microsoft; one moment."); return; }
             Dictionary<string, byte[]> known = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            if (sha1s != null) foreach (string s in sha1s) if (s != null && s.Length == 40) known[s] = null;
             if (snapshot != null)
                 foreach (CertificateRecord c in snapshot.Certificates.Values)
-                    if (c.Subject == c.Issuer && (wanted(c) || SameRootName(c, label)) && !known.ContainsKey(c.Sha1)) known[c.Sha1] = c.Der;
+                {
+                    if (c.Subject != c.Issuer || c.Sha1 == null) continue;
+                    byte[] have;
+                    bool asked = known.TryGetValue(c.Sha1, out have);
+                    if ((asked || wanted(c) || SameRootName(c, label)) && have == null) known[c.Sha1] = c.Der;
+                }
             fetchingRoots = true;
             Say("Getting " + label + " the way Windows would (its own root list decides)...");
             bool elevated = Elevation.IsElevated;
@@ -76,6 +84,7 @@ namespace Kisib
                         {
                             byte[] der = known[sha1];
                             if (der == null || !Sha1Of(der).Equals(sha1, StringComparison.OrdinalIgnoreCase)) der = WindowsUpdateRoot(sha1, notes);
+                            if (der == null) der = FromCrtSh(new List<string> { sha1 }, notes).FirstOrDefault();
                             if (der != null) found.Add(der);
                         }
                     }

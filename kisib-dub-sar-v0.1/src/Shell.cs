@@ -88,6 +88,7 @@ namespace Kisib
             tools.MenuItems.Add(quietItem);
             tools.MenuItems.Add("-");
             tools.MenuItems.Add(new MenuItem("&Tools page (every tool and how it stands)...", delegate { ShowToolsPage(); }, Shortcut.CtrlT));
+            tools.MenuItems.Add(new MenuItem("Re&quired for app (app > root > intermediates)...", delegate { ShowRequiredForApp(); }));
             tools.Popup += delegate { weekly.Checked = !Storage.Setting("lists auto-refresh off"); quietItem.Checked = quietMode; };
             weekly.Click += delegate { Storage.Setting("lists auto-refresh off", !Storage.Setting("lists auto-refresh off")); };
 
@@ -117,7 +118,7 @@ namespace Kisib
             FormClosed += delegate { listTimer.Stop(); };
         }
 
-        internal void ExitApp() { exiting = true; Close(); }
+        internal void ExitApp() { exiting = true; try { AppChains.Flush(); } catch (Exception) { } Close(); }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {

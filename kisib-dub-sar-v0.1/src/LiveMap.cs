@@ -337,7 +337,10 @@ namespace Kisib
                     using (Brush sub = new SolidBrush(dim ? Color.Silver : n.Blocked || n.Placeholder != null ? Color.Firebrick : Color.DimGray))
                     {
                         g.DrawString(n.Label, Font, text, line1, f);
-                        g.DrawString(second.Trim(' ', '·'), Font, sub, line2, f);
+                        string tail = second.Trim(' ', '·');
+                        // Bloc tags in color pictures instead of empty boxes.
+                        if (EmojiText.Has(tail)) EmojiText.Draw(g, tail, Font, Rectangle.Round(line2), dim ? Color.Silver : n.Blocked || n.Placeholder != null ? Color.Firebrick : Color.DimGray);
+                        else g.DrawString(tail, Font, sub, line2, f);
                     }
                 }
             if (visible.Count == 0)
@@ -372,13 +375,14 @@ namespace Kisib
                 },
                 delegate(string sha1) { CertificateRecord c = FindBySha1(sha1); return c != null && snapshot.IsBlocked(c); },
                 delegate(string site) { string w = WhoIsWho.Site(site); if (w == null) return null; int eq = w.IndexOf(" = ", StringComparison.Ordinal); return eq < 0 ? w : "= " + w.Substring(eq + 3); },
-                MapOpen, MapMenu, status);
+                MapOpen, MapMenuPlus, status);
             foreach (Denial d in recentChecks) liveMap.Add(d);
             liveMap.Show(this);
         }
 
         private void MapAdd(Denial d)
         {
+            try { AppChains.Record(d); } catch (Exception ex) { CrashLog.Write("required for app", ex); }
             recentChecks.Add(d);
             if (recentChecks.Count > 3000) recentChecks.RemoveRange(0, 500);
             if (liveMap != null && !liveMap.IsDisposed) liveMap.Add(d);

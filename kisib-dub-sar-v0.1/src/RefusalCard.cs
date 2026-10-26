@@ -20,16 +20,21 @@ namespace Kisib
             if (d == null) return;
             if (d.Verdict == null) Annotate(d);
             ClearTrayBadge();
-            Form f = new Form { Text = "Refused: " + d.Subject + " — " + d.Time.ToString("HH:mm:ss"), Size = new Size(820, 600), Font = Font };
+            // Big, friendly and nothing pre-selected (user, 2026-10-26: the text opened selected and hard to read).
+            Form f = new Form { Text = "Refused: " + d.Subject + " — " + d.Time.ToString("HH:mm:ss"), Size = new Size(860, 620), Font = new Font("Comic Sans MS", 10F, FontStyle.Bold) };
             string program = (WhoIsWho.Program(d.Program) ?? d.Program) + (d.Service != null ? "   (service: " + d.Service + ")" : "");
             bool service = IsBroker(d.Program);
-            Label head = new Label { Dock = DockStyle.Top, Height = 66, Padding = new Padding(10, 8, 10, 0), Font = new Font(Font.FontFamily, 10F),
+            Label head = new Label { Dock = DockStyle.Top, Height = 84, Padding = new Padding(12, 10, 12, 0), Font = new Font("Comic Sans MS", 11.5F, FontStyle.Bold),
                 Text = program + "\r\nwas refused  " + d.Subject + "   at " + d.Time.ToString("HH:mm:ss") + "\r\n" + VerdictWord(d) + "   " + ShortReason(d.Reason) };
             head.ForeColor = VerdictColor(d.Verdict);
-            Label behind = new Label { Dock = DockStyle.Top, Height = 46, Padding = new Padding(10, 4, 10, 0), BackColor = Color.FromArgb(245, 245, 238),
+            Label behind = new Label { Dock = DockStyle.Top, Height = 50, Padding = new Padding(12, 6, 12, 0), BackColor = Color.FromArgb(245, 245, 238), Font = new Font("Comic Sans MS", 10F),
                 Text = service ? "App behind " + d.Program + ": looking for the open connection..." : "Program: " + program };
-            TextBox why = new TextBox { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both, WordWrap = false,
-                Font = new Font("Consolas", 9F), BackColor = SystemColors.Window, Text = CleanText(ExplainDenial(d)) };
+            string explained = CleanText(ExplainDenial(d));
+            if (d.Who != null && explained.StartsWith(CleanText(d.Who), StringComparison.Ordinal)) explained = explained.Substring(CleanText(d.Who).Length).TrimStart('\r', '\n');
+            TextBox why = new TextBox { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, WordWrap = true, BorderStyle = BorderStyle.None, TabStop = false,
+                Font = new Font("Comic Sans MS", 11F), BackColor = Color.White, ForeColor = Color.FromArgb(40, 40, 48), Text = explained };
+            Panel whyPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(14, 10, 10, 6), BackColor = Color.White };
+            whyPanel.Controls.Add(why);
 
             List<CertificateRecord> blocked = CertificatesBehind(d);
             List<CertificateRecord> missing;
@@ -62,7 +67,8 @@ namespace Kisib
                 actions.Controls.Add(new Label { AutoSize = true, Padding = new Padding(6, 9, 0, 0), ForeColor = SystemColors.GrayText,
                     Text = "Not caused by one of your blocks, so there is nothing to allow; see why above." });
 
-            f.Controls.Add(why); f.Controls.Add(behind); f.Controls.Add(head); f.Controls.Add(actions);
+            f.Controls.Add(whyPanel); f.Controls.Add(behind); f.Controls.Add(head); f.Controls.Add(actions);
+            f.Shown += delegate { why.SelectionStart = 0; why.SelectionLength = 0; if (actions.Controls.Count > 0) f.ActiveControl = actions.Controls[0]; };
             ShowTool(f, "refusal:" + d.Time.Ticks + ":" + d.Subject);
 
             if (!service) return;

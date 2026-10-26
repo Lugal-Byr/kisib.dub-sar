@@ -56,6 +56,7 @@ namespace Kisib
         internal const string ProgramAllows = "PROGRAM ALLOWS (open while a program runs).txt";
         internal const string CrashLog = "CRASH LOG.txt";
         internal const string LastCommand = "LAST COMMAND (for Claude).txt";
+        internal const string UsedCertificates = "REQUIRED FOR APP (what each app used).txt";
 
         // New version unzipped next to an older one: carry the newest older PORTABLE BACKUP LISTS over.
         private static void CarryFromOlderVersion(string target)
@@ -125,6 +126,7 @@ namespace Kisib
                     ProgramAllows + "  - blocks that open for a while each time a program starts (like an updater)\r\n" +
                     CrashLog + "  - errors kisib caught instead of closing; send it along when something breaks\r\n" +
                     LastCommand + "  - the last kisib.dub-sar.exe --do command and its answer\r\n" +
+                    UsedCertificates + "  - each app, the roots it used and the CAs in between (Tools > Required for app)\r\n" +
                     Denials + "  - certificates Windows refused, and which program asked\r\n" +
                     "SETTING - *.txt  - on/off switches: the file existing means the switch is on\r\n" +
                     "microsoft-root-list.sst, ccadb-list-*.csv  - downloaded lists (Tools menu refreshes them)\r\n\r\n" +

@@ -69,7 +69,7 @@ namespace Kisib
             foreach (GroupNode group in items)
             {
                 GroupNode enabled = GroupCatalog.Filtered(group, "enabled", groups.Blocked), blocked = GroupCatalog.Filtered(group, "blocked", groups.Blocked);
-                TreeNode node = new TreeNode(group.Label + " (" + group.Members.Count + ")") { Tag = group };
+                TreeNode node = new TreeNode((group.Kind == "tag" ? GroupCatalog.BlocTitle(group.Label) : group.Label) + " (" + group.Members.Count + ")") { Tag = group };
                 node.Nodes.Add(new TreeNode("Enabled (" + enabled.Members.Count + ")") { Tag = enabled });
                 node.Nodes.Add(new TreeNode("Blocked (" + blocked.Members.Count + ")") { Tag = blocked, ForeColor = blocked.Members.Count > 0 ? Color.DarkRed : SystemColors.WindowText });
                 folder.Nodes.Add(node);
@@ -99,7 +99,7 @@ namespace Kisib
             {
                 address.Text = "Groups";
                 nodeDetails = "Groups are built from the data folder and your own tags:\r\n" +
-                    "  Blocs: 👑 monarchy  🏛️ EU  🧱 BRIC (with the BRICS members)  🌿 Basel / CBDC  💃 supranational corporations\r\n" +
+                    "  Blocs: 👑 the crowns  🏛️ EU: columns and committees  🧱 BRICS: the bricks  🤡 Basel / CBDC: crowns lookin like clowns  💃 supranational corps runnin mad\r\n" +
                     "  Continents: the seven continents from the UN country list (M49); Middle East is a region inside Asia\r\n" +
                     "  countries_monarchy_bric.csv: continent, region, monarchy, crown_territory_of, eu, bric_core, brics_plus, basel, tags, your_group, with sources\r\n" +
                     "  owners.csv: CA owner by subject/issuer O= (exact or contains), with tags; CCADB adds every listed CA owner\r\n" +

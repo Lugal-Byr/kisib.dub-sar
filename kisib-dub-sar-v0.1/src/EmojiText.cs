@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace Kisib
 {
-    // Tahoma has no emoji, so 👑 🏛️ 🧱 🌿 💃 came out as boxes. Text with emoji is drawn in runs:
+    // Tahoma has no emoji, so 👑 🏛️ 🧱 🤡 💃 came out as boxes. Text with emoji is drawn in runs:
     // the emoji in Segoe UI Emoji, everything else in the control's own font.
     internal static class EmojiText
     {
@@ -59,12 +59,37 @@ namespace Kisib
             GraphicsState saved = g.Save();
             g.SetClip(bounds, CombineMode.Intersect);
             int x = bounds.X;
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            // Emoji come out in color and a bit bigger than the text around them.
+            int size = Math.Max(12, Math.Min(bounds.Height, (int)(font.Height * 1.25)));
             foreach (KeyValuePair<bool, string> run in Runs(text))
             {
-                Font f = run.Key ? EmojiFont(font.SizeInPoints) : font;
-                Rectangle r = new Rectangle(x, bounds.Y, Math.Max(0, bounds.Right - x), bounds.Height);
-                TextRenderer.DrawText(g, run.Value, f, r, color, Flags);
-                x += TextRenderer.MeasureText(g, run.Value, f, new Size(Int32.MaxValue, bounds.Height), Flags).Width;
+                if (!run.Key)
+                {
+                    Rectangle r = new Rectangle(x, bounds.Y, Math.Max(0, bounds.Right - x), bounds.Height);
+                    TextRenderer.DrawText(g, run.Value, font, r, color, Flags);
+                    x += TextRenderer.MeasureText(g, run.Value, font, new Size(Int32.MaxValue, bounds.Height), Flags).Width;
+                }
+                else
+                    for (int i = 0; i < run.Value.Length; )
+                    {
+                        int len = Char.IsHighSurrogate(run.Value[i]) && i + 1 < run.Value.Length ? 2 : 1;
+                        int cp = len == 2 ? Char.ConvertToUtf32(run.Value[i], run.Value[i + 1]) : run.Value[i];
+                        i += len;
+                        if (cp == 0xFE0F || cp == 0x200D) continue;
+                        if (cp == ' ') { x += Math.Max(3, size / 4); continue; }
+                        Image picture = EmojiImages.For(cp);
+                        if (picture != null) { g.DrawImage(picture, new Rectangle(x, bounds.Y + (bounds.Height - size) / 2, size, size)); x += size + 1; }
+                        else
+                        {
+                            string glyph = Char.ConvertFromUtf32(cp);
+                            Font f = EmojiFont(font.SizeInPoints);
+                            TextRenderer.DrawText(g, glyph, f, new Rectangle(x, bounds.Y, Math.Max(0, bounds.Right - x), bounds.Height), color, Flags);
+                            x += TextRenderer.MeasureText(g, glyph, f, new Size(Int32.MaxValue, bounds.Height), Flags).Width;
+                        }
+                        if (x >= bounds.Right) break;
+                    }
                 if (x >= bounds.Right) break;
             }
             g.Restore(saved);

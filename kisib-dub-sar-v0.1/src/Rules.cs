@@ -101,7 +101,7 @@ namespace Kisib
             List<BlockRule> rules = new List<BlockRule>();
             if (!File.Exists(RulesPath)) return rules;
             foreach (string[] f in GroupCatalog.ReadCsv(RulesPath).Skip(1))
-                if (f.Length >= 4) rules.Add(new BlockRule { GroupKey = Renamed(f[0]), Label = f[1], Scope = f[2], Created = f[3] });
+                if (f.Length >= 4) rules.Add(new BlockRule { GroupKey = Renamed(f[0]), Label = f[0] == "tag:🌿" ? "🤡" : f[1], Scope = f[2], Created = f[3] });
             return rules;
         }
 
@@ -111,6 +111,7 @@ namespace Kisib
             switch (key)
             {
                 case "tag:🌿🧱": return "tag:🧱";
+                case "tag:🌿": return "tag:🤡";       // v0.2.30: Basel / CBDC is the clown bloc now
                 case "tag:BRICS+ (verify)": return "tag:🧱";
                 case "tag:🧱 BRICS+": return "tag:🧱";
                 case "tag:Google": return "owner:Google Trust Services";

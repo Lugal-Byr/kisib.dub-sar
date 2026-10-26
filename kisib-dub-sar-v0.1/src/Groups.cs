@@ -128,7 +128,7 @@ namespace Kisib
                 .Where(o => o.Owner.Length > 0 && o.Value.Length > 0 && (o.Match == "subject_o" || o.Match == "issuer_o" || o.Match == "subject_o_contains" || o.Match == "issuer_o_contains")).ToList();
         }
 
-        // Each tag is one group label; ';' separates several in one cell. Emoji strings such as 🌿🧱 stay whole.
+        // Each tag is one group label; ';' separates several in one cell. Emoji strings such as 🤡🧱 stay whole.
         internal static IEnumerable<string> Split(string cell)
         { return (cell ?? "").Split(';').Select(t => t.Trim()).Where(t => t.Length > 0); }
 
@@ -215,7 +215,21 @@ namespace Kisib
         }
 
         internal const string BricsPlusLabel = "🧱 BRICS+";
-        private static readonly string[] Blocs = { "👑", "🏛️", "🧱", "🌿", "💃" };
+        private static readonly string[] Blocs = { "👑", "🏛️", "🧱", "🤡", "💃" };
+
+        // What the blocs are called on the board and in the tree (the emoji stays the key).
+        internal static string BlocTitle(string label)
+        {
+            switch (label)
+            {
+                case "👑": return "👑 the crowns";
+                case "🏛️": return "🏛️ EU: columns and committees";
+                case "🧱": return "🧱 BRICS: the bricks";
+                case "🤡": return "🤡 Basel / CBDC: crowns lookin like clowns";
+                case "💃": return "💃 supranational corps runnin mad";
+                default: return label;
+            }
+        }
         internal static readonly string[] ContinentNames = { "Africa", "Antarctica", "Asia", "Europe", "North America", "Oceania", "South America" };
         private static string ParentContinent(string regionLabel)
         { int i = regionLabel.IndexOf("(part of ", StringComparison.Ordinal); return i < 0 ? regionLabel : regionLabel.Substring(i + 9).TrimEnd(')'); }

@@ -23,8 +23,8 @@ Find filters rows while keeping every native branch and count.
 GROUPS AND BLOCKING
 The Groups tab sorts every certificate six ways:
   Blocs       👑 monarchy  🏛️ EU  🧱 BRIC (Brazil, Russia, India, China and the
-              later BRICS members)  🌿 Basel / CBDC  💃 supranational corporations.
-              Tags stack: Spain is 👑🏛️, the UAE is 👑 🧱 🌿.
+              later BRICS members)  🤡 Basel / CBDC  💃 supranational corporations.
+              Tags stack: Spain is 👑🏛️, the UAE is 👑 🧱 🤡.
   Continents  all seven (UN country list); Middle East is a region inside Asia.
   Countries   from the C= on the certificate (subject and issuer).
   Owners      CA owner by O= (data\owners.csv) and every owner listed in CCADB.
@@ -103,7 +103,8 @@ Tool windows (denials, reroute check, rules, standings...) are normal windows:
 the main window stays usable, each reopens where you left it, Esc closes it.
 
 POP-UPS AND THE REFUSAL CARD
-A refusal pop-up is a small card in the corner, in bold Comic Sans (up to four stack): an emoji for
+A refusal pop-up is a small card in the corner, in bold Comic Sans with color emoji
+(Microsoft's Fluent Emoji, MIT; docs/third-party-notices.txt) (up to four stack): an emoji for
 the kind (🚫 blocked by you, 🔑 root missing, ⛔ revoked or Disallowed, 🌀 a trusted
 service can't connect, ❔ anything else), who -> what on one line, why and the time
 on a short grey line, and chips: Allow (when it's your block), Fix it (get what it
@@ -179,6 +180,20 @@ TOOLS PAGE
 Tools > Tools page (Ctrl+T, or the Tools button): every tool on one list with what
 it does and how it stands right now (lists loaded, leaks, rules, open allows,
 admin or not). Double-click to run one.
+
+REQUIRED FOR APP
+Tools > Required for app (also tray, live map right-click, Tools page): every app
+kisib has seen, the roots it used, and the CAs in between, from every check
+Windows logged, kept in REQUIRED FOR APP (what each app used).txt. Tick an app,
+a root or a single CA and press Keep the ticked ones working: kisib unblocks
+them, puts a missing root back (only roots Windows' own list names) and keeps
+them on the never-block list. Untick one to let your rules decide again.
+
+IMPORT A CERTIFICATE FILE
+Certificate > Import > File..., or right-click the live map > Import > File...:
+picks a .cer/.crt/.der/.pem/.p7b/.sst (starts at C:\). Roots go into Trusted Root
+(asked first if Windows' own list doesn't name them), CAs into Intermediate CAs,
+and a block on what you import comes off. Files with private keys are refused.
 
 GET WHAT IT ASKED FOR
 On a refusal (card, live map, denials list, --do get <site|program>): kisib takes
