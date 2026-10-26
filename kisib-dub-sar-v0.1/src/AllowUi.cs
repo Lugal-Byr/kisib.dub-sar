@@ -164,7 +164,12 @@ namespace Kisib
             lastSay = text; lastSayAt = DateTime.Now; saidCount++;
             status.Text = text;
             sessionLog.Add(DateTime.UtcNow.ToString("o") + "\t" + text);
-            if (tray != null) try { tray.ShowBalloonTip(6000, "kisib", text.Length > 250 ? text.Substring(0, 250) + "..." : text, ToolTipIcon.Info); } catch (Exception) { }
+            // The tray note gets the first sentence only; the whole line stays in the status bar.
+            string tip = text;
+            int stop = tip.IndexOf(". ", StringComparison.Ordinal);
+            if (stop > 15 && stop < 150) tip = tip.Substring(0, stop + 1);
+            if (tip.Length > 150) tip = tip.Substring(0, 149) + "…";
+            if (tray != null) try { tray.ShowBalloonTip(5000, "kisib", tip, ToolTipIcon.None); } catch (Exception) { }
         }
 
         // Proof it worked: the next check that touches these certificates says whether it got through.

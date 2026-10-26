@@ -103,8 +103,13 @@ Tool windows (denials, reroute check, rules, standings...) are normal windows:
 the main window stays usable, each reopens where you left it, Esc closes it.
 
 POP-UPS AND THE REFUSAL CARD
-A refusal pop-up stays in the corner until you answer it (up to four stack).
-Refusal card opens next to it: who asked (svchost.exe shows the Windows service
+A refusal pop-up is a small card in the corner (up to four stack): an emoji for
+the kind (🚫 blocked by you, 🔑 root missing, ⛔ revoked or Disallowed, 🌀 a trusted
+service can't connect, ❔ anything else), who -> what on one line, why and the time
+on a short grey line, and chips: Allow (when it's your block), Fix it (get what it
+asked for), Details, Shh 1 h. Click the card for the refusal card; × closes it.
+Tray notes show only the first sentence; the whole line stays in the status bar.
+The refusal card: who asked (svchost.exe shows the Windows service
 inside it; for lsass.exe kisib matches the open connection to name the real app
 [to test]), which check Windows ran, the chain in order, why, and every way out:
 Allow, Reroute, Keep blocked, Quiet this site for 1 hour.

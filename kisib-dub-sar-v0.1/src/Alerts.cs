@@ -269,12 +269,10 @@ namespace Kisib
                 // A trusted category is failing: one calm notice per hour, not a pop-up per refusal.
                 string key = d.Category ?? ("known: " + (d.Who ?? d.Subject).Split('\n').Last().Split('=')[0].Trim());
                 if (!CategoryNoticeDue(key)) return;
-                ShowDenialToast(d, (d.Category != null ? "Expected service broken: " + d.Category : "Known company, refused") + "\r\n" + d.Who + "\r\n" + ShortReason(d.Reason) +
-                    (d.Category != null ? "\r\nTools > Repair > Windows essentials puts missing Microsoft roots back." : "\r\nTurn its category on in Tools > Trusted categories to protect it."));
+                ShowDenialToast(d);
                 return;
             }
-            string text = d.Who + "\r\n" + ShortReason(d.Reason) + (d.BlockedBy != null ? "\r\nBlocked by your Disallowed list: " + d.BlockedBy : "");
-            ShowDenialToast(d, text);
+            ShowDenialToast(d);
             status.Text = "DENIED: " + d.Program + " → " + d.Subject + " (" + d.Code + ")" + (d.BlockedBy != null ? " — your block" : "");
         }
 

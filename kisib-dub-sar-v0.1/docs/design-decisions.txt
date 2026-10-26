@@ -666,3 +666,10 @@ SHA-1, result checked against the SHA-1), lifts blocks for good, imports missing
 Intermediate CAs (recorded in ROUTES), and fetches a missing root from Microsoft's list. When nothing applies
 to a CRYPT_E_REVOKED refusal it says the issuer revoked it; an import can't change that, so kisib doesn't
 pretend. Apple's iCloud programs added to who-is-who; new shipped program names merge into the user's copy.
+
+D062 Cuter, shorter pop-ups (user, 2026-10-26: "condense the little notification cards to be cuter and easier to
+read"). The refusal toast went from a 520x210 tool window with the full who-is-who text to a 340x88 rounded
+card with a soft shadow: a color stripe and emoji per kind (blocked by you / root missing / revoked or
+Disallowed / trusted service / other), one line "friendly program -> site or CA" (Apple Push Service instead of
+APSDaemon.exe, the service name for svchost), one grey line why + time, and flat chips Allow / Fix it /
+Details / Shh 1 h. The long hints moved to the refusal card. Tray balloons carry only the first sentence.
