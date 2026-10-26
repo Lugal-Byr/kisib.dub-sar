@@ -162,6 +162,19 @@ namespace Kisib
                     if (had != null) { had.Fixes += ", " + cat.Name; continue; }
                     set.Rows.Add(row);
                 }
+            // Keep-reachable categories: the whole chain counts, not only the roots. A bloc rule blocks the CAs under a root
+            // too (Let's Encrypt YE2 / Root YE, Google WE1...), and one blocked CA in the middle cuts the app off.
+            if (overrideRules && snapshot.Paths != null)
+                foreach (TrustCategory cat in TrustCategories.Read().Where(which))
+                {
+                    List<CertificateRecord> roots = CategoryRoots(cat);
+                    foreach (CertificateRecord c in ChainUnder(roots)) AddReach(set, c, cat.Name + ": a CA under " + String.Join(" / ", cat.Roots.Take(3).ToArray()) + (cat.Roots.Count > 3 ? "..." : ""), cat.Name, ruled);
+                    // A root that isn't in Trusted Root (and kisib can't put there without admin) is reached through its
+                    // cross-sign, so the root that signed the cross-sign has to stay open too (GTS R4 <- GlobalSign Root CA).
+                    foreach (CertificateRecord r in roots.Where(x => !TrustGraph.InRootStore(x) && !(Elevation.IsElevated && Seals.BySha1(x.Sha1) != null)))
+                        foreach (CertificateRecord signer in CrossSigners(r))
+                            AddReach(set, signer, cat.Name + ": " + r.SubjectShortName + " isn't in Trusted Root, so Windows goes through " + signer.SubjectShortName, cat.Name, ruled);
+                }
             // Keep-reachable categories: anything blocked behind a refusal of their program or sites in the last day goes too.
             if (overrideRules)
                 foreach (TrustCategory cat in TrustCategories.Read().Where(which))
@@ -176,6 +189,76 @@ namespace Kisib
                             set.Rows.Add(row);
                         }
             return set;
+        }
+
+        private List<CertificateRecord> CategoryRoots(TrustCategory cat)
+        {
+            List<CertificateRecord> roots = new List<CertificateRecord>();
+            foreach (string name in cat.Roots)
+            {
+                Seal seal = Seals.ByName(name);
+                CertificateRecord c = seal != null ? (snapshot.BySha1(seal.Sha1) ?? seal.Record) : snapshot.Certificates.Values
+                    .Where(x => String.Equals(x.SubjectCn, name, StringComparison.OrdinalIgnoreCase) && x.Subject == x.Issuer).OrderByDescending(x => x.NotAfter).FirstOrDefault();
+                if (c != null && c.SpkiSha256 != null) roots.Add(c);
+            }
+            return roots;
+        }
+
+        // Every live blocked certificate whose key sits under these roots (up to 4 levels), plus blocked key twins on the way.
+        private List<CertificateRecord> ChainUnder(List<CertificateRecord> roots)
+        {
+            TrustGraph g = snapshot.Paths;
+            DateTime now = DateTime.UtcNow;
+            HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
+            Queue<KeyValuePair<string, int>> queue = new Queue<KeyValuePair<string, int>>();
+            foreach (CertificateRecord r in roots) if (seen.Add(r.SpkiSha256)) queue.Enqueue(new KeyValuePair<string, int>(r.SpkiSha256, 0));
+            while (queue.Count > 0)
+            {
+                KeyValuePair<string, int> k = queue.Dequeue();
+                List<CertificateRecord> kids;
+                if (k.Value >= 4 || !g.Children.TryGetValue(k.Key, out kids)) continue;
+                foreach (CertificateRecord c in kids)
+                    if (TrustGraph.Live(c, now) && c.SpkiSha256 != null && seen.Add(c.SpkiSha256)) queue.Enqueue(new KeyValuePair<string, int>(c.SpkiSha256, k.Value + 1));
+            }
+            Dictionary<string, CertificateRecord> found = new Dictionary<string, CertificateRecord>(StringComparer.OrdinalIgnoreCase);
+            foreach (string key in seen)
+            {
+                List<CertificateRecord> same;
+                if (g.ByKey.TryGetValue(key, out same))
+                    foreach (CertificateRecord c in same) if (snapshot.IsBlocked(c) && TrustGraph.Live(c, now)) found[c.Sha1] = c;
+            }
+            return found.Values.ToList();
+        }
+
+        // The roots that cross-signed this root's key and are blocked.
+        private List<CertificateRecord> CrossSigners(CertificateRecord root)
+        {
+            TrustGraph g = snapshot.Paths;
+            List<CertificateRecord> twins, result = new List<CertificateRecord>();
+            if (!g.ByKey.TryGetValue(root.SpkiSha256, out twins)) return result;
+            DateTime now = DateTime.UtcNow;
+            foreach (CertificateRecord twin in twins)
+            {
+                List<string> keys;
+                if (!TrustGraph.Live(twin, now) || !g.IssuerKeys.TryGetValue(twin.Identity, out keys)) continue;
+                foreach (string key in keys)
+                {
+                    List<CertificateRecord> issuers;
+                    if (g.ByKey.TryGetValue(key, out issuers))
+                        result.AddRange(issuers.Where(i => g.SelfSigned.Contains(i.Identity) && snapshot.IsBlocked(i) && TrustGraph.Live(i, now)));
+                }
+            }
+            return result.GroupBy(c => c.Sha1).Select(x => x.First()).ToList();
+        }
+
+        private void AddReach(RepairSet set, CertificateRecord c, string fixes, string category, Dictionary<string, string> ruled)
+        {
+            if (set.Rows.Any(r => r.Cert != null && String.Equals(r.Cert.Sha1, c.Sha1, StringComparison.OrdinalIgnoreCase))) return;
+            Seal seal = Seals.BySha1(c.Sha1);
+            RepairRow row = Row(c, seal == null ? null : seal.Der, fixes, ruled);
+            row.Check = true;
+            row.Note = (row.RuledBy != null ? "in your " + row.RuledBy + " rule, " : "") + "kept working for " + category;
+            set.Rows.Add(row);
         }
 
         private static bool Belongs(TrustCategory cat, Denial d)

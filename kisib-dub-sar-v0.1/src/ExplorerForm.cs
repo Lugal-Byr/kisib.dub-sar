@@ -235,7 +235,15 @@ namespace Kisib
                         result.LeakCount = CountLeaks(result);
                     }
                     if (history != null) history.Commit(result);
-                    Post(delegate { Display(result, rules, stamp); FinishScan(); if (rules.Added > 0) StartScan(true); else KeepReachable(false); });
+                    Post(delegate
+                    {
+                        bool drawn = false;
+                        try { Display(result, rules, stamp); drawn = true; }
+                        catch (Exception ex) { DrawFailed(ex); }
+                        finally { FinishScan(); }
+                        if (rules.Added > 0) StartScan(true);
+                        else if (drawn) try { KeepReachable(false); } catch (Exception ex) { CrashLog.Write("keep Claude reachable", ex); }
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -296,41 +304,46 @@ namespace Kisib
             foreach (TreeNode oldRoot in groupTree.Nodes) CollectExpanded(oldRoot, expanded);
             snapshot = result;
             if (history == null || history.FailedWrites > 0) sessionLog.AddRange(result.Log);
-            tree.BeginUpdate(); tree.Nodes.Clear();
-            TreeNode root = new TreeNode(Environment.MachineName + " — Certificates") { Tag = result };
-            tree.Nodes.Add(root);
-            foreach (StoreLocation location in result.Locations)
+            tree.BeginUpdate();
+            TreeNode root;
+            try
             {
-                TreeNode locationNode = new TreeNode(location.Name + "   " + location.RegistryPath + (location.Error == null ? "" : " [error]")) { Tag = location };
-                root.Nodes.Add(locationNode);
-                foreach (SystemStore system in location.Stores)
+                tree.Nodes.Clear();
+                root = new TreeNode(Environment.MachineName + " — Certificates") { Tag = result };
+                tree.Nodes.Add(root);
+                foreach (StoreLocation location in result.Locations)
                 {
-                    TreeNode systemNode = new TreeNode(system.Name + " (" + system.Certificates.Count + (system.ReadSucceeded ? "" : " observed") + ")" +
-                        (system.Error == null && system.PhysicalEnumerationError == null ? "" : " [error]")) { Tag = system,
-                        ToolTipText = Source("CertEnumSystemStore / CertEnumPhysicalStore", Sources.Physical) };
-                    locationNode.Nodes.Add(systemNode);
-                    foreach (PhysicalStore physical in system.PhysicalStores)
-                        systemNode.Nodes.Add(new TreeNode(physical.Name + " (" + physical.Certificates.Count + (physical.ReadSucceeded ? "" : " observed") + ")" +
-                            (physical.Error == null ? "" : " [error]")) { Tag = physical,
-                            ToolTipText = physical.Path + "\r\n" + Source("CertEnumPhysicalStore", Sources.Physical) });
-                    AddDocumentedPhysicalReferences(location, system, systemNode);
+                    TreeNode locationNode = new TreeNode(location.Name + "   " + location.RegistryPath + (location.Error == null ? "" : " [error]")) { Tag = location };
+                    root.Nodes.Add(locationNode);
+                    foreach (SystemStore system in location.Stores)
+                    {
+                        TreeNode systemNode = new TreeNode(system.Name + " (" + system.Certificates.Count + (system.ReadSucceeded ? "" : " observed") + ")" +
+                            (system.Error == null && system.PhysicalEnumerationError == null ? "" : " [error]")) { Tag = system,
+                            ToolTipText = Source("CertEnumSystemStore / CertEnumPhysicalStore", Sources.Physical) };
+                        locationNode.Nodes.Add(systemNode);
+                        foreach (PhysicalStore physical in system.PhysicalStores)
+                            systemNode.Nodes.Add(new TreeNode(physical.Name + " (" + physical.Certificates.Count + (physical.ReadSucceeded ? "" : " observed") + ")" +
+                                (physical.Error == null ? "" : " [error]")) { Tag = physical,
+                                ToolTipText = physical.Path + "\r\n" + Source("CertEnumPhysicalStore", Sources.Physical) });
+                        AddDocumentedPhysicalReferences(location, system, systemNode);
+                    }
+                    AddDocumentedSystemReferences(location, locationNode);
                 }
-                AddDocumentedSystemReferences(location, locationNode);
+                root.Expand();
+                foreach (TreeNode child in root.Nodes)
+                { StoreLocation location = child.Tag as StoreLocation; if (location != null && (location.Flags == Native.CERT_SYSTEM_STORE_LOCAL_MACHINE || location.Flags == Native.CERT_SYSTEM_STORE_CURRENT_USER)) child.Expand(); }
+                foreach (string key in expanded) { TreeNode node = FindNode(root, key); if (node != null) node.Expand(); }
+                AddGroupTree(result, expanded);
+                TreeNode reselect = null, regroup = null;
+                foreach (TreeNode top in tree.Nodes) if (reselect == null) reselect = FindNode(top, selectedSource);
+                foreach (TreeNode top in groupTree.Nodes) if (regroup == null) regroup = FindNode(top, selectedSource);
+                ActiveTreeReselect = ActiveTree == groupTree ? (regroup ?? (groupTree.Nodes.Count > 0 ? groupTree.Nodes[0] : null)) : (reselect ?? root);
             }
-            root.Expand();
-            foreach (TreeNode child in root.Nodes)
-            { StoreLocation location = child.Tag as StoreLocation; if (location != null && (location.Flags == Native.CERT_SYSTEM_STORE_LOCAL_MACHINE || location.Flags == Native.CERT_SYSTEM_STORE_CURRENT_USER)) child.Expand(); }
-            foreach (string key in expanded) { TreeNode node = FindNode(root, key); if (node != null) node.Expand(); }
-            AddGroupTree(result, expanded);
-            TreeNode reselect = null, regroup = null;
-            foreach (TreeNode top in tree.Nodes) if (reselect == null) reselect = FindNode(top, selectedSource);
-            foreach (TreeNode top in groupTree.Nodes) if (regroup == null) regroup = FindNode(top, selectedSource);
-            tree.EndUpdate();
-            if (ActiveTree == groupTree) groupTree.SelectedNode = regroup ?? (groupTree.Nodes.Count > 0 ? groupTree.Nodes[0] : null);
-            else tree.SelectedNode = reselect ?? root;
+            finally { tree.EndUpdate(); }
+            ActiveTree.SelectedNode = ActiveTreeReselect;
             if (selectedCertificate != null)
                 foreach (ListViewItem row in list.Items)
-                    if (((CertificateRecord)row.Tag).Der.SequenceEqual(selectedCertificate.Der)) { row.Selected = true; row.EnsureVisible(); break; }
+                    if (String.Equals(((CertificateRecord)row.Tag).Sha1, selectedCertificate.Sha1, StringComparison.OrdinalIgnoreCase)) { row.Selected = true; row.EnsureVisible(); break; }
             status.Text = (history != null ? HistoryStatus() + " | " : "") + ClockStatus(result) + " | " + result.Certificates.Count + " certificates in " + result.PhysicalCount + " stores";
             errorsLink.Text = result.Errors.Count + " errors";
             DateTime? msList = MicrosoftList.Updated;
@@ -345,6 +358,17 @@ namespace Kisib
             if (liveMap != null && !liveMap.IsDisposed) liveMap.RefreshBlocked();
             if (toolsRefresh != null) toolsRefresh();
             OpenPendingFile();
+        }
+
+        private TreeNode ActiveTreeReselect;
+
+        // Something broke while drawing: say so in the window instead of leaving it blank, and keep scanning.
+        private void DrawFailed(Exception ex)
+        {
+            CrashLog.Write("drawing the window", ex);
+            try { if (ActiveTree.Nodes.Count == 0) ActiveTree.Nodes.Add(new TreeNode("Couldn't draw the list (CRASH LOG.txt has why). Press F5 to try again.")); } catch (Exception) { }
+            details.Text = "kisib couldn't draw the window after the scan:\r\n" + ex.GetType().Name + ": " + ex.Message + "\r\n\r\nIt keeps running and blocking; the full error is in " + Storage.FolderName + "\\" + Storage.CrashLog + ".\r\n\r\n" + ex;
+            status.Text = "Couldn't draw the window: " + ex.Message + " (CRASH LOG.txt)";
         }
 
         private string HistoryStatus()
@@ -429,22 +453,31 @@ namespace Kisib
                     "\r\nPredefined: " + physical.Predefined + "\r\ndwPriority: " + physical.Priority + "\r\ndwFlags: 0x" + physical.Flags.ToString("X8") +
                     "\r\nRead: " + (physical.Error ?? "Completed") + "\r\n\r\n" + Source("CERT_PHYSICAL_STORE_INFO", Sources.PhysicalInfo);
             }
-            list.BeginUpdate(); list.ListViewItemSorter = null; list.Items.Clear();
-            rowBlocked = snapshot.Blocked;
-            List<ListViewItem> rows = new List<ListViewItem>(keys.Count);
-            foreach (string key in keys)
+            list.BeginUpdate();
+            int skipped = 0;
+            try
             {
-                CertificateRecord record = snapshot.Certificates[key];
-                if (!MatchesFind(record)) continue;
-                rows.Add(CertificateRow(record));
+                list.ListViewItemSorter = null; list.Items.Clear();
+                rowBlocked = snapshot.Blocked;
+                List<ListViewItem> rows = new List<ListViewItem>(keys.Count);
+                foreach (string key in keys)
+                {
+                    CertificateRecord record;
+                    if (!snapshot.Certificates.TryGetValue(key, out record)) continue;
+                    try { if (MatchesFind(record)) rows.Add(CertificateRow(record)); }
+                    catch (Exception ex) { if (skipped++ == 0) CrashLog.Write("list row " + record.Sha1, ex); }
+                }
+                // One AddRange is many times faster than thousands of single adds.
+                list.Items.AddRange(rows.ToArray());
+                list.ListViewItemSorter = new CertificateComparer(sortColumn, ascending); list.Sort();
             }
-            // One AddRange is many times faster than thousands of single adds.
-            list.Items.AddRange(rows.ToArray());
-            list.ListViewItemSorter = new CertificateComparer(sortColumn, ascending); list.Sort(); list.EndUpdate();
+            finally { list.EndUpdate(); }
+            if (skipped > 0) nodeDetails = skipped + " certificates couldn't be listed (CRASH LOG.txt has why).\r\n\r\n" + nodeDetails;
             details.Text = nodeDetails;
             issuerDetails.Text = "Select a certificate to inspect its recorded issuer name.";
         }
 
+        private bool emojiFailed;
         private void DrawCertificateCell(object sender, DrawListViewSubItemEventArgs e)
         {
             CertificateRecord cert = e.Item.Tag as CertificateRecord;
@@ -456,8 +489,11 @@ namespace Kisib
             Color foreground = collision ? Color.White : selected ? SystemColors.HighlightText : blockedRow ? Color.Firebrick : warning ? SystemColors.InfoText : SystemColors.WindowText;
             using (Brush brush = new SolidBrush(background)) e.Graphics.FillRectangle(brush, e.Bounds);
             Rectangle bounds = e.Bounds; bounds.X += 4; bounds.Width = Math.Max(0, bounds.Width - 8);
-            if (EmojiText.Has(e.SubItem.Text)) EmojiText.Draw(e.Graphics, e.SubItem.Text, list.Font, bounds, foreground);
-            else TextRenderer.DrawText(e.Graphics, e.SubItem.Text, list.Font, bounds, foreground,
+            bool plain = !EmojiText.Has(e.SubItem.Text);
+            if (!plain)
+                try { EmojiText.Draw(e.Graphics, e.SubItem.Text, list.Font, bounds, foreground); }
+                catch (Exception ex) { plain = true; if (!emojiFailed) { emojiFailed = true; CrashLog.Write("drawing emoji", ex); } }
+            if (plain) TextRenderer.DrawText(e.Graphics, e.SubItem.Text, list.Font, bounds, foreground,
                 TextFormatFlags.EndEllipsis | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
             if (selected && list.Focused && e.ColumnIndex == 0) ControlPaint.DrawFocusRectangle(e.Graphics, e.Bounds, foreground, background);
         }

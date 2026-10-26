@@ -178,9 +178,14 @@ admin or not). Double-click to run one.
 KEEP CLAUDE REACHABLE
 The Claude app checks certificates through Windows, so blocking a bloc that holds
 Let's Encrypt (ISRG) or Google Trust Services can cut it off without a pop-up.
-After every scan kisib checks those roots and, if one is blocked or missing,
-unblocks it and puts kisib's own pinned copy back, even inside a blocked bloc.
-Anything blocked behind a refusal of claude.exe or a Claude site goes too.
+After every scan kisib checks those roots and the CAs under them (claude.ai runs
+YE2 <- Root YE <- ISRG Root X2; Claude's bridge runs WE1 <- GTS Root R4). Anything
+in that chain that is blocked gets unblocked, and missing roots go back from
+kisib's own pinned copies, even inside a blocked bloc. If GTS Root R4 isn't in
+Trusted Root (no admin), GlobalSign Root CA, which cross-signs it, stays open
+too. Anything blocked behind a refusal of claude.exe or a Claude site goes too.
+These CAs sign other sites as well, so every Let's Encrypt and Google Trust
+site gets through again, not only Claude.
 Tray > Fix Claude's connection does it now. Tools page > Keep Claude reachable
 turns the automatic check on or off. The list lives in TRUSTED CATEGORIES.txt
 under [Claude (Anthropic)] (keep reachable = on); any category can use it.
@@ -192,7 +197,7 @@ things from the desktop app's shell. Commands: status, claude, fix claude,
 keep-claude on|off, denials [n], find <text>, cert <sha1>, rescan,
 repair <essentials|online|windows|categories|claude|used|reset|putback> [list],
 allow <sha1|site> <3|10|60|restart|always>, unblock <sha1|site>, reblock, rules,
-unblock-bloc <name>, quiet on|off, log [n]. "--do help" lists them.
+unblock-bloc <name>, quiet on|off, log [n], crashlog [n]. "--do help" lists them.
 If kisib isn't running, --do starts it in the tray first. The answer is also
 saved in LAST COMMAND (for Claude).txt. Where kisib lives is written to
 %LOCALAPPDATA%\kisib.dub-sar\where is kisib.txt each start. Tray > Copy the line
@@ -203,7 +208,9 @@ SPEED
 kisib rescans when Windows changes a certificate store, not every minute, and
 skips redrawing when nothing changed. Heavy work happens off the window, so it
 doesn't freeze with thousands of blocks. If something still goes wrong, kisib
-writes it to CRASH LOG.txt in PORTABLE BACKUP LISTS and keeps running.
+writes it to CRASH LOG.txt in PORTABLE BACKUP LISTS and keeps running. If the
+window can't be drawn, it says so in the window (with the error) instead of
+going blank, and keeps scanning.
 
 MORE VIEWS
 View > Standings: CA owners grouped by country with roots, intermediates,

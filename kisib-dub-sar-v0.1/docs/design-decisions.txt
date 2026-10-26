@@ -636,3 +636,13 @@ kisib.dub-sar.exe --do "<command>" sends one line over the named pipe kisib.dub-
 and prints the reply (status, refusals, find, cert, rescan, repair, allow, unblock, reblock, unblock-bloc,
 quiet, log). The pipe allows the current user, Administrators and SYSTEM, denies NETWORK; no extra prompt,
 by the user's call (no safety friction). Commands run on the window thread; nothing opens a dialog.
+
+D059 Claude still blocked, main window blank (user, 2026-10-26). Lifting only the six roots wasn't enough:
+bloc rules had also blocked the CAs under them (claude.ai: YE2 <- Root YE <- ISRG Root X2; bridge:
+WE1 <- GTS Root R4 <- GlobalSign Root CA), and the Claude app (Chromium) honors Disallowed without logging to
+CAPI2, so no refusal pointed at them. Keep reachable now walks the trust graph down from the category's roots
+(4 levels, live certificates, key twins) and lifts every blocked one; when a root isn't in Trusted Root and
+kisib can't add it (no admin), the blocked root that cross-signed it is lifted too. Window: Display and the
+list fill now always end their BeginUpdate (an exception left the tree or list frozen blank and, because
+FinishScan never ran, stopped all further scans); a draw failure is shown in the window and logged; emoji
+drawing falls back to plain text; EnsureFiles is locked. --do crashlog [n] reads the last caught errors.

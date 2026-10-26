@@ -29,7 +29,13 @@ namespace Kisib
         internal static string SourceDirectory;
 
         private static bool ensured;
+        private static readonly object ensureGate = new object();
         internal static void EnsureFiles()
+        {
+            lock (ensureGate) EnsureFilesNow();
+        }
+
+        private static void EnsureFilesNow()
         {
             if (ensured) return;
             foreach (KeyValuePair<string, string> f in Shipped)

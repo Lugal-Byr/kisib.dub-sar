@@ -152,6 +152,7 @@ namespace Kisib
             "  unblock-bloc <name>          drop a bloc/continent/country rule and lift what kisib blocked for it\r\n" +
             "  quiet on|off                 refusal pop-ups\r\n" +
             "  log [n]                      the last n lines of block history (default 30)\r\n" +
+            "  crashlog [n]                 the last n errors kisib caught (default 3)\r\n" +
             "Replies are also saved in " + Storage.FolderName + "\\" + Storage.LastCommand + "\r\n";
 
         // One command in, plain text out. Called on the pipe thread.
@@ -163,6 +164,7 @@ namespace Kisib
             string rest = words.Length > 1 ? line.Substring(line.IndexOf(words[1], words[0].Length, StringComparison.Ordinal)).Trim() : "";
             string arg2 = words.Length > 2 ? words[words.Length - 1].ToLowerInvariant() : "";
             if (verb == "help" || verb == "?" || verb == "/?") return CommandHelp;
+            if (verb == "crashlog") return CrashTail(Number(rest, 3));
             if (verb != "quiet" && verb != "keep-claude" && verb != "log" && verb != "rules" && !WaitFor(() => snapshot != null, 120))
                 return "kisib is still on its first scan. Try again in a minute.";
             switch (verb)
@@ -237,6 +239,20 @@ namespace Kisib
                 }
             }
             return "Unknown command: " + verb + "\r\n\r\n" + CommandHelp;
+        }
+
+        private static string CrashTail(int count)
+        {
+            string path = Storage.File(Storage.CrashLog);
+            if (!File.Exists(path)) return "No errors caught: " + Storage.CrashLog + " doesn't exist.";
+            string text;
+            using (FileStream f = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            {
+                if (f.Length > 512 * 1024) f.Seek(-512 * 1024, SeekOrigin.End);
+                using (StreamReader r = new StreamReader(f, Encoding.UTF8)) text = r.ReadToEnd();
+            }
+            string[] entries = text.Split(new string[] { "\r\n\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+            return String.Join("\r\n\r\n", entries.Skip(Math.Max(0, entries.Length - count)).ToArray()) + "\r\n";
         }
 
         private static int Number(string text, int fallback)
