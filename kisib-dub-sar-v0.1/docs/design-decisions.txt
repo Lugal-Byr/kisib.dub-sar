@@ -673,3 +673,13 @@ card with a soft shadow: a color stripe and emoji per kind (blocked by you / roo
 Disallowed / trusted service / other), one line "friendly program -> site or CA" (Apple Push Service instead of
 APSDaemon.exe, the service name for svchost), one grey line why + time, and flat chips Allow / Fix it /
 Details / Shh 1 h. The long hints moved to the refusal card. Tray balloons carry only the first sentence.
+
+D063 "Microsoft's list doesn't have Apple Root CA" was wrong (user screenshot, 2026-10-26). The fetch only trusted
+a fresh certutil -generateSSTFromWU list and matched by SHA-1; a short list (firewall cutting certutil off) or a
+SHA-1 that wasn't the self-signed copy made it say no. Now the deciding list is Windows' own authroot.stl,
+read from HKLM\SOFTWARE\Microsoft\SystemCertificates\AuthRoot\AutoUpdate\EncodedCtl (admin-only; entries
+are SEQUENCE { OCTET STRING sha1, attributes }, parsed by a small DER walker). Candidates come from kisib's
+records matching the request or the root's name; a candidate is added only if that list names its SHA-1, and
+its bytes come from kisib's lists, Windows Update's own <SHA-1>.crt download or certutil, checked by SHA-1.
+Without a stored list it falls back to certutil and says why (and if the automatic root download is off).
+--do status shows the list's size and sync date.

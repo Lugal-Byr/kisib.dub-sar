@@ -6,6 +6,7 @@ using System.Security.AccessControl;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
 using System.Threading;
+using System.Text;
 using Microsoft.Win32;
 using X509Location = System.Security.Cryptography.X509Certificates.StoreLocation;
 
@@ -43,40 +44,99 @@ namespace Kisib
             }, MissingRootName(d));
         }
 
+        // 1. Which roots: what kisib already knows (this PC, Microsoft list, CCADB) matching the request or its name.
+        // 2. Approved only if Windows' own trusted-root list names its SHA-1 (authroot.stl in HKLM, kept by Windows).
+        // 3. The certificate itself from the first source that has it, checked by SHA-1: kisib's lists, Windows
+        //    Update's root download (the same file Windows fetches), or a fresh certutil list.
         internal void FetchFromMicrosoft(Func<CertificateRecord, bool> wanted, string label)
         {
             if (fetchingRoots) { Say("Already getting roots from Microsoft; one moment."); return; }
+            Dictionary<string, byte[]> known = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            if (snapshot != null)
+                foreach (CertificateRecord c in snapshot.Certificates.Values)
+                    if (c.Subject == c.Issuer && (wanted(c) || SameRootName(c, label)) && !known.ContainsKey(c.Sha1)) known[c.Sha1] = c.Der;
             fetchingRoots = true;
-            Say("Getting " + label + " from Microsoft's root list (certutil asks Windows Update, up to a minute)...");
+            Say("Getting " + label + " the way Windows would (its own root list decides)...");
             bool elevated = Elevation.IsElevated;
             Thread worker = new Thread(delegate()
             {
                 List<byte[]> found = new List<byte[]>();
-                string error = null, folder = null;
+                List<string> notes = new List<string>();
+                string error = null;
                 try
                 {
-                    folder = PrivateFolder(elevated);
-                    string sst = Path.Combine(folder, "roots.sst");
-                    error = MicrosoftList.Generate(sst);
-                    if (error == null)
+                    HashSet<string> listed = AuthRootList.Sha1s();
+                    if (listed.Count > 50)
                     {
-                        X509Certificate2Collection roots = new X509Certificate2Collection();
-                        roots.Import(sst);
-                        foreach (X509Certificate2 x in roots)
+                        List<string> approved = known.Keys.Where(listed.Contains).ToList();
+                        if (approved.Count == 0)
+                            notes.Add(known.Count == 0 ? "kisib has never seen a root called " + label + " (Tools > Update Microsoft root list adds all of them)"
+                                : "Windows' own root list (" + listed.Count + " roots" + (AuthRootList.Synced.HasValue ? ", synced " + AuthRootList.Synced.Value.ToLocalTime().ToString("yyyy-MM-dd") : "") + ") doesn't name " + label);
+                        foreach (string sha1 in approved)
                         {
-                            CertificateRecord c = CertificateRecord.FromDer(x.RawData);
-                            if (c != null && c.Subject == c.Issuer && wanted(c)) found.Add(x.RawData);
+                            byte[] der = known[sha1];
+                            if (der == null || !Sha1Of(der).Equals(sha1, StringComparison.OrdinalIgnoreCase)) der = WindowsUpdateRoot(sha1, notes);
+                            if (der != null) found.Add(der);
                         }
+                    }
+                    else
+                    {
+                        // Windows has no root list stored (its automatic root download never ran): ask certutil for one.
+                        notes.Add("Windows has no root list of its own here" + (RootAutoUpdateOff() ? " (its automatic root download is switched off)" : ""));
+                        string folder = PrivateFolder(elevated);
+                        try
+                        {
+                            string sst = Path.Combine(folder, "roots.sst");
+                            error = MicrosoftList.Generate(sst);
+                            if (error == null)
+                            {
+                                X509Certificate2Collection roots = new X509Certificate2Collection();
+                                roots.Import(sst);
+                                foreach (X509Certificate2 x in roots)
+                                {
+                                    CertificateRecord c = CertificateRecord.FromDer(x.RawData);
+                                    if (c != null && c.Subject == c.Issuer && (known.ContainsKey(c.Sha1) || wanted(c) || SameRootName(c, label))) found.Add(x.RawData);
+                                }
+                                if (found.Count == 0) notes.Add("certutil's list had " + roots.Count + " roots and none is " + label + (roots.Count < 200 ? " (that's short: a firewall may be cutting certutil off)" : ""));
+                            }
+                        }
+                        finally { try { Directory.Delete(folder, true); } catch (Exception) { } }
                     }
                 }
                 catch (Exception ex) { error = ex.GetType().Name + ": " + ex.Message; }
-                finally { try { if (folder != null) Directory.Delete(folder, true); } catch (Exception) { } }
-                Post(delegate { fetchingRoots = false; FinishFetch(found, error, label, elevated); });
+                Post(delegate { fetchingRoots = false; FinishFetch(found, error, label, elevated, notes); });
             });
             worker.IsBackground = true; worker.Name = "kisib root from Microsoft"; worker.Start();
         }
 
-        private void FinishFetch(List<byte[]> found, string error, string label, bool elevated)
+        private static bool SameRootName(CertificateRecord c, string label)
+        {
+            return !String.IsNullOrEmpty(label) && (String.Equals(c.SubjectShortName, label, StringComparison.OrdinalIgnoreCase) || String.Equals(c.SubjectCn, label, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string Sha1Of(byte[] der)
+        {
+            using (System.Security.Cryptography.SHA1 sha = System.Security.Cryptography.SHA1.Create())
+                return BitConverter.ToString(sha.ComputeHash(der)).Replace("-", "");
+        }
+
+        // The file Windows itself downloads for a missing root: ctldl.windowsupdate.com/.../<SHA-1>.crt.
+        private static byte[] WindowsUpdateRoot(string sha1, List<string> notes)
+        {
+            try
+            {
+                using (System.Net.WebClient web = new System.Net.WebClient())
+                {
+                    byte[] der = web.DownloadData("http://ctldl.windowsupdate.com/msdownload/update/v3/static/trustedr/en/" + sha1.ToUpperInvariant() + ".crt");
+                    if (Sha1Of(der).Equals(sha1, StringComparison.OrdinalIgnoreCase)) return der;
+                    notes.Add("Windows Update sent a different file for " + sha1.Substring(0, 8) + ", not used");
+                }
+            }
+            catch (Exception ex) { notes.Add("Windows Update download failed: " + ex.Message); }
+            return null;
+        }
+
+        private void FinishFetch(List<byte[]> found, string error, string label, bool elevated, List<string> notes)
         {
             if (error != null)
             {
@@ -84,7 +144,7 @@ namespace Kisib
                 Say("Couldn't get Microsoft's root list: " + first + (RootAutoUpdateOff() ? " Windows' automatic root download is switched off on this PC too (policy DisableRootAutoUpdate)." : " A VPN or firewall blocking certutil can cause this."));
                 return;
             }
-            if (found.Count == 0) { Say("Microsoft's list doesn't have " + label + " as a trusted root, so kisib won't add it."); return; }
+            if (found.Count == 0) { Say("Didn't add " + label + ": " + (notes.Count > 0 ? String.Join("; ", notes.ToArray()) : "no trusted root by that name") + "."); return; }
             List<string> added = new List<string>(), problems = new List<string>();
             foreach (byte[] der in found)
             {
@@ -143,6 +203,83 @@ namespace Kisib
                 catch (Exception) { }
             }
             return false;
+        }
+    }
+
+    // Windows' own trusted-root list: authroot.stl as Windows last synced it, in HKLM (only admins and Windows
+    // write there). Its entries are the SHA-1s of every root Windows would download on demand.
+    internal static class AuthRootList
+    {
+        internal static DateTime? Synced;
+        private static HashSet<string> cache;
+        private static int cacheLength = -1;
+
+        internal static HashSet<string> Sha1s()
+        {
+            byte[] blob = null;
+            try
+            {
+                using (RegistryKey k = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\SystemCertificates\AuthRoot\AutoUpdate"))
+                {
+                    if (k != null)
+                    {
+                        blob = k.GetValue("EncodedCtl") as byte[];
+                        byte[] t = k.GetValue("LastSyncTime") as byte[];
+                        if (t != null && t.Length == 8) Synced = DateTime.FromFileTimeUtc(BitConverter.ToInt64(t, 0));
+                    }
+                }
+            }
+            catch (Exception) { }
+            if (blob == null) return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (cache != null && cacheLength == blob.Length) return cache;
+            cache = Parse(blob); cacheLength = blob.Length;
+            return cache;
+        }
+
+        // A certificate trust list entry is SEQUENCE { OCTET STRING (20-byte SHA-1), attributes }. Walk the signed
+        // blob's constructed parts and collect those; nothing inside primitive values is read.
+        internal static HashSet<string> Parse(byte[] der)
+        {
+            HashSet<string> found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            Walk(der, 0, der.Length, found, 0);
+            return found;
+        }
+
+        private static void Walk(byte[] d, int start, int end, HashSet<string> found, int depth)
+        {
+            int i = start;
+            while (i < end)
+            {
+                int length, header;
+                if (!Header(d, i, end, out length, out header)) return;
+                int contentStart = i + header, contentEnd = contentStart + length;
+                if (contentEnd > end) return;
+                if (d[i] == 0x30 && contentStart < contentEnd && d[contentStart] == 0x04)
+                {
+                    int l2, h2;
+                    if (Header(d, contentStart, contentEnd, out l2, out h2) && l2 == 20)
+                    {
+                        StringBuilder hex = new StringBuilder(40);
+                        for (int k = 0; k < 20; k++) hex.Append(d[contentStart + h2 + k].ToString("X2"));
+                        found.Add(hex.ToString());
+                    }
+                }
+                if ((d[i] & 0x20) != 0 && depth < 16) Walk(d, contentStart, contentEnd, found, depth + 1);
+                i = contentEnd;
+            }
+        }
+
+        private static bool Header(byte[] d, int i, int end, out int length, out int header)
+        {
+            length = 0; header = 0;
+            if (i + 2 > end || (d[i] & 0x1F) == 0x1F) return false;
+            int first = d[i + 1];
+            if (first < 0x80) { length = first; header = 2; return true; }
+            int n = first & 0x7F;
+            if (n == 0 || n > 4 || i + 2 + n > end) return false;
+            for (int k = 0; k < n; k++) length = (length << 8) | d[i + 2 + k];
+            header = 2 + n;
+            return length >= 0;
         }
     }
 }

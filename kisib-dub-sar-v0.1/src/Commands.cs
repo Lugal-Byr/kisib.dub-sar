@@ -334,6 +334,9 @@ namespace Kisib
             t.Append("kisib.dub-sar ").Append(AboutText.Version).Append(" · ").Append(Application.ExecutablePath).Append("\r\n");
             t.Append("Running as administrator: ").Append(Elevation.IsElevated ? "yes" : "no (whole-PC changes and Trusted Root need it)").Append("\r\n");
             t.Append("Lists folder: ").Append(Storage.Folder).Append("\r\n");
+            int listed = AuthRootList.Sha1s().Count;
+            t.Append("Windows' own root list: ").Append(listed == 0 ? "none stored" : listed + " roots" + (AuthRootList.Synced.HasValue ? ", synced " + AuthRootList.Synced.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm") : ""))
+             .Append(" · automatic root download: ").Append(RootAutoUpdateOff() ? "OFF (policy)" : "on").Append("\r\n");
             if (snapshot != null)
                 t.Append("Certificates: ").Append(snapshot.Certificates.Count).Append(" · blocked ").Append(snapshot.Blocked.Count)
                  .Append(" (kisib made ").Append(snapshot.KisibBlockedSha1.Count).Append(") · leaks ").Append(snapshot.LeakCount).Append("\r\n");

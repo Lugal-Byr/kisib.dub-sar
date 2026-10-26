@@ -194,9 +194,11 @@ MISSING ROOTS (NOT YOUR BLOCK)
 "root not trusted (not your block)" means Windows needed a root it doesn't have and
 didn't download it (Apple Root CA for iCloud, say). Right-click the refusal or the
 dashed root box > Get <root> from Microsoft: kisib asks Windows Update for
-Microsoft's current root list (certutil -generateSSTFromWU, checked against
-Microsoft's signed list) and puts only that root into Trusted Root, the way Windows
-would have. Whole PC as administrator; otherwise this user, and Windows asks first.
+Windows' own trusted-root list (authroot.stl, which Windows keeps in the registry)
+whether it names that root by SHA-1. Only then does it take the certificate from
+kisib's lists, from the same Windows Update file Windows downloads, or from a fresh
+certutil list (checked by SHA-1), and put just that root into Trusted Root, the way
+Windows would have. Whole PC as administrator; otherwise this user, and Windows asks first.
 Roots Microsoft doesn't list, and roots you blocked, are never added. Repairs do
 the same for missing roots on Microsoft's list. When Windows logs "a blocked CA"
 without saying which, Allow offers the blocked CAs of whoever owns the site.
