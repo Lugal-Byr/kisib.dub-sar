@@ -313,6 +313,7 @@ namespace Kisib
                         if (scope == X509Location.LocalMachine) { using (OwnStore root = OwnStore.Open("Root", scope, true)) root.Add(der); }
                         else using (X509Store store = new X509Store(StoreName.Root, scope)) { store.Open(OpenFlags.ReadWrite); store.Add(new X509Certificate2(der)); }
                         BlockEngine.Note("import-root", scope, c.Sha256, c.Sha1, c.SubjectShortName, "imported from " + Path.GetFileName(path) + (listed ? " (on Windows' own root list)" : " (NOT on Windows' list, added by choice)"));
+                        try { AllowedList.AddRange(new CertificateRecord[] { c }, "imported"); } catch (IOException) { }
                         report.Add("root " + c.SubjectShortName + " into Trusted Root" + (scope == X509Location.LocalMachine ? " (whole PC)" : " (this user)") + (listed ? ", on Windows' own list" : ""));
                     }
                     catch (Exception ex) { report.Add(c.SubjectShortName + ": " + ex.Message); }
@@ -321,7 +322,7 @@ namespace Kisib
                 else report.Add("skipped " + c.SubjectShortName + " (a site's own certificate, not a CA)");
             }
             if (cas.Count > 0)
-                try { report.AddRange(RouteStore.Install(cas, scope, "imported from " + Path.GetFileName(path))); }
+                try { report.AddRange(RouteStore.Install(cas, scope, "imported from " + Path.GetFileName(path))); AllowedList.AddRange(cas, "imported"); }
                 catch (Exception ex) { report.Add("Intermediate CAs: " + ex.Message); }
             Say("Imported " + Path.GetFileName(path) + ": " + String.Join("; ", report.ToArray()));
             StartScan();

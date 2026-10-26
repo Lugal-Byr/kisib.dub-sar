@@ -742,3 +742,6 @@ mutex and then showed "already running" and quit. Now the old process passes --a
 to 60 s for that process to end, then up to 60 s more for the mutex, and never shows the "already running" box
 when restarted. The old process force-exits after 20 s if something holds it open. The new copy opens the way the
 old one was (window or tray) and says "kisib updated to vX" (or where it now runs, after an install).
+
+D074 Import > File put a new root into Trusted Root but not on the never-block list, so a bloc rule (AAA Certificate
+Services is 👑 and 💃) blocked it on the next scan. Imported roots and CAs now go on the never-block list.
