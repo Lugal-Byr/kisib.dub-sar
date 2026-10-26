@@ -736,3 +736,9 @@ CA boxes not stored on this PC now say that this is normal for a CA a site sends
 
 D072 A root kisib fetches on request (Get root, Required for app, Fix it) now goes on the never-block list too; before,
 a bloc rule (AAA Certificate Services is 👑 and 💃) could block it again on the next scan.
+
+D073 Updater didn't come back after an update (user, 2026-10-26). The new copy only waited 30 s for the old one's
+mutex and then showed "already running" and quit. Now the old process passes --after <pid>; the new copy waits up
+to 60 s for that process to end, then up to 60 s more for the mutex, and never shows the "already running" box
+when restarted. The old process force-exits after 20 s if something holds it open. The new copy opens the way the
+old one was (window or tray) and says "kisib updated to vX" (or where it now runs, after an install).

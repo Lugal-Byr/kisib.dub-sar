@@ -22,10 +22,16 @@ namespace Kisib
         private string updateNote;
 
         internal bool RepointStartup;
+        internal string UpdatedTo;
 
         private void InitializeUpdates()
         {
             // Installed to C:\certs\kisib with Start with Windows on: point the logon task at this copy.
+            Shown += delegate
+            {
+                if (UpdatedTo == "moved") Say("kisib now runs from " + AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\') + " and keeps itself up to date.");
+                else if (UpdatedTo != null) Say("kisib updated to " + UpdatedTo + ".");
+            };
             Shown += delegate { if (RepointStartup) try { ToggleStartup(true); } catch (Exception ex) { Say("Couldn't move Start with Windows to this copy: " + ex.Message); } };
             // Leftovers from the last swap.
             try { foreach (string old in Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "*.old")) File.Delete(old); } catch (Exception) { }
@@ -53,7 +59,8 @@ namespace Kisib
             {
                 string result;
                 bool restart = false;
-                try { result = UpdateNow(current, manual, out restart); }
+                string newTag = null;
+                try { result = UpdateNow(current, manual, out restart, out newTag); }
                 catch (Exception ex) { result = "Update failed: " + ex.Message; CrashLog.Write("update", ex); }
                 Post(delegate
                 {
@@ -62,17 +69,27 @@ namespace Kisib
                     if (result != null && (manual || restart || result.StartsWith("Update failed", StringComparison.Ordinal))) Say(result);
                     if (restart)
                     {
-                        try { Process.Start(Application.ExecutablePath, "--tray --restarted"); } catch (Exception ex) { Say("Updated, but couldn't restart: " + ex.Message); return; }
-                        ExitApp();
+                        // The new copy waits for this process to be gone, then opens the way this one was (window or tray).
+                        string next = "--restarted --after " + Process.GetCurrentProcess().Id + (Visible ? "" : " --tray") + " --updated " + (newTag ?? "new");
+                        try { Process.Start(Application.ExecutablePath, next); } catch (Exception ex) { Say("Updated, but couldn't restart: " + ex.Message); return; }
+                        ExitForRestart();
                     }
                 });
             });
             worker.IsBackground = true; worker.Name = "kisib update"; worker.Start();
         }
 
-        private string UpdateNow(string current, bool manual, out bool restart)
+        // Closes kisib for a restart; if anything holds it open, it is ended after 20 seconds so the new copy can start.
+        private void ExitForRestart()
         {
-            restart = false;
+            Thread guard = new Thread(delegate() { Thread.Sleep(20000); Environment.Exit(0); });
+            guard.IsBackground = true; guard.Start();
+            ExitApp();
+        }
+
+        private string UpdateNow(string current, bool manual, out bool restart, out string newTag)
+        {
+            restart = false; newTag = null;
             ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
             string json;
             using (WebClient web = new WebClient())
@@ -81,6 +98,7 @@ namespace Kisib
                 json = web.DownloadString(LatestRelease);
             }
             string tag = Regex.Match(json, "\"tag_name\"\\s*:\\s*\"([^\"]+)\"").Groups[1].Value;
+            newTag = tag;
             Match asset = Regex.Match(json, "\"browser_download_url\"\\s*:\\s*\"(https://github\\.com/Lugal-Byr/kisib\\.dub-sar/releases/download/[^\"]+-windows\\.zip)\"");
             if (tag.Length == 0 || !asset.Success) return manual ? "Couldn't read the latest release from GitHub." : null;
             int have = VersionNumber(current), latest = VersionNumber(tag);
@@ -163,9 +181,9 @@ namespace Kisib
                 }
                 bool startup = StartupTaskExists();
                 AppChains.Flush();
-                Process.Start(Path.Combine(InstallFolder, "kisib.dub-sar.exe"), "--tray --restarted" + (startup ? " --installed-startup" : ""));
-                Say("Installed to " + InstallFolder + "; that copy is starting in the tray and keeps itself up to date.");
-                ExitApp();
+                Process.Start(Path.Combine(InstallFolder, "kisib.dub-sar.exe"), "--restarted --after " + Process.GetCurrentProcess().Id + (Visible ? "" : " --tray") + " --updated moved" + (startup ? " --installed-startup" : ""));
+                Say("Installed to " + InstallFolder + "; that copy is starting and keeps itself up to date.");
+                ExitForRestart();
             }
             catch (Exception ex) { Say("Couldn't install to " + InstallFolder + ": " + ex.Message + (Elevation.IsElevated ? "" : " (run kisib as administrator once)")); }
         }
