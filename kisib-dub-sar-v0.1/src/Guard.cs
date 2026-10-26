@@ -9,7 +9,8 @@ namespace Kisib
     // repair, Keep Claude reachable), these stay blocked and the result line says why:
     //   - on kisib's compromised list (data/incident-hashes.csv), or sharing a key with one listed as a key compromise
     //   - on Windows' own untrusted list (disallowedcert.stl, which Windows keeps in HKLM next to its trusted list)
-    //   - expired or not valid yet (Windows ignores those in a chain anyway)
+    //   - expired or not valid yet (Windows ignores those in a chain anyway), except kisib's seals and roots on
+    //     Windows' own trusted list, which Windows keeps for old time stamps
     internal static class LiftGuard
     {
         private static Dictionary<string, string> bySha256, bySpki;
@@ -25,6 +26,9 @@ namespace Kisib
             if (c.Sha256 != null && bySha256.TryGetValue(c.Sha256, out id)) return "compromised (" + id + ")";
             if (c.SpkiSha256 != null && bySpki.TryGetValue(c.SpkiSha256, out id)) return "its key was compromised (" + id + ")";
             if (c.Sha1 != null && WindowsUntrusted().Contains(c.Sha1)) return "Windows itself distrusts it";
+            // Windows keeps a few expired roots on purpose (old time stamps on signed files, e.g. Thawte Timestamping CA):
+            // kisib's own pinned seals and roots on Windows' own trusted list are never refused for being expired.
+            if (c.Sha1 != null && (Seals.BySha1(c.Sha1) != null || AuthRootList.Sha1s().Contains(c.Sha1))) return null;
             DateTime now = DateTime.UtcNow;
             if (c.NotAfter.HasValue && c.NotAfter.Value < now) return "expired " + c.NotAfter.Value.ToString("yyyy-MM-dd");
             if (c.NotBefore.HasValue && c.NotBefore.Value > now.AddDays(1)) return "not valid until " + c.NotBefore.Value.ToString("yyyy-MM-dd");

@@ -723,3 +723,7 @@ D069 🌀 is route around (user, 2026-10-26: "that route around should b the spi
 color, the menus and the Tools page row in text; the trusted-service pop-up uses 🔌. Route around also works for
 "revoked" refusals with no block behind them: DenialRoute recomputes reach with the refused copies treated as
 blocked, so the path uses another issue of the same CA key; Fix it installs that route by itself.
+
+D070 The expired rule in Never lifted would have refused "What Windows ships with" for Thawte Timestamping CA (expired,
+kept by Windows for old time stamps; blocked by the user's BRICS bloc). Kisib's pinned seals and roots on Windows'
+own trusted list are exempt from the expiry rule; the compromised and Windows-untrusted rules still apply.

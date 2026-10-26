@@ -200,7 +200,9 @@ Import, a repair, Keep Claude reachable), these stay blocked and the result says
 why: anything on kisib's compromised list (data/incident-hashes.csv) or sharing a
 key listed as compromised, anything on Windows' own untrusted list (which Windows
 keeps in the registry next to its trusted list), and anything expired or not
-valid yet (Windows ignores those in a chain anyway). Import refuses them too.
+valid yet (Windows ignores those in a chain anyway), except roots Windows itself
+keeps for old time stamps (kisib's seals, Windows' trusted list). Import refuses
+them too.
 
 REVOCATION CHECK
 "revocation server unreachable" means Windows couldn't ask a CA whether a
