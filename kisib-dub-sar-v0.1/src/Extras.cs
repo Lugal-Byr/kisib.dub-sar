@@ -16,7 +16,8 @@ namespace Kisib
     {
         [System.Runtime.InteropServices.DllImport("gdi32.dll")] private static extern IntPtr CreateRoundRectRgn(int left, int top, int right, int bottom, int width, int height);
         [System.Runtime.InteropServices.DllImport("gdi32.dll")] private static extern bool DeleteObject(IntPtr handle);
-        private static readonly Font TitleFont = new Font("Segoe UI", 9.5F), SmallFont = new Font("Segoe UI", 8.25F), IconFont = new Font("Segoe UI Emoji", 15F);
+        // Comic Sans MS, bold, a couple of points up (user, 2026-10-26). Windows ships Comic Sans; if it is missing, GDI falls back.
+        private static readonly Font TitleFont = new Font("Comic Sans MS", 11.5F, FontStyle.Bold), SmallFont = new Font("Comic Sans MS", 10F, FontStyle.Bold), IconFont = new Font("Segoe UI Emoji", 17F);
         private readonly string icon, line1, line2;
         private readonly Color stripe;
 
@@ -30,16 +31,16 @@ namespace Kisib
         {
             this.icon = icon; this.line1 = line1; this.line2 = line2; this.stripe = stripe;
             FormBorderStyle = FormBorderStyle.None; TopMost = true; ShowInTaskbar = false; StartPosition = FormStartPosition.Manual;
-            Size = new Size(340, 88); BackColor = tint; Font = SmallFont; DoubleBuffered = true; Cursor = Cursors.Hand;
+            Size = new Size(400, 108); BackColor = tint; Font = SmallFont; DoubleBuffered = true; Cursor = Cursors.Hand;
             IntPtr round = CreateRoundRectRgn(0, 0, Width + 1, Height + 1, 14, 14);
             Region = Region.FromHrgn(round); DeleteObject(round);
             Color chip = Blend(tint, stripe, 0.16), ink = Blend(stripe, Color.Black, 0.35);
-            FlowLayoutPanel chips = new FlowLayoutPanel { Location = new Point(48, Height - 31), Size = new Size(Width - 56, 26), BackColor = tint, WrapContents = false, Padding = new Padding(0), Margin = new Padding(0) };
+            FlowLayoutPanel chips = new FlowLayoutPanel { Location = new Point(52, Height - 36), Size = new Size(Width - 60, 30), BackColor = tint, WrapContents = false, Padding = new Padding(0), Margin = new Padding(0) };
             if (allow != null) chips.Controls.Add(Chip(allow, chip, ink));
             chips.Controls.Add(Chip(new Button { Text = "Fix it" }, chip, ink, delegate { fix(); Close(); }));
             chips.Controls.Add(Chip(new Button { Text = "Details" }, chip, ink, delegate { details(); }));
             chips.Controls.Add(Chip(new Button { Text = "Shh 1 h" }, chip, ink, delegate { quiet(); Close(); }));
-            Label close = new Label { Text = "×", Location = new Point(Width - 24, 3), Size = new Size(20, 20), TextAlign = ContentAlignment.MiddleCenter, ForeColor = Color.Gray, BackColor = tint, Font = new Font("Segoe UI", 10F), Cursor = Cursors.Hand };
+            Label close = new Label { Text = "×", Location = new Point(Width - 26, 3), Size = new Size(22, 22), TextAlign = ContentAlignment.MiddleCenter, ForeColor = Color.Gray, BackColor = tint, Font = new Font("Comic Sans MS", 11F, FontStyle.Bold), Cursor = Cursors.Hand };
             close.Click += delegate { Close(); };
             Controls.Add(chips); Controls.Add(close);
             Click += delegate { details(); };
@@ -50,7 +51,7 @@ namespace Kisib
         {
             b.FlatStyle = FlatStyle.Flat; b.FlatAppearance.BorderSize = 0; b.FlatAppearance.MouseOverBackColor = Blend(back, ink, 0.12);
             b.BackColor = back; b.ForeColor = ink; b.Font = SmallFont; b.AutoSize = true; b.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            b.Padding = new Padding(6, 0, 6, 0); b.Margin = new Padding(0, 0, 6, 0); b.Height = 24; b.Cursor = Cursors.Hand;
+            b.Padding = new Padding(6, 0, 6, 0); b.Margin = new Padding(0, 0, 6, 0); b.Height = 28; b.Cursor = Cursors.Hand;
             if (click != null) b.Click += delegate { click(); };
             return b;
         }
@@ -65,10 +66,10 @@ namespace Kisib
             base.OnPaint(e);
             Graphics g = e.Graphics;
             using (Brush b = new SolidBrush(stripe)) g.FillRectangle(b, 0, 0, 5, Height);
-            try { EmojiText.Draw(g, icon, IconFont, new Rectangle(12, 10, 32, 30), Color.Black); } catch (Exception) { }
-            TextRenderer.DrawText(g, line1, TitleFont, new Rectangle(48, 8, Width - 76, 22), Color.FromArgb(35, 35, 40),
+            try { EmojiText.Draw(g, icon, IconFont, new Rectangle(12, 10, 36, 34), Color.Black); } catch (Exception) { }
+            TextRenderer.DrawText(g, line1, TitleFont, new Rectangle(52, 8, Width - 82, 26), Color.FromArgb(35, 35, 40),
                 TextFormatFlags.EndEllipsis | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
-            TextRenderer.DrawText(g, line2, SmallFont, new Rectangle(48, 30, Width - 58, 18), Color.FromArgb(105, 105, 115),
+            TextRenderer.DrawText(g, line2, SmallFont, new Rectangle(52, 36, Width - 62, 22), Color.FromArgb(105, 105, 115),
                 TextFormatFlags.EndEllipsis | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
         }
     }

@@ -103,7 +103,7 @@ Tool windows (denials, reroute check, rules, standings...) are normal windows:
 the main window stays usable, each reopens where you left it, Esc closes it.
 
 POP-UPS AND THE REFUSAL CARD
-A refusal pop-up is a small card in the corner (up to four stack): an emoji for
+A refusal pop-up is a small card in the corner, in bold Comic Sans (up to four stack): an emoji for
 the kind (🚫 blocked by you, 🔑 root missing, ⛔ revoked or Disallowed, 🌀 a trusted
 service can't connect, ❔ anything else), who -> what on one line, why and the time
 on a short grey line, and chips: Allow (when it's your block), Fix it (get what it
