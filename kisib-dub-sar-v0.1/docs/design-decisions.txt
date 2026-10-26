@@ -710,9 +710,6 @@ revocation check reads each chain certificate's OCSP / CA-issuer (AIA) and CRL (
 reports per server. Tools page: rows carry a kind (fix, block, allow, watch, lists, kisib itself) shown as
 header rows with color emoji, or A to Z; the choice is a SETTINGS switch.
 
-D067 The 🌀 stays on the trusted-service card (v0.2.31 swapped it for 🔌 after the user had stopped that change;
-this puts it back). It is saved for something about an honorable journey, when the user picks it.
-
 D068 Install to C:\certs\kisib and auto update (user, 2026-10-26: "can this app auto update from the git repo ... a
 folder c:/certs/kisib/"). Updater: GitHub API releases/latest, tag v0.2.N compared with version.txt (dev builds
 never update themselves), the -windows.zip asset only from github.com/Lugal-Byr/kisib.dub-sar, SHA-256 checked
