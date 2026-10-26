@@ -567,3 +567,59 @@ BRICS+ folded into 🧱 BRIC (user): one bloc for BRIC and the later BRICS membe
 D051 Live map right-click (user, 2026-10-24): CA and root boxes get Block / Unblock / Allow 3-10-60 /
 Allow always / Why blocked / Who vouches (paths) / Show in list; site boxes offer blocking or allowing
 the CA that signed them. Box colors refresh after every scan.
+
+D052 Speed and crashes (user, 2026-10-26: "really slow, crashing on desktop and laptop, 4k+ disallowed").
+Causes found: every store write asked the store for its whole list per certificate (O(n^2) with 4k
+entries; the start-up re-apply froze kisib), the blocked list file was rewritten once per certificate,
+"who is blocked" was recomputed by walking every certificate in about a dozen places and once per live-map
+box, and everything rescanned and redrew every 60 seconds on the window thread. Now: stores are read once
+per operation (OwnStore, registry part only), list files are written once per batch, lookups are built once
+per scan (Snapshot.Blocked / BySha1 / SameKey), parsed certificates are cached per run, groups, rules, paths
+and leaks are built in the scan worker, rescans come from registry change notifications on the certificate
+store keys (plus 10 minutes) and skip redrawing when the stores and kisib's files are unchanged. The live map
+keeps the last hour and redraws only on change. Errors go to CRASH LOG.txt instead of closing kisib.
+
+D053 One Allow (user, 2026-10-26): the same Allow menu or button everywhere (pop-up, refusal card, denials,
+lists, card, toolbar, reroute, live map): 3 / 10 / 60 minutes, until kisib closes or the PC restarts,
+always, while a program runs (PROGRAM ALLOWS list; opens when the program starts or is refused, closes
+2 minutes after it stops). No confirm box (user: no safety prompts). One plain result line says what was
+lifted and whether whole-PC blocks need admin; the next check touching those certificates says whether it
+went through. Tray > Open right now lists open allows with time left and Re-block now.
+
+D054 Unblock wins (user, 2026-10-26): a manual unblock or a repair takes the certificate and its key twins out
+of Disallowed whoever put them there and adds them to the never-block list (source column), so bloc rules
+can't re-block them. Entries that were there before kisib are recorded in UNBLOCKED BY HAND (...).txt for
+Repair > Put back. Bloc board tiles show kept blocked / partly / not blocked; Unblock on a tile or the picked
+tiles drops the rule and lifts kisib's blocks, keeping certificates that another kept-blocked bloc covers.
+Rules window: Remove rule, or Remove rule and unblock its certificates.
+
+D055 Repair split and standard seals (user, 2026-10-26: "repair other standard things that ship with the
+computer"; "include a few critical certs required to reach microsoft.com"). 27 roots embedded in the exe
+(assets\seals.pem), each pinned by SHA-256 in Seals.cs; sources per row in data\standard-seals.csv (the
+12 roots of Microsoft's "Required trusted root certificates" article, serials matched; the rest from the
+Microsoft Trusted Root Program list, all present in Microsoft's authroot.stl). Repair > Windows essentials is
+Microsoft-owned roots only (user: non-Microsoft roots must not hide under a Microsoft name); Get online,
+What Windows ships with, My trusted categories (owner/country/bloc per row), What this PC uses, Reset to the
+standard seals, Put back what was blocked before kisib. Rows in a kept-blocked bloc start unticked.
+Security: the old repair picked a root by its name from anything kisib had seen (any store, CCADB, the
+Microsoft list file in a user-writable folder) and could put it into the whole-PC Trusted Root; a fake
+certificate with a Microsoft name could be promoted that way. Now only kisib's pinned seals go into
+Trusted Root.
+
+D056 Live map (user, 2026-10-26): arrows are right-clickable (refusal card, Allow, why, reroute); a refusal
+with no chain gets a dashed placeholder box (root missing / blocked CA / CA not on this PC) with repair
+actions; every menu starts with a plain line saying what is going on; site boxes always have a menu; program
+boxes offer Find the app behind it (lsass/svchost), Show only this program's paths, Quiet 1 h. Chains come
+from CAPI2 ChainElement order (AdditionalStore certificates were mixing into the old order), with the check
+type (SSL / Microsoft root / Authenticode) and server name. Side checks: a refusal is held 2 seconds and
+folded into grey "side check, went through" when the same site passed within 3 seconds. svchost shows the
+service inside it (EnumServicesStatusEx by process ID). Websites / Signed files / Both switch (default
+Websites); same-name boxes merge; hover or click lights a path; red arrows draw on top; site labels from the
+who-is-who list (new: fls-na.amazon.com, ecs.office.com, reflector.defender, codeberg...).
+
+D057 Tools page and other hardening (user, 2026-10-26): Tools page (Ctrl+T) lists every tool with its current
+state; Rules, Undo last block, Quiet mode and the never-block list are in the Tools menu. Start with Windows
+(an admin task at logon) makes kisib's folder admin-only to change, since anything able to replace the exe
+would otherwise run with admin rights; PORTABLE BACKUP LISTS stays user-writable; turning it off restores
+normal permissions. Opening a certificate file refuses PFX content whatever its extension. DENIALS log
+rolls over at 8 MB and only its tail is read at start.

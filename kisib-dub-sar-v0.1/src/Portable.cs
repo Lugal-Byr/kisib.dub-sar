@@ -52,6 +52,9 @@ namespace Kisib
         internal const string Settings = "SETTINGS.txt";
         internal const string RouteList = "ROUTES (cross-signs kisib added so Windows can go around blocks).txt";
         internal const string AllowedList = "ALLOWED (never block).txt";
+        internal const string UnblockedByHand = "UNBLOCKED BY HAND (were blocked before kisib).txt";
+        internal const string ProgramAllows = "PROGRAM ALLOWS (open while a program runs).txt";
+        internal const string CrashLog = "CRASH LOG.txt";
 
         // New version unzipped next to an older one: carry the newest older PORTABLE BACKUP LISTS over.
         private static void CarryFromOlderVersion(string target)
@@ -116,7 +119,10 @@ namespace Kisib
                     BlockHistory + "  - every block, unblock, allow and re-block, with time\r\n" +
                     TempAllows + "  - blocks lifted for a few minutes; kisib puts them back\r\n" +
                     RouteList + "  - cross-signed certificates added so Windows can reach a site through another root\r\n" +
-                    AllowedList + "  - certificates you allowed for good; rules never block them\r\n" +
+                    AllowedList + "  - certificates you allowed for good or unblocked by hand; rules never block them\r\n" +
+                    UnblockedByHand + "  - certificates you unblocked that were blocked before kisib (Repair can put them back)\r\n" +
+                    ProgramAllows + "  - blocks that open for a while each time a program starts (like an updater)\r\n" +
+                    CrashLog + "  - errors kisib caught instead of closing; send it along when something breaks\r\n" +
                     Denials + "  - certificates Windows refused, and which program asked\r\n" +
                     "SETTING - *.txt  - on/off switches: the file existing means the switch is on\r\n" +
                     "microsoft-root-list.sst, ccadb-list-*.csv  - downloaded lists (Tools menu refreshes them)\r\n\r\n" +
@@ -171,27 +177,34 @@ namespace Kisib
         }
         private static string Q(string v) { v = v ?? ""; return v.IndexOfAny(new char[] { ',', '"' }) >= 0 ? "\"" + v.Replace("\"", "\"\"") + "\"" : v; }
 
-        internal static void Add(X509Location scope, CertificateRecord c)
+        // One read and one write for the whole batch (it used to rewrite the file once per certificate).
+        internal static void AddRange(X509Location scope, IEnumerable<CertificateRecord> certs)
         {
             try
             {
                 List<string[]> rows = Read();
-                if (rows.Any(r => r[0] == scope.ToString() && r[1] == c.Sha1)) return;
-                rows.Add(new string[] { scope.ToString(), c.Sha1, c.Sha256, c.SubjectShortName, Convert.ToBase64String(c.Der) });
-                Write(rows);
+                HashSet<string> have = new HashSet<string>(rows.Where(r => r[0] == scope.ToString()).Select(r => r[1]), StringComparer.OrdinalIgnoreCase);
+                int before = rows.Count;
+                foreach (CertificateRecord c in certs)
+                    if (c != null && c.Der != null && have.Add(c.Sha1)) rows.Add(new string[] { scope.ToString(), c.Sha1, c.Sha256, c.SubjectShortName, Convert.ToBase64String(c.Der) });
+                if (rows.Count != before) Write(rows);
             }
             catch (IOException) { }
         }
 
-        internal static void Remove(X509Location scope, string sha1)
+        internal static void RemoveRange(X509Location scope, IEnumerable<string> sha1s)
         {
             try
             {
+                HashSet<string> gone = new HashSet<string>(sha1s.Where(x => x != null), StringComparer.OrdinalIgnoreCase);
+                if (gone.Count == 0) return;
                 List<string[]> rows = Read();
-                if (rows.RemoveAll(r => r[0] == scope.ToString() && String.Equals(r[1], sha1, StringComparison.OrdinalIgnoreCase)) > 0) Write(rows);
+                if (rows.RemoveAll(r => r[0] == scope.ToString() && gone.Contains(r[1])) > 0) Write(rows);
             }
             catch (IOException) { }
         }
+
+        internal static void Remove(X509Location scope, string sha1) { RemoveRange(scope, new string[] { sha1 }); }
 
         // Puts back any listed block that is missing (fresh Windows, or someone removed it). Returns how many.
         internal static int Reapply(out string skipped)
@@ -206,24 +219,33 @@ namespace Kisib
                 X509Location scope;
                 try { scope = (X509Location)Enum.Parse(typeof(X509Location), scopeRows.Key); } catch (ArgumentException) { continue; }
                 if (scope == X509Location.LocalMachine && !elevated) { skipped = "Whole-PC blocks need kisib run as administrator to re-apply."; continue; }
-                // A block lifted on purpose by "Allow for N minutes" is not re-applied early.
+                // A block lifted on purpose (a timed allow, or allowed for good / unblocked by hand) is not re-applied.
                 HashSet<string> lifted = new HashSet<string>(TempAllow.Read().Where(t => t.Scope == scopeRows.Key).Select(t => t.Sha1), StringComparer.OrdinalIgnoreCase);
-                using (X509Store store = new X509Store(StoreName.Disallowed, scope))
+                HashSet<string> allowed = AllowedList.Load().Sha1;
+                List<BlockLogRow> notes = new List<BlockLogRow>();
+                try
                 {
-                    store.Open(OpenFlags.ReadWrite);
-                    foreach (string[] r in scopeRows)
+                    // One read of the store, not one per listed certificate: with thousands of blocks the old way froze kisib at start.
+                    using (OwnStore store = OwnStore.Open("Disallowed", scope, true))
                     {
-                        if (lifted.Contains(r[1])) continue;
-                        if (store.Certificates.Find(X509FindType.FindByThumbprint, r[1], false).Count > 0) continue;
-                        try
+                        foreach (string[] r in scopeRows)
                         {
-                            using (X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(r[4]))) store.Add(cert);
-                            restored++;
-                            BlockEngine.Note("re-apply", scope, r[2], r[1], r[3], "re-applied from " + Storage.BlockedList);
+                            if (lifted.Contains(r[1]) || allowed.Contains(r[1]) || store.Has(r[1])) continue;
+                            try
+                            {
+                                if (store.Add(Convert.FromBase64String(r[4])))
+                                {
+                                    restored++;
+                                    notes.Add(new BlockLogRow { Time = DateTime.UtcNow.ToString("o"), Batch = "re-apply-" + DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'"), Action = "re-apply",
+                                        Scope = scope.ToString(), Sha256 = r[2], Sha1 = r[1], Subject = r[3], Prior = "absent", Result = "added", Group = "re-applied from " + Storage.BlockedList });
+                                }
+                            }
+                            catch (Exception) { }
                         }
-                        catch (Exception) { }
                     }
                 }
+                catch (Exception) { }
+                try { BlockEngine.Append(notes); } catch (IOException) { }
             }
             return restored;
         }

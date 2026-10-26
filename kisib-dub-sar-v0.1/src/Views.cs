@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Windows.Forms;
@@ -57,7 +58,7 @@ namespace Kisib
         {
             if (snapshot == null) { ShowText("Standings", "Run a scan first (F5)."); return; }
             DateTime soon = DateTime.UtcNow.AddMonths(12);
-            HashSet<string> blocked = GroupCatalog.BlockedIdentities(snapshot);
+            HashSet<string> blocked = snapshot.Blocked;
             var rows = snapshot.Certificates.Values
                 .GroupBy(c => (c.SubjectCountry ?? "—") + "\u0001" + OwnerOf(c, true))
                 .Select(g => new
@@ -169,6 +170,9 @@ namespace Kisib
             {
                 if (new FileInfo(path).Length > 16 * 1024 * 1024) throw new InvalidDataException("File is larger than 16 MB.");
                 byte[] bytes = File.ReadAllBytes(path);
+                // A renamed .pfx would bring a private key along; kisib never loads one, whatever the file is called.
+                try { if (X509Certificate2.GetCertContentType(bytes) == X509ContentType.Pfx) { ShowText("Open certificate file", path + "\r\n\r\nThis file holds a private key (PFX/PKCS#12). kisib never opens private keys."); return; } }
+                catch (CryptographicException) { }
                 string text = Encoding.ASCII.GetString(bytes);
                 if (text.Contains("-----BEGIN CERTIFICATE-----"))
                 {

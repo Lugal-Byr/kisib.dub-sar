@@ -167,11 +167,15 @@ namespace Kisib
             TreeNode initial = new TreeNode(Environment.MachineName + " — Certificates");
             initial.Nodes.Add("Enumeration starts when this window opens."); tree.Nodes.Add(initial); initial.Expand();
             Shown += delegate { StartScan(); };
-            historyTimer.Interval = 60000;
-            historyTimer.Tick += delegate { if (!scanning && !closed) StartScan(); };
+            // Rescan when Windows changes a store, settle 3 seconds first; a slow check every 10 minutes catches anything else.
+            settleTimer.Tick += delegate { settleTimer.Stop(); if (!closed && autoScanToggle.Checked) StartScan(false); };
+            storeWatcher = new StoreWatcher(delegate { Post(delegate { settleTimer.Stop(); settleTimer.Start(); }); });
+            Shown += delegate { storeWatcher.Start(); autoScanToggle.Checked = true; historyTimer.Start(); };
+            historyTimer.Interval = 10 * 60 * 1000;
+            historyTimer.Tick += delegate { if (!closed) StartScan(false); };
             FormClosed += delegate
             {
-                closed = true; historyTimer.Stop(); historyTimer.Dispose();
+                closed = true; historyTimer.Stop(); historyTimer.Dispose(); settleTimer.Stop(); storeWatcher.Dispose();
                 CloseControlLayer();
                 collectorsClosed = true;
                 if ((!scanning || scanWorkerFinished) && history != null) history.Dispose();
@@ -183,33 +187,63 @@ namespace Kisib
             if (closed || IsDisposed || !IsHandleCreated) return;
             try { BeginInvoke(action); } catch (InvalidOperationException) { }
         }
-        private void StartScan()
+        private readonly System.Windows.Forms.Timer settleTimer = new System.Windows.Forms.Timer { Interval = 3000 };
+        private StoreWatcher storeWatcher;
+        private bool rescanPending, rescanForce;
+        private string displayedStamp = "";
+
+        private void StartScan() { StartScan(true); }
+
+        // force = the user asked, or something changed on purpose: always redraw. Automatic rescans (a store changed,
+        // the 10-minute check) only redraw when the stores, the lists or kisib's own files actually changed.
+        private void StartScan(bool force)
         {
-            if (scanning) return;
+            if (scanning) { rescanPending = true; rescanForce |= force; return; }
             scanning = true; scanWorkerFinished = false; refresh.Enabled = false; refreshMenu.Enabled = false;
-            status.Text = HistoryStatus() + " | Enumerating Windows stores...";
+            if (force) status.Text = HistoryStatus() + " | Enumerating Windows stores...";
+            string shownPrint = snapshot == null ? null : snapshot.Fingerprint, shownStamp = displayedStamp;
+            string source = sourceDirectory;
             Thread worker = new Thread(delegate()
             {
                 Scanner scanner = null;
                 try
                 {
-                    scanner = new Scanner(delegate(string message) { Post(delegate { status.Text = HistoryStatus() + " | " + message; }); }, delegate { return closed; }, history);
+                    scanner = new Scanner(delegate(string message) { if (force) Post(delegate { status.Text = HistoryStatus() + " | " + message; }); }, delegate { return closed; }, history);
                     Snapshot result = scanner.Run();
                     try { MicrosoftList.Merge(result); }
                     catch (Exception ex) { result.Fail("Microsoft root list", MicrosoftList.SstPath, ex.GetType().Name + ": " + ex.Message); }
                     try { Ccadb.Merge(result); }
                     catch (Exception ex) { result.Fail("CCADB list", "CCADB", ex.GetType().Name + ": " + ex.Message); }
+                    CertificateSignals.Evaluate(result.Certificates.Values);
+                    result.Fingerprint = result.ComputeFingerprint();
+                    string stamp = InputsStamp();
+                    if (!force && shownPrint == result.Fingerprint && shownStamp == stamp)
+                    {
+                        Post(delegate { FinishScan(); if (!status.Text.StartsWith("Allowed", StringComparison.Ordinal) && !status.Text.StartsWith("OPEN NOW", StringComparison.Ordinal)) SetCheckedNote(); });
+                        return;
+                    }
+                    // Everything heavy happens here, off the window, so kisib never freezes while it works.
+                    result.KisibBlockedSha1 = BlockEngine.KisibBlockedSha1();
                     try { result.Paths = TrustGraph.Build(result); }
                     catch (Exception ex) { result.Fail("Cross-sign paths", "kisib", ex.GetType().Name + ": " + ex.Message); }
+                    result.Groups = GroupCatalog.Build(result, source);
+                    RuleOutcome rules = RuleRunner.Apply(result);
+                    if (result.Paths != null)
+                    {
+                        result.BlockedKeys = result.Paths.KeysOf(result.Blocked);
+                        result.Reach = result.Paths.Compute(result.Blocked);
+                        result.LeakCount = CountLeaks(result);
+                    }
                     if (history != null) history.Commit(result);
-                    Post(delegate { Display(result); scanning = false; refresh.Enabled = true; refreshMenu.Enabled = true; });
+                    Post(delegate { Display(result, rules, stamp); FinishScan(); if (rules.Added > 0) StartScan(true); });
                 }
                 catch (Exception ex)
                 {
                     if (history != null) history.Note(scanner == null ? null : scanner.ScanId, "scan_failed", Environment.MachineName, ex.ToString());
+                    CrashLog.Write("scan", ex);
                     Post(delegate
                     {
-                        scanning = false; refresh.Enabled = true; refreshMenu.Enabled = true;
+                        FinishScan();
                         sessionLog.Add(DateTime.UtcNow.ToString("o") + "\tEnumeration failed\t" + ex.GetType().Name + "\t" + ex.Message);
                         status.Text = HistoryStatus() + " | Enumeration failed; see View > History log";
                         details.Text = ex.ToString();
@@ -220,8 +254,41 @@ namespace Kisib
             worker.IsBackground = true; worker.Name = "Read-only certificate enumeration"; worker.Start();
         }
 
-        private void Display(Snapshot result)
+        private void FinishScan()
         {
+            scanning = false; refresh.Enabled = true; refreshMenu.Enabled = true;
+            if (rescanPending) { bool f = rescanForce; rescanPending = false; rescanForce = false; StartScan(f); }
+        }
+
+        private void SetCheckedNote()
+        {
+            string s = status.Text;
+            int bar = s.IndexOf(" | checked ", StringComparison.Ordinal);
+            status.Text = (bar >= 0 ? s.Substring(0, bar) : s) + " | checked " + DateTime.Now.ToString("HH:mm") + ", no change";
+        }
+
+        // kisib's own files that change what a scan shows. Same stamp + same stores = nothing to redraw.
+        private string InputsStamp()
+        {
+            StringBuilder t = new StringBuilder();
+            foreach (string f in new string[] { Storage.Rules, Storage.AllowedList, Storage.MyTags, Storage.BlockHistory, Storage.TempAllows, Storage.ProgramAllows,
+                WhoIsWho.CategoriesFile, WhoIsWho.OwnersFile, WhoIsWho.SitesFile, WhoIsWho.ProgramsFile })
+                t.Append(Stamp(Storage.File(f)));
+            foreach (string f in new string[] { GroupCatalog.CountriesFile, GroupCatalog.OwnersFile, IncidentList.FileName })
+                t.Append(Stamp(Path.Combine(sourceDirectory, "data", f)));
+            t.Append(Elevation.IsElevated ? "A" : "U").Append(showSources ? "S" : "-");
+            return t.ToString();
+        }
+        private static string Stamp(string path)
+        {
+            try { FileInfo i = new FileInfo(path); return i.Exists ? i.Length + "@" + i.LastWriteTimeUtc.Ticks + ";" : "-;"; } catch (Exception) { return "?;"; }
+        }
+
+        private void Display(Snapshot result, RuleOutcome rules, string stamp)
+        {
+            displayedStamp = stamp;
+            foreach (string line in rules.Log) sessionLog.Add(line);
+            ruleStatus = rules.Status;
             string selectedSource = NodeKey(ActiveTree.SelectedNode);
             CertificateRecord selectedCertificate = SelectedCertificate();
             HashSet<string> expanded = new HashSet<string>(StringComparer.Ordinal);
@@ -266,14 +333,17 @@ namespace Kisib
                     if (((CertificateRecord)row.Tag).Der.SequenceEqual(selectedCertificate.Der)) { row.Selected = true; row.EnsureVisible(); break; }
             status.Text = (history != null ? HistoryStatus() + " | " : "") + ClockStatus(result) + " | " + result.Certificates.Count + " certificates in " + result.PhysicalCount + " stores";
             errorsLink.Text = result.Errors.Count + " errors";
-            ApplyRules(result);
             DateTime? msList = MicrosoftList.Updated;
             status.Text += " | MS list: " + (msList.HasValue ? msList.Value.ToString("yyyy-MM-dd") : "not loaded (Block > Update)") + " | CCADB: " + (Ccadb.Updated.HasValue ? Ccadb.Updated.Value.ToString("yyyy-MM-dd") : "not loaded") + (ruleStatus.Length > 0 ? " | " + ruleStatus : "");
             int leaks = LeakCount();
             lastLeaks = leaks;
             if (leaks > 0) status.Text += " | LEAKS: " + leaks + " blocked CAs still have a way in (Tools > Reroute check)";
+            status.Text += " | checked " + DateTime.Now.ToString("HH:mm");
+            // The result of what you just did stays in front for a minute instead of vanishing under the rescan.
+            if (lastSay != null && (DateTime.Now - lastSayAt).TotalSeconds < 60) status.Text = lastSay + "   ||   " + status.Text;
             if (blocBoardRefresh != null) blocBoardRefresh();
             if (liveMap != null && !liveMap.IsDisposed) liveMap.RefreshBlocked();
+            if (toolsRefresh != null) toolsRefresh();
             OpenPendingFile();
         }
 
@@ -359,14 +429,17 @@ namespace Kisib
                     "\r\nPredefined: " + physical.Predefined + "\r\ndwPriority: " + physical.Priority + "\r\ndwFlags: 0x" + physical.Flags.ToString("X8") +
                     "\r\nRead: " + (physical.Error ?? "Completed") + "\r\n\r\n" + Source("CERT_PHYSICAL_STORE_INFO", Sources.PhysicalInfo);
             }
-            list.BeginUpdate(); list.Items.Clear();
-            rowBlocked = GroupCatalog.BlockedIdentities(snapshot);
+            list.BeginUpdate(); list.ListViewItemSorter = null; list.Items.Clear();
+            rowBlocked = snapshot.Blocked;
+            List<ListViewItem> rows = new List<ListViewItem>(keys.Count);
             foreach (string key in keys)
             {
                 CertificateRecord record = snapshot.Certificates[key];
                 if (!MatchesFind(record)) continue;
-                list.Items.Add(CertificateRow(record));
+                rows.Add(CertificateRow(record));
             }
+            // One AddRange is many times faster than thousands of single adds.
+            list.Items.AddRange(rows.ToArray());
             list.ListViewItemSorter = new CertificateComparer(sortColumn, ascending); list.Sort(); list.EndUpdate();
             details.Text = nodeDetails;
             issuerDetails.Text = "Select a certificate to inspect its recorded issuer name.";
@@ -496,7 +569,7 @@ namespace Kisib
             text.AppendLine("Unresolved physical sources: " + snapshot.UnresolvedCount); text.AppendLine("Errors: " + snapshot.Errors.Count);
             text.AppendLine("Canceled: " + snapshot.Canceled); text.AppendLine();
             text.AppendLine("Journal: " + (journalToggle.Checked ? "on" : "off") + "; public-certificate archive: " + (archiveToggle.Checked ? "on" : "off") + " [to test].");
-            text.AppendLine("60-second automatic scan: " + (historyTimer.Enabled ? "on" : "off") + "; scans do not overlap [to test].");
+            text.AppendLine("Rescan when a store changes: " + (autoScanToggle.Checked ? "on (" + storeWatcher.Status + "), plus every 10 minutes" : "off") + "; scans do not overlap.");
             text.AppendLine("Reads are not atomic. Changes between scans, while closed, and outside accessible stores require additional observations.");
             text.AppendLine("Optional history directory: " + archiveDirectory);
             text.AppendLine(HistoryStatus());

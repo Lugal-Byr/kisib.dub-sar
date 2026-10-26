@@ -53,7 +53,7 @@ namespace Kisib
                     }
                 }
             }
-            CertificateSignals.Evaluate(snapshot.Certificates.Values);
+            // Signals (weak keys, SHA-1 collisions, key reuse) are evaluated once by the caller, after the lists are merged in.
             snapshot.Note("Certificate metadata signals", "All observed certificate records", "RSA <2048 / MD5 or SHA-1 signature; SHA-1 collision; SPKI key reuse [to test]");
             snapshot.Canceled = canceled();
             snapshot.Finished = DateTime.UtcNow;

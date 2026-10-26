@@ -23,6 +23,17 @@ settings-win.data.microsoft.com = Windows settings service = settings and featur
 displaycatalog.mp.microsoft.com = Microsoft Store = app catalog
 *.bigcatalog.* = Microsoft Store = app catalog front door
 *.storeedgefd.dsx.mp.microsoft.com = Microsoft Store = store pages
+ecs.office.com = Office config service = Office and Teams settings and feature switches
+*.office.com = Microsoft Office = Office web apps and services
+*.office.net = Microsoft Office = Office files and services
+reflector.defender.microsoft.com = Microsoft Defender = checks Defender can reach its cloud
+fls-na.amazon.com = Amazon logging = the address amazon.com pages ping to record page loads and clicks
+fls-eu.amazon.com = Amazon logging = the address amazon pages ping to record page loads and clicks
+*.amazon.com = Amazon = shopping site and its services
+*.media-amazon.com = Amazon = pictures and files for amazon pages
+firefox.settings.services.mozilla.com = Firefox / LibreWolf settings = remote settings and blocklists
+*.mozilla.com = Mozilla = Firefox services
+*.codeberg.org = Codeberg = code hosting (LibreWolf releases and its updater)
 *.microsoft.com = Microsoft = Microsoft service (check the full name for which one)
 *.windows.com = Microsoft = Windows service
 *.digicert.com = DigiCert = certificate status (revocation) checks

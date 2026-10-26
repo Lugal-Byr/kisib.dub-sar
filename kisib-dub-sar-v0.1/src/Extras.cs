@@ -14,8 +14,8 @@ namespace Kisib
     internal sealed class DenialToast : Form
     {
         protected override bool ShowWithoutActivation { get { return true; } }
-        // Stays until you answer it: Details opens the refusal card next to it instead of closing it.
-        internal DenialToast(string title, string text, bool canAllow, Action<int> allow, Action details, Action quiet)
+        // Stays until you answer it: the refusal card opens next to it instead of closing it.
+        internal DenialToast(string title, string text, Button allow, Action details, Action quiet)
         {
             FormBorderStyle = FormBorderStyle.FixedToolWindow; TopMost = true; ShowInTaskbar = false; StartPosition = FormStartPosition.Manual;
             Text = title; Size = new Size(520, 210); Font = new Font("Tahoma", 9F); BackColor = SystemColors.Info;
@@ -23,15 +23,8 @@ namespace Kisib
             Location = new Point(area.Right - Width - 12, area.Bottom - Height - 12);
             Label body = new Label { Text = text, Dock = DockStyle.Fill, Padding = new Padding(8), ForeColor = SystemColors.InfoText };
             FlowLayoutPanel buttons = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 36, Padding = new Padding(4), BackColor = SystemColors.Control };
-            if (canAllow)
-                foreach (int minutes in new int[] { 3, 10, 60 })
-                {
-                    int m = minutes;
-                    Button b = new Button { Text = "Allow " + m + " min", AutoSize = true };
-                    b.Click += delegate { Close(); allow(m); };
-                    buttons.Controls.Add(b);
-                }
-            Button more = new Button { Text = "Details...", AutoSize = true }; more.Click += delegate { details(); };
+            if (allow != null) buttons.Controls.Add(allow);
+            Button more = new Button { Text = "Refusal card", AutoSize = true }; more.Click += delegate { details(); };
             Button hush = new Button { Text = "Quiet 1 h", AutoSize = true }; hush.Click += delegate { quiet(); Close(); };
             Button dismiss = new Button { Text = "Dismiss", AutoSize = true }; dismiss.Click += delegate { Close(); };
             buttons.Controls.Add(more); buttons.Controls.Add(hush); buttons.Controls.Add(dismiss);
@@ -71,6 +64,11 @@ namespace Kisib
             menu.MenuItems.Add("Certificate denials", delegate { ShowDenials(); });
             menu.MenuItems.Add("Block by bloc and continent...", delegate { RestoreFromTray(); OpenBlocBoard(); });
             menu.MenuItems.Add("Live certificate map", delegate { RestoreFromTray(); OpenLiveMap(); });
+            MenuItem openNow = new MenuItem("Open right now (allowed for a while)");
+            openNow.MenuItems.Add("(building)");
+            openNow.Popup += delegate { FillOpenNow(openNow); };
+            menu.MenuItems.Add(openNow);
+            menu.MenuItems.Add("Tools...", delegate { RestoreFromTray(); ShowToolsPage(); });
             menu.MenuItems.Add("-");
             MenuItem quiet = new MenuItem("Quiet mode (no pop-ups)", delegate { ToggleQuiet(); });
             menu.MenuItems.Add(quiet);
@@ -85,9 +83,9 @@ namespace Kisib
         // Pop-ups stack in the corner (newest at the bottom, four at most) and stay until answered.
         private void ShowDenialToast(Denial d, string text)
         {
-            List<CertificateRecord> behind = d.BlockedBy != null ? CertificatesBehind(d) : new List<CertificateRecord>();
-            DenialToast t = new DenialToast("kisib: certificate refused · " + d.Time.ToString("HH:mm"), text, behind.Count > 0,
-                delegate(int m) { AllowTemporarily(behind, d.Subject, TimeSpan.FromMinutes(m), false); },
+            DenialToast t = null;
+            Button allow = d.BlockedBy != null ? AllowButton("Allow", delegate { return TargetFor(d); }, delegate { if (t != null && !t.IsDisposed) t.Close(); }) : null;
+            t = new DenialToast("kisib: certificate refused · " + d.Time.ToString("HH:mm"), text, allow,
                 delegate { OpenRefusalCard(d); },
                 delegate { QuietSites.Quiet(d.Subject, TimeSpan.FromHours(1)); });
             t.BackColor = d.Verdict == "yellow" ? Color.LightYellow : d.Verdict == "red" ? Color.MistyRose : SystemColors.Info;
@@ -117,6 +115,14 @@ namespace Kisib
             try
             {
                 Directory.CreateDirectory(AppFolder);
+                // Keep the log small enough to open fast: past 8 MB the older half moves to DENIALS (older).txt.
+                FileInfo info = new FileInfo(DenialLogPath);
+                if (info.Exists && info.Length > 8L * 1024 * 1024)
+                {
+                    string older = Path.Combine(AppFolder, "DENIALS (older).txt");
+                    if (File.Exists(older)) File.Delete(older);
+                    File.Move(DenialLogPath, older);
+                }
                 bool header = !File.Exists(DenialLogPath);
                 string line = String.Join(",", new string[] { d.Time.ToString("o", CultureInfo.InvariantCulture), Q(d.Program), Q(d.Subject), d.Code, Q(d.Reason), Q(d.Flags),
                     Q(d.BlockedBy ?? ""), d.Noise ? "1" : "0", String.Join(" ", d.ChainSha1.ToArray()) });
@@ -131,7 +137,17 @@ namespace Kisib
             try
             {
                 if (!File.Exists(DenialLogPath)) return;
-                foreach (string[] f in GroupCatalog.ReadCsv(DenialLogPath, 64L * 1024 * 1024).Skip(1).Reverse().Take(2000).Reverse())
+                // Only the newest part of the file is read at start.
+                string text;
+                using (FileStream fs = new FileStream(DenialLogPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    long from = Math.Max(0, fs.Length - 1024 * 1024);
+                    fs.Seek(from, SeekOrigin.Begin);
+                    using (StreamReader r = new StreamReader(fs, new UTF8Encoding(false))) text = r.ReadToEnd();
+                    // Drop the header line, or the cut-off first line when reading from the middle.
+                    int nl = text.IndexOf('\n'); text = nl >= 0 ? text.Substring(nl + 1) : "";
+                }
+                foreach (string[] f in GroupCatalog.ParseCsv(text).Reverse<string[]>().Take(2000).Reverse())
                 {
                     if (f.Length < 9) continue;
                     Denial d = new Denial { Time = DateTime.Parse(f[0], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToLocalTime(), Program = f[1], Subject = f[2],
@@ -157,6 +173,44 @@ namespace Kisib
             }
         }
 
+        // Admin-only to change kisib's folder (exe, data, docs); PORTABLE BACKUP LISTS stays changeable by you.
+        // Turning Start with Windows off gives the folder back its normal permissions.
+        private static void LockFolder(string folder, bool locked)
+        {
+            System.Security.AccessControl.DirectorySecurity sec = System.IO.Directory.GetAccessControl(folder);
+            System.Security.Principal.SecurityIdentifier me = System.Security.Principal.WindowsIdentity.GetCurrent().User;
+            System.Security.Principal.SecurityIdentifier admins = new System.Security.Principal.SecurityIdentifier(System.Security.Principal.WellKnownSidType.BuiltinAdministratorsSid, null);
+            System.Security.Principal.SecurityIdentifier system = new System.Security.Principal.SecurityIdentifier(System.Security.Principal.WellKnownSidType.LocalSystemSid, null);
+            System.Security.Principal.SecurityIdentifier users = new System.Security.Principal.SecurityIdentifier(System.Security.Principal.WellKnownSidType.BuiltinUsersSid, null);
+            System.Security.AccessControl.InheritanceFlags both = System.Security.AccessControl.InheritanceFlags.ContainerInherit | System.Security.AccessControl.InheritanceFlags.ObjectInherit;
+            if (locked)
+            {
+                sec = new System.Security.AccessControl.DirectorySecurity();
+                sec.SetAccessRuleProtection(true, false);
+                sec.SetOwner(admins);
+                foreach (System.Security.Principal.SecurityIdentifier who in new System.Security.Principal.SecurityIdentifier[] { admins, system })
+                    sec.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(who, System.Security.AccessControl.FileSystemRights.FullControl, both, System.Security.AccessControl.PropagationFlags.None, System.Security.AccessControl.AccessControlType.Allow));
+                foreach (System.Security.Principal.SecurityIdentifier who in new System.Security.Principal.SecurityIdentifier[] { users, me })
+                    sec.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(who, System.Security.AccessControl.FileSystemRights.ReadAndExecute, both, System.Security.AccessControl.PropagationFlags.None, System.Security.AccessControl.AccessControlType.Allow));
+                System.IO.Directory.SetAccessControl(folder, sec);
+                string lists = Path.Combine(folder, Storage.FolderName);
+                if (Directory.Exists(lists))
+                {
+                    System.Security.AccessControl.DirectorySecurity l = Directory.GetAccessControl(lists);
+                    l.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(me, System.Security.AccessControl.FileSystemRights.Modify, both, System.Security.AccessControl.PropagationFlags.None, System.Security.AccessControl.AccessControlType.Allow));
+                    Directory.SetAccessControl(lists, l);
+                }
+            }
+            else
+            {
+                System.Security.AccessControl.DirectorySecurity open = new System.Security.AccessControl.DirectorySecurity();
+                open.SetAccessRuleProtection(false, false);
+                open.SetOwner(me);
+                open.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(me, System.Security.AccessControl.FileSystemRights.FullControl, both, System.Security.AccessControl.PropagationFlags.None, System.Security.AccessControl.AccessControlType.Allow));
+                Directory.SetAccessControl(folder, open);
+            }
+        }
+
         private static bool StartupTaskExists()
         {
             try { string o; return Schtasks("/query /tn \"" + TaskName + "\"", out o) == 0; } catch (Exception) { return false; }
@@ -166,14 +220,19 @@ namespace Kisib
         {
             if (!BlockEngine.IsElevated()) { ShowText("Start with Windows", "Run kisib as administrator once to set this up. After that it starts at logon with admin rights, without asking."); return; }
             string output; int code;
+            string folder = Path.GetDirectoryName(Application.ExecutablePath);
             try
             {
+                // The task starts kisib with admin rights at every logon. If anything without admin could replace the exe,
+                // that would be a way in, so kisib's own folder becomes admin-only to change (its lists stay yours).
+                if (on) LockFolder(folder, true);
                 code = on ? Schtasks("/create /f /tn \"" + TaskName + "\" /sc onlogon /rl highest /tr \"\\\"" + Application.ExecutablePath + "\\\" --tray\"", out output)
                           : Schtasks("/delete /f /tn \"" + TaskName + "\"", out output);
+                if (!on) LockFolder(folder, false);
             }
             catch (Exception ex) { code = -1; output = ex.Message; }
-            ShowText("Start with Windows", code == 0 ? (on ? "kisib now starts in the tray when you log in, watching for denials.\r\nIt runs from:\r\n" + Application.ExecutablePath +
-                "\r\nIf you move the folder, turn this off and on again." : "kisib no longer starts with Windows.") : "schtasks failed:\r\n" + output);
+            Say(code == 0 ? (on ? "kisib now starts in the tray when you log in, with admin rights. Its folder is now admin-only to change (the lists inside stay yours). If you move the folder, turn this off and on again." :
+                "kisib no longer starts with Windows; its folder has normal permissions again.") : "Start with Windows failed: " + output.Trim());
         }
     }
 }

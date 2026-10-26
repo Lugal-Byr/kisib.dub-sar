@@ -24,25 +24,57 @@ namespace Kisib
 
         internal sealed class Entry { internal string Pattern, Name, What; internal Regex Match; }
         private static List<Entry> programs, sites, owners;
-        private static DateTime stamp;
+        private static DateTime stamp, lastLook;
+        private static readonly object gate = new object();
         internal static string SourceDirectory;
 
+        private static bool ensured;
         internal static void EnsureFiles()
         {
+            if (ensured) return;
             foreach (KeyValuePair<string, string> f in Shipped)
             {
                 string target = Storage.File(f.Key), source = SourceDirectory == null ? null : Path.Combine(SourceDirectory, "data", f.Value);
                 try { if (!File.Exists(target) && source != null && File.Exists(source)) File.Copy(source, target); } catch (IOException) { }
             }
+            MergeNewSites();
+            ensured = SourceDirectory != null;
         }
 
+        // New shipped site names get added to your copy (yours stays first, so your edits win).
+        private static void MergeNewSites()
+        {
+            try
+            {
+                string target = Storage.File(SitesFile), source = SourceDirectory == null ? null : Path.Combine(SourceDirectory, "data", "who-sites.txt");
+                if (source == null || !File.Exists(source) || !File.Exists(target)) return;
+                List<string> mine = File.ReadAllLines(target).ToList();
+                HashSet<string> have = new HashSet<string>(mine.Select(l => l.Split(new string[] { " = " }, 2, StringSplitOptions.None)[0].Trim()), StringComparer.OrdinalIgnoreCase);
+                List<string> add = File.ReadAllLines(source).Where(l => l.Trim().Length > 0 && !l.TrimStart().StartsWith("#", StringComparison.Ordinal) &&
+                    !have.Contains(l.Split(new string[] { " = " }, 2, StringSplitOptions.None)[0].Trim())).ToList();
+                if (add.Count == 0) return;
+                // Specific names go before the broad "*.microsoft.com" style lines so they match first.
+                int broad = mine.FindIndex(l => l.StartsWith("*.microsoft.com", StringComparison.OrdinalIgnoreCase));
+                if (broad < 0) mine.AddRange(add); else mine.InsertRange(broad, add);
+                File.WriteAllLines(target, mine.ToArray(), new UTF8Encoding(false));
+            }
+            catch (Exception) { }
+        }
+
+        // Looks at the files at most every 3 seconds (it used to check the disk on every single lookup).
         private static void Load()
         {
-            EnsureFiles();
-            DateTime newest = Shipped.Keys.Select(k => Storage.File(k)).Where(File.Exists).Select(File.GetLastWriteTimeUtc).DefaultIfEmpty(DateTime.MinValue).Max();
-            if (programs != null && newest == stamp) return;
-            programs = Read(ProgramsFile, false); sites = Read(SitesFile, true); owners = Read(OwnersFile, false);
-            stamp = newest;
+            lock (gate)
+            {
+                if (programs != null && (DateTime.UtcNow - lastLook).TotalSeconds < 3) return;
+                lastLook = DateTime.UtcNow;
+                EnsureFiles();
+                DateTime newest = Shipped.Keys.Select(k => Storage.File(k)).Where(File.Exists).Select(File.GetLastWriteTimeUtc).DefaultIfEmpty(DateTime.MinValue).Max();
+                if (programs != null && newest == stamp) return;
+                List<Entry> p = Read(ProgramsFile, false), s = Read(SitesFile, true), o = Read(OwnersFile, false);
+                programs = p; sites = s; owners = o;
+                stamp = newest;
+            }
         }
 
         private static List<Entry> Read(string file, bool wildcard)
@@ -111,18 +143,32 @@ namespace Kisib
         internal string Name;
         internal bool Enabled;
         internal List<string> Programs = new List<string>(), Sites = new List<string>(), Roots = new List<string>();
+        private List<Regex> siteMatch;
+        internal List<Regex> SiteMatch { get { if (siteMatch == null) siteMatch = Sites.Select(WhoIsWho.Wildcard).ToList(); return siteMatch; } }
     }
 
     internal static class TrustCategories
     {
         private static List<TrustCategory> cache;
-        private static DateTime stamp;
+        private static DateTime stamp, lastLook;
+        private static readonly object gate = new object();
 
         internal static List<TrustCategory> Read()
         {
+            lock (gate)
+            {
+                // Checked against the disk at most every 3 seconds; rules ask once per certificate.
+                if (cache != null && (DateTime.UtcNow - lastLook).TotalSeconds < 3) return cache;
+                lastLook = DateTime.UtcNow;
+                return ReadNow();
+            }
+        }
+
+        private static List<TrustCategory> ReadNow()
+        {
             WhoIsWho.EnsureFiles();
             string path = Storage.File(WhoIsWho.CategoriesFile);
-            if (!File.Exists(path)) return new List<TrustCategory>();
+            if (!File.Exists(path)) return cache = new List<TrustCategory>();
             DateTime t = File.GetLastWriteTimeUtc(path);
             if (cache != null && t == stamp) return cache;
             List<TrustCategory> list = new List<TrustCategory>();
@@ -160,7 +206,7 @@ namespace Kisib
                 else if (inside && line.StartsWith("enabled", StringComparison.OrdinalIgnoreCase)) lines[i] = "enabled = " + (on ? "on" : "off");
             }
             File.WriteAllLines(path, lines.ToArray(), new UTF8Encoding(false));
-            cache = null;
+            lock (gate) cache = null;
         }
 
         // A protected certificate is a root named in an enabled category, or a CA issued directly by one.
@@ -179,7 +225,7 @@ namespace Kisib
             string program = Path.GetFileName(d.Program ?? "");
             foreach (TrustCategory cat in Read().Where(x => x.Enabled))
             {
-                if (cat.Sites.Any(s => WhoIsWho.Wildcard(s).IsMatch((d.Subject ?? "").TrimStart('*', '.'))) ||
+                if (cat.SiteMatch.Any(s => s.IsMatch((d.Subject ?? "").TrimStart('*', '.'))) ||
                     cat.Programs.Any(p => String.Equals(p, program, StringComparison.OrdinalIgnoreCase)) ||
                     d.ChainNames.Any(n => cat.Roots.Any(r => String.Equals(r, n, StringComparison.OrdinalIgnoreCase))))
                     return cat.Name;
@@ -235,7 +281,7 @@ namespace Kisib
             WhoIsWho.SourceDirectory = sourceDirectory;
             tools.MenuItems.Add("-");
             tools.MenuItems.Add(new MenuItem("Trusted &categories...", delegate { ShowCategories(); }));
-            tools.MenuItems.Add(new MenuItem("&Repair Windows essentials...", delegate { ShowRepair(); }));
+            tools.MenuItems.Add(RepairMenu());
             tools.MenuItems.Add(new MenuItem("Edit &who-is-who lists (opens the folder)", delegate
             {
                 WhoIsWho.EnsureFiles();
@@ -267,72 +313,6 @@ namespace Kisib
                 };
                 dialog.Controls.Add(box); dialog.Controls.Add(note); dialog.Controls.Add(detail); dialog.Controls.Add(save);
                 ShowTool(dialog, "categories");
-            }
-        }
-
-        // Repair: put the roots an enabled category needs back into Trusted Root, and out of Disallowed.
-        private void ShowRepair()
-        {
-            if (snapshot == null) { ShowText("Repair Windows essentials", "Run a scan first (F5)."); return; }
-            List<string> needed = TrustCategories.Read().Where(c => c.Enabled).SelectMany(c => c.Roots).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-            HashSet<string> blocked = GroupCatalog.BlockedIdentities(snapshot);
-            List<KeyValuePair<string, CertificateRecord>> found = new List<KeyValuePair<string, CertificateRecord>>();
-            using (Form dialog = new Form { Text = "Repair Windows essentials — preview", Size = new Size(1000, 520), Font = Font, StartPosition = FormStartPosition.CenterParent })
-            {
-                ListView grid = new ListView();
-                SetupGrid(grid, new string[] { "Root", "Trusted now", "In Disallowed", "Will do" }, new int[] { 380, 110, 110, 340 });
-                int fixes = 0;
-                foreach (string name in needed)
-                {
-                    CertificateRecord c = snapshot.Certificates.Values.Where(x => String.Equals(x.SubjectCn, name, StringComparison.OrdinalIgnoreCase) && x.Subject == x.Issuer)
-                        .OrderByDescending(x => x.NotAfter).FirstOrDefault();
-                    if (c == null) { grid.Items.Add(new ListViewItem(new string[] { name, "?", "?", "not available: load Tools > Update Microsoft root list" }) { ForeColor = SystemColors.GrayText }); continue; }
-                    bool trusted = c.FoundIn.Any(p => p.IndexOf("\\Root\\", StringComparison.OrdinalIgnoreCase) >= 0 || p.IndexOf("\\AuthRoot\\", StringComparison.OrdinalIgnoreCase) >= 0);
-                    bool isBlocked = blocked.Contains(c.Identity);
-                    string todo = (isBlocked ? "remove from Disallowed; " : "") + (!trusted ? "add to Trusted Root (whole PC)" : "");
-                    if (todo.Length == 0) todo = "nothing, already fine";
-                    else { fixes++; found.Add(new KeyValuePair<string, CertificateRecord>(todo, c)); }
-                    ListViewItem row = new ListViewItem(new string[] { name, trusted ? "yes" : "NO", isBlocked ? "YES" : "no", todo });
-                    if (todo != "nothing, already fine") row.ForeColor = Color.Firebrick;
-                    grid.Items.Add(row);
-                }
-                Label note = new Label { Dock = DockStyle.Bottom, Height = 44, Padding = new Padding(6), Text = "Only the roots listed in enabled trusted categories. Needs kisib running as administrator. " +
-                    "Each change is written to BLOCK HISTORY. Roots come from your stores, the Microsoft root list, or CCADB." };
-                Button go = new Button { Text = fixes == 0 ? "Nothing to repair" : "Repair " + fixes + " root" + (fixes == 1 ? "" : "s"), Dock = DockStyle.Bottom, Height = 32, Enabled = fixes > 0 };
-                go.Click += delegate
-                {
-                    if (!BlockEngine.IsElevated()) { ShowText("Repair", "Run kisib as administrator to change Trusted Root."); return; }
-                    StringBuilder report = new StringBuilder();
-                    foreach (KeyValuePair<string, CertificateRecord> f in found)
-                    {
-                        CertificateRecord c = f.Value;
-                        try
-                        {
-                            using (X509Certificate2 cert = new X509Certificate2(c.Der))
-                            {
-                                if (f.Key.Contains("remove from Disallowed"))
-                                    foreach (X509Location scope in new X509Location[] { X509Location.LocalMachine, X509Location.CurrentUser })
-                                        using (X509Store store = new X509Store(StoreName.Disallowed, scope))
-                                        {
-                                            store.Open(OpenFlags.ReadWrite);
-                                            foreach (X509Certificate2 hit in store.Certificates.Find(X509FindType.FindByThumbprint, c.Sha1, false)) store.Remove(hit);
-                                            BlockedCertificates.Remove(scope, c.Sha1);
-                                        }
-                                if (f.Key.Contains("add to Trusted Root"))
-                                    using (X509Store root = new X509Store(StoreName.Root, X509Location.LocalMachine))
-                                    { root.Open(OpenFlags.ReadWrite); root.Add(cert); }
-                            }
-                            BlockEngine.Note("repair-trust", X509Location.LocalMachine, c.Sha256, c.Sha1, c.SubjectShortName, f.Key);
-                            report.AppendLine("fixed   " + c.SubjectShortName + "   (" + f.Key + ")");
-                        }
-                        catch (Exception ex) { report.AppendLine("FAILED  " + c.SubjectShortName + "   " + ex.Message); }
-                    }
-                    dialog.Close();
-                    ShowText("Repair Windows essentials", report.ToString());
-                    StartScan();
-                };
-                dialog.Controls.Add(grid); dialog.Controls.Add(note); dialog.Controls.Add(go);
-                dialog.ShowDialog(this);
             }
         }
     }

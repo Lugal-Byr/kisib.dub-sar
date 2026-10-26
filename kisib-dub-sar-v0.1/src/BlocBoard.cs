@@ -31,18 +31,20 @@ namespace Kisib
 
             Label blocTitle = new Label { Dock = DockStyle.Top, Height = 24, Padding = new Padding(8, 6, 8, 0), Font = new Font(Font, FontStyle.Bold),
                 Text = "Block by bloc   (tags stack: a country can be in several; each certificate is matched on its subject and issuer C=)" };
-            FlowLayoutPanel blocPanel = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 66, Padding = new Padding(6, 4, 6, 0) };
+            FlowLayoutPanel blocPanel = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 84, Padding = new Padding(6, 4, 6, 0) };
             Label contTitle = new Label { Dock = DockStyle.Top, Height = 24, Padding = new Padding(8, 6, 8, 0), Font = new Font(Font, FontStyle.Bold),
                 Text = "Block by continent   (all seven, every country on the UN list; Middle East is a region inside Asia)" };
-            FlowLayoutPanel contPanel = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 66, Padding = new Padding(6, 4, 6, 0) };
+            FlowLayoutPanel contPanel = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 84, Padding = new Padding(6, 4, 6, 0) };
             Panel summaryPanel = new Panel { Dock = DockStyle.Top, Height = 64, Padding = new Padding(8, 6, 8, 6), BackColor = Color.FromArgb(255, 247, 245) };
             Label summary = new Label { Dock = DockStyle.Fill, ForeColor = Color.FromArgb(155, 28, 18) };
             FlowLayoutPanel actions = new FlowLayoutPanel { Dock = DockStyle.Right, Width = 560, FlowDirection = FlowDirection.RightToLeft, WrapContents = false };
             Button keepBlocked = new Button { Text = "Block + keep blocked...", AutoSize = true, BackColor = Color.FromArgb(155, 28, 18), ForeColor = Color.White };
             Button preview = new Button { Text = "Preview block...", AutoSize = true };
             Button clear = new Button { Text = "Clear picks", AutoSize = true };
+            Button unblockPicked = new Button { Text = "Unblock picked", AutoSize = true };
             CheckBox onlyHits = new CheckBox { Text = "Show only what this blocks", AutoSize = true, Padding = new Padding(0, 6, 8, 0) };
-            actions.Controls.AddRange(new Control[] { keepBlocked, preview, clear, onlyHits });
+            actions.Width = 680;
+            actions.Controls.AddRange(new Control[] { keepBlocked, preview, unblockPicked, clear, onlyHits });
             summaryPanel.Controls.Add(summary); summaryPanel.Controls.Add(actions);
 
             ListView grid = new ListView();
@@ -57,13 +59,25 @@ namespace Kisib
             Func<List<GroupNode>> pickedGroups = delegate { return groups == null ? new List<GroupNode>() : groups.Tags.Concat(groups.Continents).Where(g => picked.Contains(g.Key)).ToList(); };
 
             Action fillGrid = null;
+            Action<GroupNode> unblockOne = null, blockOne = null;
+            // A tile shows what is really going on: kept blocked by a rule, partly blocked, or not blocked.
+            // Left-click picks it; right-click blocks or unblocks it on its own.
             Func<GroupNode, string, CheckBox> tile = delegate(GroupNode g, string sub)
             {
-                string[] caption = { g.Label, sub };
-                CheckBox box = new CheckBox { Appearance = Appearance.Button, Width = 205, Height = 56, Margin = new Padding(3),
-                    Text = "", AccessibleName = g.Label + " " + sub, Tag = g, Checked = picked.Contains(g.Key), FlatStyle = FlatStyle.Standard };
-                box.Paint += delegate(object s, PaintEventArgs e) { EmojiText.DrawLines(e.Graphics, caption, box.Font, new Rectangle(8, 2, box.Width - 14, box.Height - 4), box.ForeColor); };
-                Action paint = delegate { box.BackColor = box.Checked ? Color.MistyRose : SystemColors.Control; box.ForeColor = box.Checked ? Color.Firebrick : SystemColors.ControlText; };
+                HashSet<string> ruleKeys = new HashSet<string>(BlockRules.Read().Select(r => r.GroupKey), StringComparer.Ordinal);
+                bool ruled = ruleKeys.Contains(g.Key);
+                int blocked = g.Members.Count(id => groups.Blocked.Contains(id)), total = g.Members.Count;
+                string state = ruled ? "● kept blocked · " + blocked + " of " + total : blocked == 0 ? "○ not blocked" : blocked == total ? "● all blocked (no rule)" : "◐ " + blocked + " of " + total + " blocked (no rule)";
+                string[] caption = { g.Label, sub, state };
+                CheckBox box = new CheckBox { Appearance = Appearance.Button, Width = 215, Height = 72, Margin = new Padding(3),
+                    Text = "", AccessibleName = g.Label + " " + sub + " " + state, Tag = g, Checked = picked.Contains(g.Key), FlatStyle = FlatStyle.Standard };
+                box.Paint += delegate(object s, PaintEventArgs e)
+                {
+                    string[] lines = { (box.Checked ? "▶ picked  " : "") + caption[0], caption[1], caption[2] };
+                    EmojiText.DrawLines(e.Graphics, lines, box.Font, new Rectangle(8, 2, box.Width - 14, box.Height - 4), box.ForeColor);
+                };
+                Color stateBack = ruled ? Color.FromArgb(246, 205, 200) : blocked == 0 ? SystemColors.Control : Color.FromArgb(255, 238, 200);
+                Action paint = delegate { box.BackColor = box.Checked ? Color.MistyRose : stateBack; box.ForeColor = box.Checked ? Color.Firebrick : ruled ? Color.FromArgb(120, 20, 10) : SystemColors.ControlText; };
                 paint();
                 box.CheckedChanged += delegate
                 {
@@ -71,6 +85,18 @@ namespace Kisib
                     paint();
                     fillGrid();
                 };
+                ContextMenu menu = new ContextMenu();
+                menu.MenuItems.Add(new MenuItem("Block " + g.Label + " and keep it blocked...", delegate { blockOne(g); }));
+                menu.MenuItems.Add(new MenuItem("Unblock " + g.Label + " and drop its rule", delegate { unblockOne(g); }) { Enabled = ruled || blocked > 0 });
+                menu.MenuItems.Add("-");
+                menu.MenuItems.Add(new MenuItem("Show its certificates in the main list", delegate
+                {
+                    leftTabs.SelectedTab = groupsTab;
+                    foreach (TreeNode top in groupTree.Nodes) { TreeNode hit = FindGroupNode(top, g.Key); if (hit != null) { groupTree.SelectedNode = hit; hit.EnsureVisible(); break; } }
+                    RestoreFromTray();
+                }));
+                menu.MenuItems.Add(new MenuItem(box.Checked ? "Unpick" : "Pick", delegate { box.Checked = !box.Checked; }));
+                box.ContextMenu = menu;
                 return box;
             };
 
@@ -140,7 +166,7 @@ namespace Kisib
                 }
                 grid.EndUpdate();
 
-                summary.Text = chosenGroups.Count == 0 ? "Pick blocs or continents above. Nothing is blocked until you confirm in the preview." :
+                summary.Text = chosenGroups.Count == 0 ? "Pick blocs or continents above (right-click a tile to block or unblock just that one). Nothing changes until you press a button." :
                     "Will block: " + roots + " roots + " + inters + " intermediates from " + countriesHit + " countries   (" + String.Join(" + ", chosenGroups.Select(g => g.Label).ToArray()) + ")\r\n" +
                     (w == null ? "" : w.Rerouted.Count + " CAs stay reachable through other roots · " + w.Cut.Count + " cut off" + (w.Leaks.Count > 0 ? " · " + w.Leaks.Count + " LEAK" : "") + " · ") +
                     guarded + " protected (Windows essentials) skipped · " + chosen.Count(id => groups.Blocked.Contains(id)) + " already blocked";
@@ -165,6 +191,20 @@ namespace Kisib
             };
             preview.Click += delegate { block(false); };
             keepBlocked.Click += delegate { block(true); };
+            blockOne = delegate(GroupNode g)
+            {
+                string r = g.Label;
+                ShowBlockDialog(g.Members.Select(id => snapshot.Certificates[id]).ToList(), delegate(CertificateRecord c) { SortedSet<string> why; return g.Why.TryGetValue(c.Identity, out why) ? r + ": " + String.Join("; ", why.ToArray()) : r; },
+                    g.Label, new List<GroupNode> { g }, true);
+            };
+            unblockOne = delegate(GroupNode g) { UnblockGroups(new List<GroupNode> { g }); };
+            unblockPicked.Click += delegate
+            {
+                List<GroupNode> chosenGroups = pickedGroups();
+                if (chosenGroups.Count == 0) { Say("Pick the blocs or continents to unblock first."); return; }
+                UnblockGroups(chosenGroups);
+                picked.Clear();
+            };
             clear.Click += delegate { picked.Clear(); buildTiles(); fillGrid(); };
             onlyHits.CheckedChanged += delegate { fillGrid(); };
             grid.DoubleClick += delegate

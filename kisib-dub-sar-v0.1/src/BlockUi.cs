@@ -44,7 +44,7 @@ namespace Kisib
 
         private void AddGroupTree(Snapshot result, HashSet<string> expanded)
         {
-            groups = GroupCatalog.Build(result, sourceDirectory);
+            groups = result.Groups ?? GroupCatalog.Build(result, sourceDirectory);
             TreeNode root = new TreeNode("Groups" + (groups.Error == null ? "" : " [error]")) { Tag = "groups" };
             groupTree.BeginUpdate(); groupTree.Nodes.Clear();
             groupTree.Nodes.Add(root);
@@ -150,7 +150,7 @@ namespace Kisib
                 rerouteDetails.Click += delegate { ShowText("If you block this — cross-signs", whatIf.Length > 0 ? whatIf : "Nothing new to block, or the scan is not ready."); };
                 CheckBox includeProtected = new CheckBox { Dock = DockStyle.Bottom, Height = 24, Text = "Also block PROTECTED certificates (trusted categories like Windows essentials need them)", ForeColor = Color.Firebrick };
                 CheckBox keep = new CheckBox { Dock = DockStyle.Bottom, Height = 26, Checked = keepDefault && ruleGroups.Count > 0, Enabled = ruleGroups.Count > 0,
-                    Text = "Keep " + (ruleGroups.Count > 1 ? "these " + ruleGroups.Count + " groups" : "this group") + " blocked: block new matches after every scan (rescans every 60 seconds)" };
+                    Text = "Keep " + (ruleGroups.Count > 1 ? "these " + ruleGroups.Count + " groups" : "this group") + " blocked: block new matches as soon as Windows adds them" };
                 Button go = new Button { Dock = DockStyle.Bottom, Height = 32 };
                 Button cancel = new Button { Text = "Cancel", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
                 List<BlockItem> plan = null;
@@ -164,7 +164,7 @@ namespace Kisib
                     {
                         CertificateRecord c = item.Certificate;
                         string guard = TrustCategories.ProtectedBy(c);
-                        string action = item.AlreadyBlocked ? "already blocked" : allowedSet.Covers(c) ? "SKIP: you allowed it (ALLOWED list)" : guard != null && !includeProtected.Checked ? "SKIP: protected (" + guard + ")" : guard != null ? "add — PROTECTED (" + guard + ")" : "add to Disallowed";
+                        string action = item.AlreadyBlocked ? "already blocked" : allowedSet.Covers(c) ? "SKIP: on your never-block list" : guard != null && !includeProtected.Checked ? "SKIP: protected (" + guard + ")" : guard != null ? "add — PROTECTED (" + guard + ")" : "add to Disallowed";
                         ListViewItem row = new ListViewItem(new string[] { action, c.SubjectShortName, c.IssuerShortName,
                             c.SubjectCountry ?? "—", item.Reason, c.FoundInText, c.Sha256 });
                         if (item.AlreadyBlocked) row.ForeColor = SystemColors.GrayText; else if (guard != null) row.ForeColor = Color.DarkGoldenrod;
@@ -180,7 +180,7 @@ namespace Kisib
                         (plan.Count - add) + " already blocked. Certificates sharing a key with a chosen one are included.\r\n" +
                         "Nothing is deleted from Root or CA, so a Windows root update cannot bring them back: Disallowed wins.\r\n" +
                         "Windows, Edge and apps using Windows certificate checks stop trusting them. Chrome and Firefox keep their own root stores [to test].\r\n" +
-                        "Undo: Block > Undo last block. Every change is written to " + BlockEngine.LogPath;
+                        "Undo: Block > Undo last block, or Unblock on the bloc tile. Every change is written to " + BlockEngine.LogPath;
                     string whatIfLine;
                     whatIf = RerouteWhatIf(plan.Where(i => !i.AlreadyBlocked).Select(i => i.Certificate), out whatIfLine);
                     if (whatIfLine.Length > 0) info.Text += "\r\n" + whatIfLine;
@@ -235,17 +235,63 @@ namespace Kisib
             UnblockCertificates(new List<CertificateRecord> { cert }, "unblock selected");
         }
 
+        // A manual unblock always wins: out of Disallowed (whoever put it there) and onto the never-block list,
+        // with its key twins, so a bloc rule can't put it back.
         internal void UnblockCertificates(List<CertificateRecord> certs, string reason)
         {
-            string[] hashes = certs.Select(c => c.Sha256).Distinct().ToArray();
-            List<BlockLogRow> result = new List<BlockLogRow>();
-            try
+            List<CertificateRecord> all = WithTwins(certs);
+            if (snapshot != null) all = all.Where(c => snapshot.IsBlocked(c) || certs.Contains(c)).ToList();
+            if (all.Count == 0) { Say("Nothing to unblock."); return; }
+            string label = certs.Count == 1 ? certs[0].SubjectShortName : certs.Count + " certificates";
+            string result = LiftForGood(all, reason, "unblocked by hand");
+            Say("Unblocked " + label + " for good. " + result);
+            StartScan();
+        }
+
+        // Unblock a whole bloc or continent: drop its rule and lift what kisib blocked for it.
+        // Certificates also in another bloc that is still kept blocked stay blocked; so do ones blocked before kisib.
+        internal void UnblockGroups(List<GroupNode> chosen)
+        {
+            if (snapshot == null || groups == null || chosen.Count == 0) return;
+            string label = String.Join(" + ", chosen.Select(g => g.Label).ToArray());
+            HashSet<string> chosenKeys = new HashSet<string>(chosen.Select(g => g.Key), StringComparer.Ordinal);
+            List<BlockRule> rules = BlockRules.Read();
+            List<BlockRule> remaining = rules.Where(r => !chosenKeys.Contains(r.GroupKey)).ToList();
+            int dropped = rules.Count - remaining.Count;
+            try { if (dropped > 0) BlockRules.Save(remaining); } catch (Exception ex) { Say("Could not change the rules file: " + ex.Message); return; }
+            HashSet<string> keep = new HashSet<string>(StringComparer.Ordinal);
+            List<string> keptBy = new List<string>();
+            foreach (BlockRule r in remaining)
             {
-                result.AddRange(BlockEngine.Unblock(hashes, X509Location.CurrentUser, reason));
-                if (BlockEngine.IsElevated()) result.AddRange(BlockEngine.Unblock(hashes, X509Location.LocalMachine, reason));
+                GroupNode g = groups.All.FirstOrDefault(x => x.Key == r.GroupKey);
+                if (g != null) { keep.UnionWith(g.Members); keptBy.Add(g.Label); }
             }
-            catch (Exception ex) { ShowText("Unblock failed", ex.GetType().Name + ": " + ex.Message); return; }
-            ShowText("Unblock result", Report(result) + "\r\nkisib only removes Disallowed entries it added itself; Microsoft's own entries stay."); StartScan();
+            HashSet<string> members = new HashSet<string>(chosen.SelectMany(g => g.Members), StringComparer.Ordinal);
+            List<CertificateRecord> candidates = WithTwins(members.Select(id => snapshot.Certificates[id])).Where(snapshot.IsBlocked).ToList();
+            List<CertificateRecord> lift = candidates.Where(c => !keep.Contains(c.Identity) && snapshot.KisibBlockedSha1.Contains(c.Sha1)).ToList();
+            int stayOther = candidates.Count(c => keep.Contains(c.Identity));
+            int stayBefore = candidates.Count(c => !keep.Contains(c.Identity) && !snapshot.KisibBlockedSha1.Contains(c.Sha1));
+            int removed = 0, errors = 0;
+            List<string> problems = new List<string>();
+            foreach (X509Location scope in Elevation.IsElevated ? new X509Location[] { X509Location.CurrentUser, X509Location.LocalMachine } : new X509Location[] { X509Location.CurrentUser })
+            {
+                try
+                {
+                    List<BlockLogRow> rows = BlockEngine.UnblockAny(lift, scope, "unblock " + label);
+                    removed += rows.Count(r => r.Result == "removed");
+                    errors += rows.Count(r => r.Result.StartsWith("error", StringComparison.Ordinal));
+                }
+                catch (Exception ex) { problems.Add(ex.Message); }
+            }
+            List<string> parts = new List<string> { "Unblocked " + label + (dropped > 0 ? " and dropped its rule" : "") + ": " + removed + " certificate" + (removed == 1 ? "" : "s") + " lifted." };
+            if (stayOther > 0) parts.Add(stayOther + " stay blocked because they are also in " + String.Join(", ", keptBy.Distinct().ToArray()) + ".");
+            if (stayBefore > 0) parts.Add(stayBefore + " were blocked before kisib and stay (unblock them by hand if you want).");
+            if (!Elevation.IsElevated && lift.Any(c => c.FoundIn.Any(f => f.StartsWith("LOCAL_MACHINE\\Disallowed", StringComparison.OrdinalIgnoreCase))))
+                parts.Add("Whole-PC blocks need kisib run as administrator to lift.");
+            if (errors > 0) parts.Add(errors + " could not be changed (Block history has why).");
+            parts.AddRange(problems);
+            Say(String.Join(" ", parts.ToArray()));
+            StartScan();
         }
 
         private void ShowBlockHistory()

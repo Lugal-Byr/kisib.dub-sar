@@ -31,14 +31,21 @@ The Groups tab sorts every certificate six ways:
   Status      blocked by kisib, blocked before kisib, not on this PC, expired,
               weak, incident (published compromised keys).
   My tags     yours only, kept in PORTABLE BACKUP LISTS, never in the public repo.
-Block > Block by bloc and continent (Ctrl+B, or the Blocs... button): click
-blocs and continents, and the grid shows every country they catch: owners,
-roots, intermediates, blocked now, what this block adds, cross-signs that get
-rerouted or cut off, and why. Preview block shows the exact list; Block + keep
-blocked also saves rules so new matches get blocked after every scan.
+Block > Block by bloc and continent (Ctrl+B, or the Blocs... button): every
+tile shows how things stand: "kept blocked" (a rule keeps it blocked),
+"partly blocked" or "not blocked". Click tiles to pick them; the grid shows
+every country they catch: owners, roots, intermediates, blocked now, what this
+block adds, cross-signs that get rerouted or cut off, and why. Preview block
+shows the exact list; Block + keep blocked also saves rules so new matches get
+blocked too. Unblock picked (or right-click a tile > Unblock) lifts what kisib
+blocked for that bloc and drops its rule in one go; certificates that are also
+in another bloc you keep blocked stay blocked.
 Blocked certificates go into Windows' Disallowed store (this user; whole PC
 when kisib runs as administrator). Nothing is deleted. Undo last block puts
 it back. Block > Block history shows every change.
+Unblocking by hand always wins: an unblocked certificate (and every one
+sharing its key) goes on the never-block list, so a bloc rule can't put it
+back. Tools > Never block list shows them and takes them off again.
 Data: data\countries_monarchy_bric.csv (continent, region, monarchy, eu,
 bric_core, brics_plus, basel, tags, your_group, with a source on every row)
 and data\owners.csv. Edit them and press F5.
@@ -51,15 +58,27 @@ administrator once: every block in "BLOCKED CERTIFICATES (re-applied after
 reformat).txt" is put back, and your rules and tags carry on. Unzipping a new
 version next to the old one copies the lists over automatically.
 
-ALLOW FOR A WHILE
-When something gets refused, the pop-up has Allow 3 / 10 / 60 min buttons.
-kisib lifts that block (and its siblings from the same company or key), counts
-down in the status bar, and puts it back on time, even if kisib was closed.
-Also: Certificate > Allow for N minutes, and the buttons in Certificate denials.
+ALLOW
+Every window has the same Allow button or menu: for 3, 10 or 60 minutes, until
+kisib closes or the PC restarts, always (never block it again), or while a
+program runs. kisib lifts that block (and its siblings from the same company
+or key) right away, no confirm box, and says in one line what happened:
+"Lifted for the whole PC", or "this user only: run as administrator for
+lsass, updaters and services". Then it watches the next check and tells you
+whether it went through or was still refused. Timed blocks go back on time,
+even if kisib was closed. Tray > Open right now lists everything open, with
+the time left and Re-block now.
+"While <program> runs" (offered when a refusal names the program, like
+LibreWolf-WinUpdater.exe): each time that program starts, or gets refused,
+the block opens while it runs and closes 2 minutes after it stops. Tray >
+Open right now > Stop opening... removes it.
 
 ALWAYS ON
 File > Start with Windows (in tray): run kisib as administrator once and tick it.
-It then starts at logon in the tray, watching. File > Minimize to tray.
+It then starts at logon in the tray, watching, with admin rights. Because it
+starts with admin rights, kisib's folder becomes admin-only to change (the
+PORTABLE BACKUP LISTS inside stay yours); turning it off gives the folder its
+normal permissions back.
 Denials are saved, so View > Certificate denials keeps history across days.
 
 MY TAGS
@@ -85,18 +104,19 @@ the main window stays usable, each reopens where you left it, Esc closes it.
 
 POP-UPS AND THE REFUSAL CARD
 A refusal pop-up stays in the corner until you answer it (up to four stack).
-Details... opens the refusal card next to it: who asked (for lsass.exe or
-svchost.exe, kisib matches the open connection to name the real app [to test]),
-why, and every way out: Allow 3 / 10 / 60 min, Allow always, Reroute, Keep
-blocked, Quiet this site for 1 hour. Allow always takes the block out for good
-and lists it in ALLOWED (never block).txt so rules skip it; Tools > Allowed
-removes entries. Quiet mode (tray or File menu) logs refusals with no pop-ups.
+Refusal card opens next to it: who asked (svchost.exe shows the Windows service
+inside it; for lsass.exe kisib matches the open connection to name the real app
+[to test]), which check Windows ran, the chain in order, why, and every way out:
+Allow, Reroute, Keep blocked, Quiet this site for 1 hour.
+Side checks: Windows often runs a stricter extra check that fails while the
+real check of the same site passes in the same second. Those show grey as
+"side check, went through" instead of red, with no pop-up. Quiet mode (tray or File menu) logs refusals with no pop-ups.
 The Microsoft list and CCADB refresh weekly by themselves when online; offline
 keeps the old copy (Tools menu switch).
 
 DENIAL ALERTS
 When any program on this PC is refused a certificate (curl, winget, Edge,
-Windows apps), kisib flashes in the taskbar and pops a notice: which program,
+Windows apps), kisib pops a notice in the corner: which program,
 which certificate, why, and whether one of your blocks did it.
 View > Certificate denials lists them. Run kisib as administrator once so it
 can switch on Windows' certificate log (CAPI2); after that it just watches.
@@ -124,8 +144,42 @@ KEEP GROUPS BLOCKED
 Block > Update Microsoft root list downloads every root Windows trusts, including
 ones not on this PC yet, so they can be blocked before they ever arrive.
 In the Block group preview, leave "Keep this group blocked" ticked: kisib saves a
-rule and, every 60 seconds, blocks anything new that lands in that group.
-Block > Rules lists and removes rules. The status bar shows what rules caught.
+rule and blocks anything new that lands in that group the moment Windows adds it
+(kisib watches the certificate stores, plus a check every 10 minutes).
+Tools > Rules lists rules: Remove rule keeps what it blocked; Remove rule and
+unblock its certificates undoes it. The status bar shows what rules caught.
+
+REPAIR (STANDARD SEALS)
+kisib carries 27 root certificates inside the exe, so it can put them back
+without downloading anything: the roots Microsoft lists as required by Windows,
+Microsoft's own website and signing roots, and the roots most websites hang
+under (DigiCert, Let's Encrypt, Sectigo, GlobalSign, Google). Each is checked
+against its fingerprint before use; sources are in data\standard-seals.csv.
+Tools > Repair:
+  Windows essentials          Microsoft's own roots only.
+  Get online                  microsoft.com and the big certificate companies.
+  What Windows ships with     Microsoft's required-roots list.
+  My trusted categories       the roots your switched-on categories need.
+  What this PC uses           blocked or missing roots behind this week's refusals.
+  Reset to the standard seals all seals back, one-off blocks lifted; only your
+                              blocs stay blocked.
+  Put back what was blocked before kisib   re-blocks what you unblocked by hand
+                              from Microsoft's untrusted list.
+Every row shows the owner, country and bloc, and what it fixes. Rows in a bloc you
+keep blocked stay unticked unless you tick them. What a repair puts back goes on
+the never-block list. Putting roots into Trusted Root needs kisib run as
+administrator; only kisib's own pinned copies ever go there.
+
+TOOLS PAGE
+Tools > Tools page (Ctrl+T, or the Tools button): every tool on one list with what
+it does and how it stands right now (lists loaded, leaks, rules, open allows,
+admin or not). Double-click to run one.
+
+SPEED
+kisib rescans when Windows changes a certificate store, not every minute, and
+skips redrawing when nothing changed. Heavy work happens off the window, so it
+doesn't freeze with thousands of blocks. If something still goes wrong, kisib
+writes it to CRASH LOG.txt in PORTABLE BACKUP LISTS and keeps running.
 
 MORE VIEWS
 View > Standings: CA owners grouped by country with roots, intermediates,

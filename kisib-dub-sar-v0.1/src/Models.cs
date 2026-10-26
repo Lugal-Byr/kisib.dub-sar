@@ -38,6 +38,7 @@ namespace Kisib
         internal string SignatureHash;
         internal byte[] SpkiDer;
         internal string SpkiSha256;
+        internal string SubjectKeyId, AuthorityKeyId;   // read once at parse time; the cross-sign map uses them
         internal string CryptoError;
         internal readonly List<string> WeakReasons = new List<string>();
         internal readonly List<string> CollisionPeers = new List<string>();
@@ -50,12 +51,49 @@ namespace Kisib
         // Enhanced key usage can differ between store occurrences of identical DER.
         internal readonly SortedDictionary<string, SortedSet<string>> UsageBySource = new SortedDictionary<string, SortedSet<string>>(StringComparer.OrdinalIgnoreCase);
 
+        // Parsing a certificate is the slow part of a scan. Every certificate is parsed once per run of kisib;
+        // later scans (stores, Microsoft list, CCADB) get a fresh copy of the parsed fields.
+        private static readonly Dictionary<string, CertificateRecord> Parsed = new Dictionary<string, CertificateRecord>(StringComparer.Ordinal);
+        private static readonly object ParsedGate = new object();
+
         internal static CertificateRecord FromDer(byte[] der)
+        {
+            string sha256;
+            using (SHA256 sha = SHA256.Create()) sha256 = Hex(sha.ComputeHash(der));
+            CertificateRecord known;
+            lock (ParsedGate)
+                if (Parsed.TryGetValue(sha256, out known) && (ReferenceEquals(known.Der, der) || known.Der.SequenceEqual(der))) return known.CloneParsed();
+            CertificateRecord fresh = Parse(der, sha256);
+            lock (ParsedGate)
+            {
+                if (Parsed.Count > 60000) Parsed.Clear();
+                Parsed[sha256] = fresh;
+            }
+            return fresh.CloneParsed();
+        }
+
+        private CertificateRecord CloneParsed()
+        {
+            CertificateRecord c = new CertificateRecord
+            {
+                Identity = Identity, Der = Der, Subject = Subject, Issuer = Issuer,
+                SubjectCn = SubjectCn, SubjectOrganization = SubjectOrganization, SubjectCountry = SubjectCountry,
+                IssuerCn = IssuerCn, IssuerOrganization = IssuerOrganization, IssuerCountry = IssuerCountry, DisplayNameError = DisplayNameError,
+                Sha1 = Sha1, Sha256 = Sha256, NotBefore = NotBefore, NotAfter = NotAfter, KeyUsage = KeyUsage, ParseError = ParseError,
+                KeyOid = KeyOid, KeyAlgorithm = KeyAlgorithm, KeySize = KeySize, SignatureOid = SignatureOid, SignatureAlgorithm = SignatureAlgorithm,
+                SignatureHash = SignatureHash, SpkiDer = SpkiDer, SpkiSha256 = SpkiSha256, SubjectKeyId = SubjectKeyId, AuthorityKeyId = AuthorityKeyId,
+                CryptoError = CryptoError
+            };
+            c.WeakReasons.AddRange(WeakReasons);
+            return c;
+        }
+
+        private static CertificateRecord Parse(byte[] der, string sha256)
         {
             CertificateRecord result = new CertificateRecord();
             result.Der = der;
             using (SHA1 sha = SHA1.Create()) result.Sha1 = Hex(sha.ComputeHash(der));
-            using (SHA256 sha = SHA256.Create()) result.Sha256 = Hex(sha.ComputeHash(der));
+            result.Sha256 = sha256;
             result.Identity = result.Sha256;
             result.Subject = "[certificate decode failed]";
             result.Issuer = "[unavailable]";
@@ -73,6 +111,12 @@ namespace Kisib
                     CertificateSignals.ReadMetadata(result, cert);
                     foreach (X509Extension extension in cert.Extensions)
                     {
+                        if (extension.Oid != null && extension.Oid.Value == "2.5.29.14")
+                        {
+                            try { result.SubjectKeyId = new X509SubjectKeyIdentifierExtension(extension, extension.Critical).SubjectKeyIdentifier.ToUpperInvariant(); }
+                            catch (Exception) { }
+                        }
+                        else if (extension.Oid != null && extension.Oid.Value == "2.5.29.35") result.AuthorityKeyId = AuthorityKeyIdOf(extension.RawData);
                         if (extension.Oid != null && extension.Oid.Value == "2.5.29.15")
                         {
                             try
@@ -107,6 +151,38 @@ namespace Kisib
                     record.DisplayNameError = (record.DisplayNameError ?? "") + (issuer ? "Issuer" : "Subject") + " attribute 2.5.4." + attribute + ": " + ex.Message + "; ";
                 }
             }
+        }
+
+        // AuthorityKeyIdentifier ::= SEQUENCE { keyIdentifier [0] IMPLICIT OCTET STRING OPTIONAL, ... }
+        internal static string AuthorityKeyIdOf(byte[] d)
+        {
+            try
+            {
+                int i = 0;
+                if (d == null || d.Length < 2 || d[i++] != 0x30) return null;
+                int end = DerLength(d, ref i);
+                end += i;
+                while (i < end && i < d.Length)
+                {
+                    byte tag = d[i++];
+                    int len = DerLength(d, ref i);
+                    if (len < 0 || i + len > d.Length) return null;
+                    if (tag == 0x80) return BitConverter.ToString(d, i, len).Replace("-", "");
+                    i += len;
+                }
+            }
+            catch (IndexOutOfRangeException) { }
+            catch (ArgumentException) { }
+            return null;
+        }
+        private static int DerLength(byte[] d, ref int i)
+        {
+            int b = d[i++];
+            if (b < 0x80) return b;
+            int n = b & 0x7F, v = 0;
+            if (n > 3) return -1;
+            for (int k = 0; k < n; k++) v = (v << 8) | d[i++];
+            return v;
         }
 
         internal static string Hex(byte[] bytes) { return BitConverter.ToString(bytes).Replace("-", ""); }
@@ -162,6 +238,100 @@ namespace Kisib
         internal DateTime Finished;
         internal bool Canceled;
         internal TrustGraph Paths;   // cross-sign map, built in the scan worker
+        internal Reach Reach;        // paths with today's blocks, built in the scan worker
+        internal HashSet<string> BlockedKeys = new HashSet<string>(StringComparer.Ordinal);
+        internal GroupsRoot Groups;  // groups, built in the scan worker
+        internal HashSet<string> KisibBlockedSha1 = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        internal readonly Dictionary<string, string> CaOwners = new Dictionary<string, string>(StringComparer.Ordinal);   // CCADB "CA Owner"
+        internal string Fingerprint = "";   // what the stores and lists held; same fingerprint = nothing to redraw
+        internal int LeakCount;
+
+        // Lookups built once per scan instead of walking every certificate each time.
+        private readonly object lookupGate = new object();
+        private HashSet<string> blocked;
+        private Dictionary<string, CertificateRecord> bySha1;
+        private Dictionary<string, List<CertificateRecord>> bySpki;
+        private readonly Dictionary<string, HashSet<string>> blockedIn = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
+        // In any Disallowed store (Windows' untrusted list), any location.
+        internal HashSet<string> Blocked
+        {
+            get
+            {
+                lock (lookupGate)
+                {
+                    if (blocked != null) return blocked;
+                    HashSet<string> disallowed = IncidentList.DisallowedPaths(this);
+                    blocked = new HashSet<string>(Certificates.Values.Where(c => c.FoundIn.Any(disallowed.Contains) || c.Collections.Any(disallowed.Contains)).Select(c => c.Identity), StringComparer.Ordinal);
+                    return blocked;
+                }
+            }
+        }
+
+        internal bool IsBlocked(CertificateRecord c) { return c != null && Blocked.Contains(c.Identity); }
+
+        // Observed Disallowed membership for one scope ("LOCAL_MACHINE" or "CURRENT_USER").
+        internal HashSet<string> BlockedIn(string scopePrefix)
+        {
+            lock (lookupGate)
+            {
+                HashSet<string> set;
+                if (blockedIn.TryGetValue(scopePrefix, out set)) return set;
+                string prefix = scopePrefix + "\\Disallowed";
+                set = new HashSet<string>(Certificates.Values.Where(c => c.FoundIn.Concat(c.Collections)
+                    .Any(p => p.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))).Select(c => c.Identity), StringComparer.Ordinal);
+                blockedIn[scopePrefix] = set;
+                return set;
+            }
+        }
+
+        internal CertificateRecord BySha1(string sha1)
+        {
+            if (String.IsNullOrEmpty(sha1)) return null;
+            lock (lookupGate)
+            {
+                if (bySha1 == null)
+                {
+                    bySha1 = new Dictionary<string, CertificateRecord>(StringComparer.OrdinalIgnoreCase);
+                    foreach (CertificateRecord c in Certificates.Values) if (c.Sha1 != null && !bySha1.ContainsKey(c.Sha1)) bySha1[c.Sha1] = c;
+                }
+                CertificateRecord found; return bySha1.TryGetValue(sha1, out found) ? found : null;
+            }
+        }
+
+        // Every certificate on this PC or the lists carrying the same public key (cross-signs, reissues).
+        internal List<CertificateRecord> SameKey(CertificateRecord c)
+        {
+            if (c == null) return new List<CertificateRecord>();
+            if (c.SpkiSha256 == null) return new List<CertificateRecord> { c };
+            lock (lookupGate)
+            {
+                if (bySpki == null)
+                {
+                    bySpki = new Dictionary<string, List<CertificateRecord>>(StringComparer.Ordinal);
+                    foreach (CertificateRecord x in Certificates.Values)
+                    {
+                        if (x.SpkiSha256 == null) continue;
+                        List<CertificateRecord> list;
+                        if (!bySpki.TryGetValue(x.SpkiSha256, out list)) { list = new List<CertificateRecord>(); bySpki.Add(x.SpkiSha256, list); }
+                        list.Add(x);
+                    }
+                }
+                List<CertificateRecord> same;
+                return bySpki.TryGetValue(c.SpkiSha256, out same) ? new List<CertificateRecord>(same) : new List<CertificateRecord> { c };
+            }
+        }
+
+        // A stable summary of what was observed: same text = same stores and lists.
+        internal string ComputeFingerprint()
+        {
+            List<string> lines = new List<string>(Certificates.Count);
+            foreach (CertificateRecord c in Certificates.Values)
+                lines.Add(c.Identity + "|" + String.Join(";", c.FoundIn.ToArray()) + "|" + String.Join(";", c.Collections.ToArray()));
+            lines.Sort(StringComparer.Ordinal);
+            using (SHA256 sha = SHA256.Create())
+                return Certificates.Count + ":" + CertificateRecord.Hex(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(String.Join("\n", lines.ToArray()))));
+        }
         internal int StoreCount { get { return Locations.Sum(location => location.Stores.Count); } }
         internal int PhysicalCount { get { return Locations.Sum(location => location.Stores.Sum(store => store.PhysicalStores.Count)); } }
         internal int UnresolvedCount { get { return Certificates.Values.Count(cert => cert.FoundIn.Count == 0); } }

@@ -118,14 +118,15 @@ namespace Kisib
             TabPage card = new TabPage("Card");
             Panel body = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10, 6, 10, 6), BackColor = SystemColors.Window };
             Button block = new Button { Text = "Block...", AutoSize = true };
-            Button allow = new Button { Text = "Allow 10 min", AutoSize = true };
+            Button allow = AllowButton("Allow", SelectedTarget);
+            Button unblock = new Button { Text = "Unblock", AutoSize = true };
             Button chain = new Button { Text = "Show chain", AutoSize = true };
             Button copy = new Button { Text = "Copy card", AutoSize = true };
             block.Click += delegate { BlockSelectedCertificate(); };
-            allow.Click += delegate { CertificateRecord c = SelectedCertificate(); if (c != null) AllowTemporarily(new List<CertificateRecord> { c }, c.SubjectShortName, TimeSpan.FromMinutes(10), true); };
+            unblock.Click += delegate { UnblockSelectedCertificate(); };
             chain.Click += delegate { ShowChain(SelectedCertificate()); };
             copy.Click += delegate { CertificateRecord c = SelectedCertificate(); if (c != null) CopyText(CertificateCard(c)); };
-            cardButtons.Controls.AddRange(new Control[] { block, allow, chain, copy });
+            cardButtons.Controls.AddRange(new Control[] { block, allow, unblock, chain, copy });
             body.Controls.Add(cardButtons); body.Controls.Add(cardFacts); body.Controls.Add(cardStatus); body.Controls.Add(cardIssuer); body.Controls.Add(cardName);
             card.Controls.Add(body);
             return card;
@@ -206,14 +207,9 @@ namespace Kisib
             toolbar.Controls.Add(new Label { Width = 12 });
             Button map = new Button { Text = "Live map", AutoSize = true }; map.Click += delegate { OpenLiveMap(); };
             denialsButton.Click += delegate { ShowDenials(); };
-            Button allow = new Button { Text = "Allow 10 min...", AutoSize = true };
-            allow.Click += delegate
-            {
-                CertificateRecord c = SelectedCertificate();
-                if (c == null) { ShowText("Allow", "Select a blocked certificate in the list (or use the Allow buttons in a denial pop-up)."); return; }
-                AllowTemporarily(new List<CertificateRecord> { c }, c.SubjectShortName, TimeSpan.FromMinutes(10), true);
-            };
-            toolbar.Controls.AddRange(new Control[] { map, denialsButton, allow });
+            Button allow = AllowButton("Allow", SelectedTarget);
+            Button toolsButton = new Button { Text = "Tools", AutoSize = true }; toolsButton.Click += delegate { ShowToolsPage(); };
+            toolbar.Controls.AddRange(new Control[] { map, denialsButton, allow, toolsButton });
 
             // Status bar: small sections on the right.
             refusedLink.LinkClicked += delegate { ShowDenials(); };
@@ -222,6 +218,12 @@ namespace Kisib
             uiTimer.Start();
             FormClosed += delegate { uiTimer.Stop(); };
             UpdateIndicators();
+        }
+
+        private AllowTarget SelectedTarget()
+        {
+            CertificateRecord c = SelectedCertificate();
+            return c == null ? new AllowTarget { Certs = delegate { return new List<CertificateRecord>(); }, NothingWhy = "Select a blocked certificate in the list first." } : TargetFor(c);
         }
 
         private static void MoveMenuItems(MenuItem from, MenuItem to, params string[] texts)

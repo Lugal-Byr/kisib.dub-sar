@@ -15,9 +15,32 @@ namespace Kisib
     {
         internal DateTime Time;
         internal string Program, Subject, Code, Reason, Flags, BlockedBy, Who, Category, Verdict;
-        internal readonly List<string> ChainSha1 = new List<string>();
+        internal string Site, Policy, Service;   // server name the program asked for, which check Windows ran, the service inside svchost
+        internal int ProcessId;
+        internal int EventId;
+        internal readonly List<string> ChainSha1 = new List<string>();    // leaf first, root last
         internal readonly List<string> ChainNames = new List<string>();
-        internal bool Noise, Ok, Known;
+        internal bool Noise, Ok, Known, SideCheck;
+        internal string Key { get { return (Site ?? Subject ?? "").Trim().TrimStart('*', '.').ToLowerInvariant(); } }
+        internal IEnumerable<string> Keys
+        {
+            get
+            {
+                foreach (string n in new string[] { Site, Subject })
+                    if (!String.IsNullOrEmpty(n)) yield return n.Trim().TrimStart('*', '.').ToLowerInvariant();
+            }
+        }
+        // A website name (no spaces, has a dot) versus a signed file ("Microsoft Windows", "Microsoft Time-Stamp Service").
+        internal bool IsWeb
+        {
+            get
+            {
+                if (Policy != null && Policy.IndexOf("SSL", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+                if (Policy != null && Policy.IndexOf("AUTHENTICODE", StringComparison.OrdinalIgnoreCase) >= 0) return false;
+                string n = (Site ?? Subject ?? "").Trim();
+                return n.Length > 0 && n.IndexOf(' ') < 0 && n.IndexOf('.') > 0;
+            }
+        }
     }
 
     internal static class DenialParser
@@ -51,16 +74,16 @@ namespace Kisib
             if (result == null && !includeTrusted) return null;
             Denial d = new Denial { Time = DateTime.Now, Code = "0x" + (result ?? "0"), Ok = result == null };
             foreach (XmlElement e in doc.GetElementsByTagName("EventAuxInfo")) { d.Program = e.GetAttribute("ProcessName"); break; }
-            foreach (XmlElement e in doc.GetElementsByTagName("Certificate"))
-            {
-                if (d.Subject == null) d.Subject = e.GetAttribute("subjectName");
-                string file = e.GetAttribute("fileRef");
-                if (file.EndsWith(".cer", StringComparison.OrdinalIgnoreCase))
-                {
-                    string sha1 = file.Substring(0, file.Length - 4).ToUpperInvariant();
-                    if (!d.ChainSha1.Contains(sha1)) { d.ChainSha1.Add(sha1); d.ChainNames.Add(e.GetAttribute("subjectName")); }
-                }
-            }
+            foreach (XmlElement e in doc.GetElementsByTagName("Execution")) { int pid; if (Int32.TryParse(e.GetAttribute("ProcessID"), out pid)) d.ProcessId = pid; break; }
+            foreach (XmlElement e in doc.GetElementsByTagName("EventID")) { int id; if (Int32.TryParse(e.InnerText, out id)) d.EventId = id; break; }
+            foreach (XmlElement e in doc.GetElementsByTagName("Policy")) { string t = e.GetAttribute("type"); if (t.Length > 0) { d.Policy = t; break; } }
+            foreach (XmlElement e in doc.GetElementsByTagName("SSLAdditionalPolicyInfo")) { string n = e.GetAttribute("serverName"); if (n.Length > 0) { d.Site = n; break; } }
+            // The certificate being checked is the first one; the chain is the ChainElement list in order (site, CAs, root).
+            // Certificates under AdditionalStore are only what the program offered, not the chain, so they are left out.
+            foreach (XmlElement e in doc.GetElementsByTagName("Certificate")) { d.Subject = e.GetAttribute("subjectName"); AddCert(d, e); break; }
+            List<XmlElement> chain = doc.GetElementsByTagName("ChainElement").Cast<XmlElement>()
+                .Select(el => el.GetElementsByTagName("Certificate").Cast<XmlElement>().FirstOrDefault()).Where(x => x != null).ToList();
+            if (chain.Count > 0) { d.ChainSha1.Clear(); d.ChainNames.Clear(); foreach (XmlElement e in chain) AddCert(d, e); }
             List<string> flags = new List<string>();
             foreach (XmlElement e in doc.GetElementsByTagName("*"))
                 if (e.LocalName.StartsWith("CERT_TRUST_", StringComparison.Ordinal) && !flags.Contains(e.LocalName)) flags.Add(e.LocalName);
@@ -74,8 +97,29 @@ namespace Kisib
                 .Any(n => n.IndexOf("Time-Stamp", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("Timestamp", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("TSA", StringComparison.Ordinal) >= 0))
             { d.Noise = true; d.Reason = "expired time-stamp certificate (normal for older signed files)"; }
             if (String.IsNullOrEmpty(d.Program)) d.Program = "[program not logged]";
-            if (String.IsNullOrEmpty(d.Subject)) d.Subject = "[subject not logged]";
+            if (String.IsNullOrEmpty(d.Subject)) d.Subject = d.Site ?? "[subject not logged]";
             return d;
+        }
+
+        private static void AddCert(Denial d, XmlElement e)
+        {
+            string file = e.GetAttribute("fileRef");
+            if (!file.EndsWith(".cer", StringComparison.OrdinalIgnoreCase)) return;
+            string sha1 = file.Substring(0, file.Length - 4).ToUpperInvariant();
+            if (sha1.Length != 40 || d.ChainSha1.Contains(sha1)) return;
+            d.ChainSha1.Add(sha1); d.ChainNames.Add(e.GetAttribute("subjectName"));
+        }
+
+        // Plain words for the check Windows ran.
+        internal static string PolicyWords(string policy)
+        {
+            if (String.IsNullOrEmpty(policy)) return "building the chain";
+            string p = policy.ToUpperInvariant();
+            if (p.Contains("MICROSOFT_ROOT")) return "Microsoft-root check (is the top a Microsoft root?)";
+            if (p.Contains("SSL")) return "website check (TLS)";
+            if (p.Contains("AUTHENTICODE")) return "signed-file check";
+            if (p.Contains("BASE")) return "basic chain check";
+            return policy;
         }
     }
 
@@ -136,7 +180,7 @@ namespace Kisib
                     Denial d = null;
                     try { using (EventRecord record = args.EventRecord) d = DenialParser.Parse(record.ToXml(), true); }
                     catch (Exception) { return; }
-                    if (d != null) Post(delegate { MapAdd(d); if (!d.Ok) OnDenial(d); });
+                    if (d != null) Post(delegate { HandleCheck(d); });
                 };
                 denialWatcher.Enabled = true;
                 watchToggle.Checked = true;
@@ -154,14 +198,59 @@ namespace Kisib
             watchToggle.Checked = false;
         }
 
+        // ---- Every check Windows logs comes through here -------------------------------------------
+
+        private readonly List<Denial> held = new List<Denial>();
+        private readonly Dictionary<string, DateTime> recentPass = new Dictionary<string, DateTime>(StringComparer.Ordinal);
+        private readonly System.Windows.Forms.Timer holdTimer = new System.Windows.Forms.Timer { Interval = 500 };
+
+        private void HandleCheck(Denial d)
+        {
+            d.Service = ServiceNames.For(d.Program, d.ProcessId);
+            if (d.Ok)
+            {
+                foreach (string k in d.Keys) recentPass[k] = d.Time;
+                if (recentPass.Count > 2000) foreach (string k in recentPass.Where(x => (DateTime.Now - x.Value).TotalSeconds > 30).Select(x => x.Key).ToList()) recentPass.Remove(k);
+                MapAdd(d); CheckAllowWatch(d);
+                return;
+            }
+            // A refusal waits 2 seconds: Windows often runs a stricter side check that fails while the real check of the
+            // same site passes in the same second. Those are folded into a grey "side check" instead of a red refusal.
+            held.Add(d);
+            if (!holdTimer.Enabled) { holdTimer.Tick -= ReleaseHeld; holdTimer.Tick += ReleaseHeld; holdTimer.Start(); }
+        }
+
+        private void ReleaseHeld(object sender, EventArgs e)
+        {
+            DateTime now = DateTime.Now;
+            foreach (Denial d in held.Where(x => (now - x.Time).TotalSeconds >= 2).ToList())
+            {
+                held.Remove(d);
+                DateTime passed = DateTime.MinValue;
+                // Only a policy-only check (no chain of its own) saying "root not trusted", or a Microsoft-root check, is folded.
+                // A failed chain, a wrong site name or a revoked certificate always stays a real refusal.
+                bool sideKind = d.ChainSha1.Count <= 1 && (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase) ||
+                    (d.Policy != null && d.Policy.IndexOf("MICROSOFT_ROOT", StringComparison.OrdinalIgnoreCase) >= 0));
+                if (!d.Noise && sideKind && d.Keys.Any(k => recentPass.TryGetValue(k, out passed) && Math.Abs((passed - d.Time).TotalSeconds) <= 3))
+                {
+                    d.Noise = true; d.SideCheck = true;
+                    d.Reason = "side check, went through: the same site passed at the same moment (" + PolicyWordsOrReason(d) + ")";
+                }
+                MapAdd(d); CheckAllowWatch(d);
+                if (!d.SideCheck) { OnDenial(d); ProgramAllowOnRefusal(d); }
+            }
+            if (held.Count == 0) holdTimer.Stop();
+        }
+        private static string PolicyWordsOrReason(Denial d) { return d.Policy != null ? DenialParser.PolicyWords(d.Policy) + ": " + d.Reason : d.Reason; }
+
         private void OnDenial(Denial d)
         {
             // Windows logs a failure from both chain building and policy; keep one per program/subject/code within 5 seconds.
-            if (denials.Any(x => x.Program == d.Program && x.Subject == d.Subject && x.Code == d.Code && (d.Time - x.Time).TotalSeconds < 5)) return;
+            for (int i = denials.Count - 1; i >= 0 && (d.Time - denials[i].Time).TotalSeconds < 5; i--)
+                if (denials[i].Program == d.Program && denials[i].Subject == d.Subject && denials[i].Code == d.Code) return;
             if (snapshot != null)
             {
-                HashSet<string> blocked = GroupCatalog.BlockedIdentities(snapshot);
-                List<string> hits = snapshot.Certificates.Values.Where(c => blocked.Contains(c.Identity) && d.ChainSha1.Contains(c.Sha1)).Select(c => c.SubjectShortName).ToList();
+                List<string> hits = d.ChainSha1.Select(snapshot.BySha1).Where(c => c != null && snapshot.IsBlocked(c)).Select(c => c.SubjectShortName).Distinct().ToList();
                 if (hits.Count > 0) d.BlockedBy = String.Join(", ", hits.ToArray());
             }
             Annotate(d);
@@ -172,14 +261,14 @@ namespace Kisib
             if (denials.Count > 2000) denials.RemoveAt(0);
             if (d.Noise) return;
             MarkTrayBadge(d.Verdict == "red");
-            if (QuietMode || QuietSites.IsQuiet(d.Subject)) return;
+            if (QuietMode || QuietSites.IsQuiet(d.Subject) || (d.Site != null && QuietSites.IsQuiet(d.Site)) || QuietSites.IsQuiet("program:" + Path.GetFileName(d.Program ?? ""))) return;
             if (d.Verdict == "yellow")
             {
                 // A trusted category is failing: one calm notice per hour, not a pop-up per refusal.
                 string key = d.Category ?? ("known: " + (d.Who ?? d.Subject).Split('\n').Last().Split('=')[0].Trim());
                 if (!CategoryNoticeDue(key)) return;
                 ShowDenialToast(d, (d.Category != null ? "Expected service broken: " + d.Category : "Known company, refused") + "\r\n" + d.Who + "\r\n" + ShortReason(d.Reason) +
-                    (d.Category != null ? "\r\nTools > Repair Windows essentials can fix missing Microsoft roots." : "\r\nTurn its category on in Tools > Trusted categories to protect it."));
+                    (d.Category != null ? "\r\nTools > Repair > Windows essentials puts missing Microsoft roots back." : "\r\nTurn its category on in Tools > Trusted categories to protect it."));
                 return;
             }
             string text = d.Who + "\r\n" + ShortReason(d.Reason) + (d.BlockedBy != null ? "\r\nBlocked by your Disallowed list: " + d.BlockedBy : "");
@@ -216,19 +305,14 @@ namespace Kisib
                 Label note = new Label { Dock = DockStyle.Bottom, Height = 40, Text = "Red = refused because of your Disallowed list. Grey = harmless (revocation server unreachable, expired time-stamp certificate); listed, no alert.\r\n" +
                     "Source: Microsoft-Windows-CAPI2/Operational events 11 and 30. Chrome and Firefox check certificates themselves and do not appear here." };
                 FlowLayoutPanel allow = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 34, Padding = new Padding(2) };
-                allow.Controls.Add(new Label { Text = "Allow selected for:", AutoSize = true, Padding = new Padding(0, 6, 0, 0) });
-                foreach (int minutes in new int[] { 3, 10, 60 })
+                allow.Controls.Add(AllowButton("Allow selected", delegate
                 {
-                    int m = minutes;
-                    Button b = new Button { Text = m + " min", AutoSize = true };
-                    b.Click += delegate
-                    {
-                        if (grid.SelectedItems.Count == 0) return;
-                        Denial d = (Denial)grid.SelectedItems[0].Tag;
-                        AllowTemporarily(CertificatesBehind(d), d.Subject, TimeSpan.FromMinutes(m), true);
-                    };
-                    allow.Controls.Add(b);
-                }
+                    Denial d = grid.SelectedItems.Count == 0 ? null : grid.SelectedItems[0].Tag as Denial;
+                    return d == null ? new AllowTarget { Certs = delegate { return new List<CertificateRecord>(); }, NothingWhy = "Select a refusal in the list first." } : TargetFor(d);
+                }));
+                Button card = new Button { Text = "Refusal card", AutoSize = true };
+                card.Click += delegate { if (grid.SelectedItems.Count > 0) OpenRefusalCard((Denial)grid.SelectedItems[0].Tag); };
+                allow.Controls.Add(card);
                 Button close = new Button { Text = "Close", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
                 dialog.Controls.Add(grid); dialog.Controls.Add(note); dialog.Controls.Add(allow); dialog.Controls.Add(close); dialog.CancelButton = close;
                 ShowTool(dialog, "denials");

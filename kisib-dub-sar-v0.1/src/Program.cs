@@ -20,6 +20,7 @@ namespace Kisib
             }
             // Native classic controls: no web view, card shell, or modern theme override.
             Application.SetCompatibleTextRenderingDefault(false);
+            CrashLog.Install();
             // One kisib at a time: starting it again just opens the one already in the tray.
             bool first = true;
             Mutex single = null;

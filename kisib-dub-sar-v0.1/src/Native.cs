@@ -26,6 +26,7 @@ namespace Kisib
         internal const uint ERROR_NO_MORE_FILES = 18;
         internal static readonly IntPtr CERT_STORE_PROV_SYSTEM_W = new IntPtr(10);
         internal static readonly IntPtr CERT_STORE_PROV_PHYSICAL_W = new IntPtr(14);
+        internal static readonly IntPtr CERT_STORE_PROV_SYSTEM_REGISTRY_W = new IntPtr(13);
 
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         [return: MarshalAs(UnmanagedType.Bool)]

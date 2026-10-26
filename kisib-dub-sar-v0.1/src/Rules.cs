@@ -39,21 +39,37 @@ namespace Kisib
             return null;
         }
 
+        private static List<byte[]> cache;
+        private static DateTime cacheStamp;
+        private static readonly object gate = new object();
+
+        // The list's certificates, read from disk once per download.
+        private static List<byte[]> Load()
+        {
+            DateTime stamp = File.GetLastWriteTimeUtc(SstPath);
+            lock (gate)
+            {
+                if (cache != null && stamp == cacheStamp) return cache;
+                X509Certificate2Collection roots = new X509Certificate2Collection();
+                roots.Import(SstPath);
+                List<byte[]> list = new List<byte[]>();
+                foreach (X509Certificate2 root in roots) { list.Add(root.RawData); root.Reset(); }
+                cache = list; cacheStamp = stamp;
+                return list;
+            }
+        }
+
         // Adds the list's roots to the snapshot so groups and blocking see roots Windows has not downloaded yet.
         internal static int Merge(Snapshot snapshot)
         {
             if (!File.Exists(SstPath)) return -1;
-            X509Certificate2Collection roots = new X509Certificate2Collection();
-            roots.Import(SstPath);
             int count = 0;
-            foreach (X509Certificate2 root in roots)
+            foreach (byte[] der in Load())
             {
-                CertificateRecord record = snapshot.Add(root.RawData);
+                CertificateRecord record = snapshot.Add(der);
                 record.FoundIn.Add(Label);
                 count++;
-                root.Reset();
             }
-            CertificateSignals.Evaluate(snapshot.Certificates.Values.ToArray());
             return count;
         }
 
@@ -119,10 +135,67 @@ namespace Kisib
         }
     }
 
+    internal sealed class RuleOutcome
+    {
+        internal string Status = "";
+        internal int Added;
+        internal readonly List<string> Log = new List<string>();
+    }
+
+    internal static class RuleRunner
+    {
+        // After a scan, in the scan worker: anything new in a kept-blocked group goes into Disallowed.
+        // Never-block certificates (allowed, unblocked by hand, repaired) and protected ones are skipped.
+        internal static RuleOutcome Apply(Snapshot result)
+        {
+            RuleOutcome o = new RuleOutcome();
+            List<BlockRule> rules;
+            try { rules = BlockRules.Read(); }
+            catch (Exception ex) { o.Status = "Rules unreadable: " + ex.Message; return o; }
+            GroupsRoot groups = result.Groups;
+            if (rules.Count == 0 || groups == null || groups.Error != null) return o;
+            bool elevated = Elevation.IsElevated;
+            AllowedSet allowed = AllowedList.Load();
+            int skipped = 0, failed = 0, protectedSkipped = 0;
+            foreach (IGrouping<string, BlockRule> byScope in rules.GroupBy(r => r.Scope))
+            {
+                X509Location scope;
+                try { scope = (X509Location)Enum.Parse(typeof(X509Location), byScope.Key); } catch (ArgumentException) { continue; }
+                if (scope == X509Location.LocalMachine && !elevated) { skipped += byScope.Count(); continue; }
+                Dictionary<string, BlockItem> plan = new Dictionary<string, BlockItem>(StringComparer.Ordinal);
+                List<string> labels = new List<string>();
+                foreach (BlockRule rule in byScope)
+                {
+                    GroupNode group = groups.All.FirstOrDefault(g => g.Key == rule.GroupKey);
+                    if (group == null) continue;
+                    string label = rule.Label;
+                    foreach (BlockItem i in BlockEngine.Plan(result, group.Members.Select(id => result.Certificates[id]), delegate { return "rule: " + label; }, scope))
+                    {
+                        if (i.AlreadyBlocked || plan.ContainsKey(i.Certificate.Identity)) continue;
+                        if (TrustCategories.ProtectedBy(i.Certificate) != null || allowed.Covers(i.Certificate)) { protectedSkipped++; continue; }
+                        plan.Add(i.Certificate.Identity, i);
+                        if (!labels.Contains(label)) labels.Add(label);
+                    }
+                }
+                if (plan.Count == 0) continue;
+                try
+                {
+                    List<BlockLogRow> rows = BlockEngine.Block(plan.Values, scope, "rule: " + String.Join(" + ", labels.ToArray()));
+                    o.Added += rows.Count(r => r.Result == "added");
+                    failed += rows.Count(r => r.Result.StartsWith("error", StringComparison.Ordinal));
+                }
+                catch (Exception ex) { failed += plan.Count; o.Log.Add(DateTime.UtcNow.ToString("o") + "\tRule block failed\t" + byScope.Key + "\t" + ex.Message); }
+            }
+            o.Status = "Rules: " + rules.Count + " active" + (o.Added > 0 ? ", blocked " + o.Added + " NEW" : ", nothing new") +
+                (skipped > 0 ? ", " + skipped + " whole-PC rules need admin" : "") + (failed > 0 ? ", " + failed + " errors (Block history)" : "") +
+                (protectedSkipped > 0 ? ", " + protectedSkipped + " protected or never-block skipped" : "");
+            return o;
+        }
+    }
+
     internal sealed partial class ExplorerForm
     {
         private string ruleStatus = "";
-        private bool ruleRescan;
 
         private void InitializeRules(MenuItem block)
         {
@@ -130,55 +203,10 @@ namespace Kisib
             block.MenuItems.Add(new MenuItem("&Rules (keep groups blocked)...", delegate { ShowRules(); }));
             block.MenuItems.Add(new MenuItem("Update &Microsoft root list", delegate { UpdateMicrosoftList(); }));
             block.MenuItems.Add(new MenuItem("Update &CCADB list (all CA certificates, catches cross-signs)", delegate { UpdateCcadb(); }));
-            // With rules saved, keep watching: rescan every 60 seconds so a new match is caught and blocked.
-            Shown += delegate
-            {
-                if (BlockRules.Read().Count > 0 && !autoScanToggle.Checked) { autoScanToggle.Checked = true; historyTimer.Start(); }
-            };
         }
 
         private static IEnumerable<GroupNode> AllGroups(GroupsRoot root)
         { return root.All; }
-
-        // Runs after each scan is displayed.
-        private void ApplyRules(Snapshot result)
-        {
-            ruleStatus = "";
-            List<BlockRule> rules;
-            try { rules = BlockRules.Read(); }
-            catch (Exception ex) { ruleStatus = "Rules unreadable: " + ex.Message; return; }
-            if (rules.Count == 0 || groups == null || groups.Error != null) { ruleRescan = false; return; }
-            bool elevated = BlockEngine.IsElevated();
-            AllowedSet allowed = AllowedList.Load();
-            int added = 0, skipped = 0, failed = 0, protectedSkipped = 0;
-            foreach (BlockRule rule in rules)
-            {
-                X509Location scope;
-                try { scope = (X509Location)Enum.Parse(typeof(X509Location), rule.Scope); } catch (ArgumentException) { continue; }
-                if (scope == X509Location.LocalMachine && !elevated) { skipped++; continue; }
-                GroupNode group = AllGroups(groups).FirstOrDefault(g => g.Key == rule.GroupKey);
-                if (group == null) continue;
-                List<BlockItem> plan = BlockEngine.Plan(result, group.Members.Select(id => result.Certificates[id]),
-                    delegate { return "rule: " + rule.Label; }, scope).Where(i => !i.AlreadyBlocked).ToList();
-                int before = plan.Count;
-                plan = plan.Where(i => TrustCategories.ProtectedBy(i.Certificate) == null && !allowed.Covers(i.Certificate)).ToList();
-                protectedSkipped += before - plan.Count;
-                if (plan.Count == 0) continue;
-                try
-                {
-                    List<BlockLogRow> rows = BlockEngine.Block(plan, scope, "rule: " + rule.Label);
-                    added += rows.Count(r => r.Result == "added");
-                    failed += rows.Count(r => r.Result.StartsWith("error", StringComparison.Ordinal));
-                }
-                catch (Exception ex) { failed += plan.Count; sessionLog.Add(DateTime.UtcNow.ToString("o") + "\tRule block failed\t" + rule.Label + "\t" + ex.Message); }
-            }
-            ruleStatus = "Rules: " + rules.Count + " active" + (added > 0 ? ", blocked " + added + " NEW" : ", nothing new") +
-                (skipped > 0 ? ", " + skipped + " whole-PC rules need admin" : "") + (failed > 0 ? ", " + failed + " errors (Block history)" : "") +
-                (protectedSkipped > 0 ? ", " + protectedSkipped + " protected or allowed skipped" : "");
-            // Rescan once so the new blocks show as Blocked; the second pass finds nothing new and stops.
-            if (added > 0 && !ruleRescan) { ruleRescan = true; BeginInvoke((Action)StartScan); }
-            else ruleRescan = false;
-        }
 
         private void ShowRules()
         {
@@ -192,9 +220,9 @@ namespace Kisib
                     foreach (BlockRule r in BlockRules.Read()) grid.Items.Add(new ListViewItem(new string[] { r.Label, r.Scope, r.Created, r.GroupKey }) { Tag = r });
                 };
                 fill();
-                Label note = new Label { Dock = DockStyle.Bottom, Height = 46, Text = "After every scan (every 60 seconds while rules exist), anything new in these groups is added to Disallowed and logged.\r\n" +
-                    "Removing a rule stops new blocks; it does not unblock. Use Undo last block or Unblock selected certificate for that.\r\nFile: " + BlockRules.RulesPath };
-                Button remove = new Button { Text = "Remove selected rule", Dock = DockStyle.Bottom, Height = 30 };
+                Label note = new Label { Dock = DockStyle.Bottom, Height = 46, Text = "Whenever Windows adds a certificate (and every 10 minutes), anything new in these groups is added to Disallowed and logged.\r\n" +
+                    "Never-block certificates (allowed, unblocked by hand, repaired) are skipped.\r\nFile: " + BlockRules.RulesPath };
+                Button remove = new Button { Text = "Remove rule (keep what it already blocked)", Dock = DockStyle.Bottom, Height = 30 };
                 remove.Click += delegate
                 {
                     if (grid.SelectedItems.Count == 0) return;
@@ -202,8 +230,18 @@ namespace Kisib
                     BlockRules.Save(BlockRules.Read().Where(r => !(r.GroupKey == chosen.GroupKey && r.Scope == chosen.Scope)).ToList());
                     fill();
                 };
+                Button removeAndUnblock = new Button { Text = "Remove rule and unblock its certificates", Dock = DockStyle.Bottom, Height = 30 };
+                removeAndUnblock.Click += delegate
+                {
+                    if (grid.SelectedItems.Count == 0) return;
+                    BlockRule chosen = (BlockRule)grid.SelectedItems[0].Tag;
+                    GroupNode g = groups == null ? null : groups.All.FirstOrDefault(x => x.Key == chosen.GroupKey);
+                    if (g == null) { BlockRules.Save(BlockRules.Read().Where(r => r.GroupKey != chosen.GroupKey).ToList()); fill(); Say("Rule removed; its group is not in this scan, so nothing to unblock."); return; }
+                    UnblockGroups(new List<GroupNode> { g });
+                    fill();
+                };
                 Button close = new Button { Text = "Close", Dock = DockStyle.Bottom, Height = 30, DialogResult = DialogResult.Cancel };
-                dialog.Controls.Add(grid); dialog.Controls.Add(note); dialog.Controls.Add(remove); dialog.Controls.Add(close); dialog.CancelButton = close;
+                dialog.Controls.Add(grid); dialog.Controls.Add(note); dialog.Controls.Add(remove); dialog.Controls.Add(removeAndUnblock); dialog.Controls.Add(close); dialog.CancelButton = close;
                 ShowTool(dialog, "rules");
             }
         }

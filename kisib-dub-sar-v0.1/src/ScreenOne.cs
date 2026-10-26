@@ -16,7 +16,7 @@ namespace Kisib
     {
         private readonly MenuItem journalToggle = new MenuItem("Journal [to test]");
         private readonly MenuItem archiveToggle = new MenuItem("Archive public certificates [to test]");
-        private readonly MenuItem autoScanToggle = new MenuItem("60-second automatic scan [to test]");
+        private readonly MenuItem autoScanToggle = new MenuItem("Rescan when Windows changes a certificate store");
         private readonly MenuItem syscallToggle = new MenuItem("Syscall capture [to test]");
 
         private static MenuItem viewMenu(MainMenu menu)
@@ -31,7 +31,7 @@ namespace Kisib
             journalToggle.Click += delegate { ChangeRecording(false); };
             archiveToggle.Click += delegate { ChangeRecording(true); };
             autoScanToggle.Click += delegate
-            { autoScanToggle.Checked = !autoScanToggle.Checked; if (autoScanToggle.Checked) historyTimer.Start(); else historyTimer.Stop(); };
+            { autoScanToggle.Checked = !autoScanToggle.Checked; if (autoScanToggle.Checked) historyTimer.Start(); else { historyTimer.Stop(); settleTimer.Stop(); } };
             syscallToggle.Click += delegate { ToggleSyscalls(); };
         }
 

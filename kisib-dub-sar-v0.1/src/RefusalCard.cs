@@ -21,7 +21,7 @@ namespace Kisib
             if (d.Verdict == null) Annotate(d);
             ClearTrayBadge();
             Form f = new Form { Text = "Refused: " + d.Subject + " — " + d.Time.ToString("HH:mm:ss"), Size = new Size(820, 600), Font = Font };
-            string program = WhoIsWho.Program(d.Program) ?? d.Program;
+            string program = (WhoIsWho.Program(d.Program) ?? d.Program) + (d.Service != null ? "   (service: " + d.Service + ")" : "");
             bool service = IsBroker(d.Program);
             Label head = new Label { Dock = DockStyle.Top, Height = 66, Padding = new Padding(10, 8, 10, 0), Font = new Font(Font.FontFamily, 10F),
                 Text = program + "\r\nwas refused  " + d.Subject + "   at " + d.Time.ToString("HH:mm:ss") + "\r\n" + VerdictWord(d) + "   " + ShortReason(d.Reason) };
@@ -37,14 +37,13 @@ namespace Kisib
             FlowLayoutPanel actions = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 76, Padding = new Padding(6), WrapContents = true };
             Func<string, bool, Button> button = delegate(string text, bool enabled)
             { Button b = new Button { Text = text, AutoSize = true, Height = 30, Enabled = enabled, Margin = new Padding(3) }; actions.Controls.Add(b); return b; };
-            foreach (int minutes in new int[] { 3, 10, 60 })
-            {
-                int m = minutes;
-                button("Allow " + m + " min", blocked.Count > 0).Click += delegate { AllowTemporarily(blocked, d.Subject, TimeSpan.FromMinutes(m), true); };
-            }
-            button("Allow always...", blocked.Count > 0).Click += delegate { AllowAlways(blocked, d.Subject); };
+            Button allow = AllowButton("Allow", delegate { return TargetFor(d); });
+            allow.Margin = new Padding(3); allow.Height = 30; allow.Enabled = blocked.Count > 0;
+            actions.Controls.Add(allow);
             button(route == null ? "Reroute: no other path" : missing.Count == 0 ? "Reroute: path already on PC" : "Reroute around the block...", route != null && missing.Count > 0)
                 .Click += delegate { InstallRoute(missing, d.Subject); };
+            if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase))
+                button("Repair: Get online...", true).Click += delegate { RepairSeals("Get online", s => s.Set == "online" || s.Set == "microsoft", "The roots most websites hang under, carried inside kisib."); };
             button("Keep blocked", true).Click += delegate { f.Close(); };
             button("Quiet this site 1 hour", true).Click += delegate { QuietSites.Quiet(d.Subject, TimeSpan.FromHours(1)); f.Close(); };
             button("Show certificate in list", blocked.Count > 0 || d.ChainSha1.Count > 0).Click += delegate

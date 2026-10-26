@@ -15,8 +15,12 @@ namespace Kisib
             Func<Denial> selected = delegate { return grid.SelectedItems.Count == 0 ? null : grid.SelectedItems[0].Tag as Denial; };
             List<MenuItem> items = new List<MenuItem>();
             items.Add(new MenuItem("Open refusal card (app behind it, allow, reroute, quiet)", delegate { OpenRefusalCard(selected()); }));
-            items.Add(new MenuItem("Allow always...", delegate { Denial d = selected(); if (d != null) AllowAlways(CertificatesBehind(d), d.Subject); }));
-            items.Add(new MenuItem("Why is this blocked? (groups, rules, who blocked it)", delegate { Denial d = selected(); if (d != null) ShowText("Why — " + d.Subject, ExplainDenial(d)); }));
+            items.Add(AllowSubmenu("Allow", delegate
+            {
+                Denial d = selected();
+                return d == null ? new AllowTarget { Certs = delegate { return new List<CertificateRecord>(); }, NothingWhy = "Select a refusal first." } : TargetFor(d);
+            }));
+            items.Add(new MenuItem("Why was this refused? (groups, rules, who blocked it)", delegate { Denial d = selected(); if (d != null) ShowText("Why — " + d.Subject, ExplainDenial(d)); }));
             items.Add(new MenuItem("Reroute around the block (use a cross-signed path)...", delegate
             {
                 Denial d = selected(); if (d == null) return;
@@ -27,18 +31,6 @@ namespace Kisib
                 if (closeParent != null) closeParent();
                 InstallRoute(missing, d.Subject);
             }));
-            foreach (int minutes in new int[] { 3, 10, 60 })
-            {
-                int m = minutes;
-                items.Add(new MenuItem("Allow for " + m + " minutes", delegate
-                {
-                    Denial d = selected(); if (d == null) return;
-                    List<CertificateRecord> behind = CertificatesBehind(d);
-                    if (behind.Count == 0) { ShowText("Allow", "This refusal is not caused by a block, so there is nothing to lift.\r\n\r\n" + ExplainDenial(d)); return; }
-                    if (closeParent != null) closeParent();
-                    AllowTemporarily(behind, d.Subject, TimeSpan.FromMinutes(m), true);
-                }));
-            }
             items.Add(new MenuItem("Open certificate card", delegate
             {
                 Denial d = selected(); if (d == null) return;
@@ -65,7 +57,7 @@ namespace Kisib
         internal string WhyBlockedText(CertificateRecord c)
         {
             StringBuilder t = new StringBuilder();
-            bool isBlocked = snapshot != null && GroupCatalog.BlockedIdentities(snapshot).Contains(c.Identity);
+            bool isBlocked = snapshot != null && snapshot.IsBlocked(c);
             t.AppendLine(c.SubjectShortName + (c.SubjectCountry != null ? " (" + c.SubjectCountry + ")" : "") + (isBlocked ? "  BLOCKED" : "  not blocked"));
             string owner = WhoIsWho.Owner(c);
             if (owner != null) t.AppendLine("  owner     " + owner);
@@ -84,7 +76,7 @@ namespace Kisib
             if (tags.Length > 0) t.AppendLine("  tags      " + tags);
             string guard = TrustCategories.ProtectedBy(c);
             if (guard != null) t.AppendLine("  NOTE      protected by trusted category " + guard + " — blocking it breaks that category");
-            if (AllowedList.Load().Covers(c)) t.AppendLine("  allowed   on your ALLOWED (never block) list");
+            if (AllowedList.Load().Covers(c)) t.AppendLine("  allowed   on your never-block list (allowed for good, unblocked by hand, or repaired)");
             t.AppendLine();
             t.AppendLine("Path to a trusted root: " + PathSummary(c));
             return t.ToString();
@@ -95,14 +87,17 @@ namespace Kisib
             if (d.Verdict == null) Annotate(d);
             StringBuilder t = new StringBuilder();
             t.AppendLine(d.Who);
+            if (d.Service != null) t.AppendLine("Service inside svchost: " + d.Service);
             t.AppendLine("Refused: " + d.Reason + "   (" + d.Time.ToString("yyyy-MM-dd HH:mm:ss") + ")");
+            t.AppendLine("Check Windows ran: " + DenialParser.PolicyWords(d.Policy) + (d.Site != null && d.Site != d.Subject ? "   site asked for: " + d.Site : ""));
+            if (d.ChainNames.Count > 1) t.AppendLine("Chain: " + String.Join("  →  ", d.ChainNames.ToArray()));
             if (d.Category != null) t.AppendLine("Trusted category: " + d.Category + " (this is a service you marked as expected)");
             t.AppendLine();
             List<CertificateRecord> behind = CertificatesBehind(d);
             if (behind.Count == 0)
             {
                 t.AppendLine("Not caused by a block. Windows refused it for its own reason:");
-                if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase)) t.AppendLine("  the root at the top of the chain is not in Trusted Root, and Windows could not download it.\r\n  Fix: Tools > Update Microsoft root list, then Tools > Repair Windows essentials.");
+                if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase)) t.AppendLine("  the root at the top of the chain is not in Trusted Root, and Windows could not download it.\r\n  Fix: Tools > Repair > Get online (or Windows essentials). kisib carries those roots itself, no download needed.");
                 else if (d.Code.EndsWith("B0101", StringComparison.OrdinalIgnoreCase)) t.AppendLine("  a certificate in the chain is expired (or your clock is off; see Clock in the status bar).");
                 else t.AppendLine("  " + d.Reason);
                 return t.ToString();
@@ -133,7 +128,7 @@ namespace Kisib
                 if (tags.Length > 0) t.AppendLine("  tags      " + tags);
                 string guard = TrustCategories.ProtectedBy(c);
                 if (guard != null) t.AppendLine("  NOTE      protected by trusted category " + guard + " — blocking it breaks that category");
-                t.AppendLine("  undo      right-click > Allow for N minutes (temporary), or Certificate > Unblock (kisib's own blocks).");
+                t.AppendLine("  undo      right-click > Allow (for a while, until kisib closes, always, or while a program runs), or Unblock.");
                 t.AppendLine();
             }
             List<CertificateRecord> missing;

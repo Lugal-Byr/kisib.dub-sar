@@ -21,7 +21,6 @@ namespace Kisib
         private static List<Entry> cache;
         private static DateTime cacheStamp;
         private static readonly object gate = new object();
-        private static readonly Dictionary<string, string> owners = new Dictionary<string, string>(StringComparer.Ordinal);
 
         private static string Folder { get { return Storage.Folder; } }
         private static string FileFor(string decade) { return Storage.File("ccadb-list-" + decade + "s.csv"); }
@@ -104,21 +103,15 @@ namespace Kisib
             if (entries.Count == 0) return -1;
             DateTime now = DateTime.UtcNow;
             int count = 0;
-            lock (gate) owners.Clear();
             foreach (Entry e in entries)
             {
                 if (e.NotAfter < now) continue;
                 CertificateRecord record = snapshot.Add(e.Der);
                 record.FoundIn.Add(Label);
-                if (e.Owner.Length > 0) lock (gate) owners[record.Identity] = e.Owner;
+                if (e.Owner.Length > 0) snapshot.CaOwners[record.Identity] = e.Owner;
                 count++;
             }
             return count;
-        }
-
-        internal static string OwnerOf(string identity)
-        {
-            lock (gate) { string o; return owners.TryGetValue(identity, out o) ? o : null; }
         }
     }
 

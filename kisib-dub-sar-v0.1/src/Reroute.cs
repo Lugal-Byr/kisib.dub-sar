@@ -32,10 +32,8 @@ namespace Kisib
                 .OrderBy(c => OnPcForPath(c) ? 0 : 1).ToList();
             foreach (CertificateRecord c in all)
             {
-                string s, a;
-                KeyIds(c.Der, out s, out a);
-                if (s != null) ski[c.Identity] = s;
-                if (a != null) aki[c.Identity] = a;
+                if (c.SubjectKeyId != null) ski[c.Identity] = c.SubjectKeyId;
+                if (c.AuthorityKeyId != null) aki[c.Identity] = c.AuthorityKeyId;
                 Add(g.ByKey, c.SpkiSha256, c);
                 Add(bySubject, c.Subject, c);
             }
@@ -69,53 +67,6 @@ namespace Kisib
             List<CertificateRecord> list;
             if (!map.TryGetValue(key, out list)) { list = new List<CertificateRecord>(); map.Add(key, list); }
             list.Add(c);
-        }
-
-        private static void KeyIds(byte[] der, out string ski, out string aki)
-        {
-            ski = null; aki = null;
-            try
-            {
-                using (X509Certificate2 cert = new X509Certificate2(der))
-                    foreach (X509Extension e in cert.Extensions)
-                    {
-                        if (e.Oid == null) continue;
-                        if (e.Oid.Value == "2.5.29.14") ski = new X509SubjectKeyIdentifierExtension(e, e.Critical).SubjectKeyIdentifier;
-                        else if (e.Oid.Value == "2.5.29.35") aki = AuthorityKeyId(e.RawData);
-                    }
-            }
-            catch (Exception) { }
-            if (ski != null) ski = ski.ToUpperInvariant();
-        }
-
-        // AuthorityKeyIdentifier ::= SEQUENCE { keyIdentifier [0] IMPLICIT OCTET STRING OPTIONAL, ... }
-        private static string AuthorityKeyId(byte[] d)
-        {
-            try
-            {
-                int i = 0;
-                if (d == null || d.Length < 2 || d[i++] != 0x30) return null;
-                int end = Length(d, ref i);
-                end += i;
-                while (i < end && i < d.Length)
-                {
-                    byte tag = d[i++];
-                    int len = Length(d, ref i);
-                    if (tag == 0x80) return BitConverter.ToString(d, i, len).Replace("-", "");
-                    i += len;
-                }
-            }
-            catch (IndexOutOfRangeException) { }
-            catch (ArgumentException) { }
-            return null;
-        }
-        private static int Length(byte[] d, ref int i)
-        {
-            int b = d[i++];
-            if (b < 0x80) return b;
-            int n = b & 0x7F, v = 0;
-            for (int k = 0; k < n; k++) v = (v << 8) | d[i++];
-            return v;
         }
 
         internal static bool InRootStore(CertificateRecord c)
@@ -379,24 +330,26 @@ namespace Kisib
             };
         }
 
-        // Paths with the blocks as they are now. Rebuilt once per scan.
+        // Paths with the blocks as they are now. Built in the scan worker, once per scan.
         private Reach PathsNow()
         {
             if (snapshot == null || snapshot.Paths == null) return null;
             if (pathsFor != snapshot)
             {
-                pathsBlocked = GroupCatalog.BlockedIdentities(snapshot);
-                pathsBlockedKeys = snapshot.Paths.KeysOf(pathsBlocked);
-                pathsReach = snapshot.Paths.Compute(pathsBlocked);
+                pathsBlocked = snapshot.Blocked;
+                pathsBlockedKeys = snapshot.BlockedKeys;
+                pathsReach = snapshot.Reach ?? snapshot.Paths.Compute(pathsBlocked);
                 pathsFor = snapshot;
             }
             return pathsReach;
         }
 
-        private static string OwnerName(CertificateRecord c)
+        private string OwnerName(CertificateRecord c)
         {
             if (c == null) return "—";
-            return WhoIsWho.Owner(c) ?? Ccadb.OwnerOf(c.Identity) ?? c.SubjectOrganization ?? "—";
+            string ccadb = null;
+            if (snapshot != null) snapshot.CaOwners.TryGetValue(c.Identity, out ccadb);
+            return WhoIsWho.Owner(c) ?? ccadb ?? c.SubjectOrganization ?? "—";
         }
 
         // " · LEAK" / " · rerouted" / " · via leak" / " · cut off" for the Status column.
@@ -424,13 +377,13 @@ namespace Kisib
             return (blockedKey ? "LEAK, still reachable: " : "") + TrustGraph.PathText(p) + (missing.Count > 0 ? "  (needs Install route: " + missing.Count + " only in CCADB)" : "");
         }
 
-        internal int LeakCount()
+        // Blocked CA keys kisib blocked that still have a path to a trusted root. Counted in the scan worker.
+        internal static int CountLeaks(Snapshot s)
         {
-            Reach r = PathsNow();
-            if (r == null) return 0;
-            HashSet<string> mine = BlockEngine.KisibBlockedSha1();
-            return pathsBlockedKeys.Count(k => r.Has(k) && snapshot.Paths.ByKey[k].Any(c => pathsBlocked.Contains(c.Identity) && mine.Contains(c.Sha1)));
+            if (s.Paths == null || s.Reach == null) return 0;
+            return s.BlockedKeys.Count(k => s.Reach.Has(k) && s.Paths.ByKey[k].Any(c => s.Blocked.Contains(c.Identity) && s.KisibBlockedSha1.Contains(c.Sha1)));
         }
+        internal int LeakCount() { return snapshot == null ? 0 : snapshot.LeakCount; }
 
         // Everything about one CA key: every certificate carrying it, where each one hangs, and the CAs under it.
         internal string PathsReport(CertificateRecord c)
@@ -625,7 +578,7 @@ namespace Kisib
             Reach r = PathsNow();
             if (r == null) { ShowText("Reroute check", "The cross-sign map is built after a scan. Press F5, wait for it to finish, then try again."); return; }
             TrustGraph g = snapshot.Paths;
-            HashSet<string> mine = BlockEngine.KisibBlockedSha1();
+            HashSet<string> mine = snapshot.KisibBlockedSha1;
             List<RerouteRow> rows = g.Analyze(pathsBlocked, r);
             foreach (RerouteRow x in rows.Where(x => x.Parent == null))
                 x.ByKisib = g.ByKey[x.Key].Any(c => pathsBlocked.Contains(c.Identity) && mine.Contains(c.Sha1));
@@ -695,17 +648,14 @@ namespace Kisib
                 { RerouteRow x = sel(); if (x == null) return; after = BlockKeyAction(x.Key, x.Cert); dialog.Close(); });
                 items.Add(paths); items.Add(install); items.Add(blockLeak); items.Add(blockToo);
                 List<MenuItem> allowItems = new List<MenuItem>();
-                foreach (int minutes in new int[] { 3, 10, 60 })
+                MenuItem allowMenu = AllowSubmenu("Allow this blocked CA", delegate
                 {
-                    int m = minutes;
-                    MenuItem allow = new MenuItem("Allow this blocked CA for " + m + " minutes", delegate
-                    {
-                        RerouteRow x = sel(); if (x == null) return;
-                        List<CertificateRecord> certs = g.ByKey[x.Key].Where(c => pathsBlocked.Contains(c.Identity)).ToList(); string n = x.Cert.SubjectShortName;
-                        after = delegate { AllowTemporarily(certs, n, TimeSpan.FromMinutes(m), true); }; dialog.Close();
-                    });
-                    allowItems.Add(allow); items.Add(allow);
-                }
+                    RerouteRow x = sel();
+                    if (x == null) return new AllowTarget { Certs = delegate { return new List<CertificateRecord>(); }, NothingWhy = "Select a row first." };
+                    List<CertificateRecord> certs = g.ByKey[x.Key].Where(c => pathsBlocked.Contains(c.Identity)).ToList();
+                    return new AllowTarget { Label = x.Cert.SubjectShortName, Certs = delegate { return certs; }, NothingWhy = "Nothing to allow: not blocked" };
+                });
+                allowItems.Add(allowMenu); items.Add(allowMenu);
                 items.Add(new MenuItem("Open certificate card", delegate { RerouteRow x = sel(); if (x != null) ShowText("Certificate", CertificateCard(x.Cert)); }));
                 items.Add(new MenuItem("Show in main list", delegate
                 {

@@ -57,7 +57,14 @@ namespace Kisib
         internal static List<string[]> ReadCsv(string path, long maxBytes)
         {
             if (new FileInfo(path).Length > maxBytes) throw new InvalidDataException(Path.GetFileName(path) + " exceeds " + (maxBytes / 1024 / 1024) + " MB.");
-            string text = File.ReadAllText(path, new UTF8Encoding(false, true));
+            string text;
+            using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (StreamReader reader = new StreamReader(fs, new UTF8Encoding(false, true))) text = reader.ReadToEnd();
+            return ParseCsv(text);
+        }
+
+        internal static List<string[]> ParseCsv(string text)
+        {
             List<string[]> rows = new List<string[]>(); List<string> row = new List<string>(); StringBuilder field = new StringBuilder();
             bool quoted = false;
             for (int i = 0; i < text.Length; i++)
@@ -128,7 +135,7 @@ namespace Kisib
         internal static GroupsRoot Build(Snapshot snapshot, string sourceDirectory)
         {
             GroupsRoot root = new GroupsRoot();
-            root.Blocked = BlockedIdentities(snapshot);
+            root.Blocked = snapshot.Blocked;
             Dictionary<string, CountryRow> countries;
             List<OwnerRow> owners;
             try
@@ -167,7 +174,8 @@ namespace Kisib
                     foreach (string tag in Split(owner.Tags)) get(tags, "tag", tag, tag).Add(cert.Identity, why);
                     if (owner.Country.Length == 2) countryClaims.Add(new KeyValuePair<string, string>(owner.Country, why));
                 }
-                string ccadbOwner = Ccadb.OwnerOf(cert.Identity);
+                string ccadbOwner;
+                if (!snapshot.CaOwners.TryGetValue(cert.Identity, out ccadbOwner)) ccadbOwner = null;
                 if (ccadbOwner != null) get(byOwner, "owner", ccadbOwner, ccadbOwner).Add(cert.Identity, "CCADB CA Owner: " + ccadbOwner);
                 foreach (KeyValuePair<string, string> claim in countryClaims)
                 {
@@ -229,7 +237,7 @@ namespace Kisib
         // Status groups: what kisib did, what Windows already had, and what is only on the lists.
         private static void BuildStatus(GroupsRoot root, Snapshot snapshot, string sourceDirectory)
         {
-            HashSet<string> mineSha1 = BlockEngine.KisibBlockedSha1();
+            HashSet<string> mineSha1 = snapshot.KisibBlockedSha1;
             DateTime now = DateTime.UtcNow;
             Func<string, string, GroupNode> make = delegate(string key, string label) { return new GroupNode { Kind = "status", Key = "status:" + key, Label = label, Filter = "all" }; };
             GroupNode byKisib = make("blocked-kisib", "Blocked by kisib"), before = make("blocked-before", "Blocked before kisib (Microsoft or earlier hardening)"),
@@ -252,11 +260,7 @@ namespace Kisib
         }
 
         // Blocked = observed in a Disallowed system store (Windows' untrusted list), any location.
-        internal static HashSet<string> BlockedIdentities(Snapshot snapshot)
-        {
-            HashSet<string> disallowed = IncidentList.DisallowedPaths(snapshot);
-            return new HashSet<string>(snapshot.Certificates.Values.Where(c => c.FoundIn.Any(disallowed.Contains) || c.Collections.Any(disallowed.Contains)).Select(c => c.Identity), StringComparer.Ordinal);
-        }
+        internal static HashSet<string> BlockedIdentities(Snapshot snapshot) { return snapshot.Blocked; }
 
         internal static GroupNode Filtered(GroupNode group, string filter, HashSet<string> blocked)
         {

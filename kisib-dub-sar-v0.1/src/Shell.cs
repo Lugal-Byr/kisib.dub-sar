@@ -69,6 +69,7 @@ namespace Kisib
         private int badgeState, lastLeaks;
         private Icon[] badgeIcons;
         private Action denialsRefresh;
+        private Action toolsRefresh;
         private EventWaitHandle showSignal;
         private readonly System.Windows.Forms.Timer listTimer = new System.Windows.Forms.Timer { Interval = 6 * 60 * 60 * 1000 };
 
@@ -79,8 +80,15 @@ namespace Kisib
             quietMode = Storage.Setting("quiet mode");
             MenuItem weekly = new MenuItem("Refresh Microsoft list and CCADB &weekly (when online)");
             tools.MenuItems.Add(weekly);
-            tools.MenuItems.Add(new MenuItem("&Allowed (never block)...", delegate { ShowAllowed(); }));
-            tools.Popup += delegate { weekly.Checked = !Storage.Setting("lists auto-refresh off"); };
+            tools.MenuItems.Add("-");
+            tools.MenuItems.Add(new MenuItem("&Never block list (allowed, unblocked by hand, repaired)...", delegate { ShowAllowed(); }));
+            tools.MenuItems.Add(new MenuItem("R&ules (groups kept blocked)...", delegate { ShowRules(); }));
+            tools.MenuItems.Add(new MenuItem("Un&do last block", delegate { UndoLastBlock(); }));
+            MenuItem quietItem = new MenuItem("&Quiet mode (log refusals, no pop-ups)", delegate { ToggleQuiet(); });
+            tools.MenuItems.Add(quietItem);
+            tools.MenuItems.Add("-");
+            tools.MenuItems.Add(new MenuItem("&Tools page (every tool and how it stands)...", delegate { ShowToolsPage(); }, Shortcut.CtrlT));
+            tools.Popup += delegate { weekly.Checked = !Storage.Setting("lists auto-refresh off"); quietItem.Checked = quietMode; };
             weekly.Click += delegate { Storage.Setting("lists auto-refresh off", !Storage.Setting("lists auto-refresh off")); };
 
             // A second copy of kisib only wakes this one up.
@@ -224,11 +232,13 @@ namespace Kisib
             try
             {
                 List<TempAllowEntry> pending = TempAllow.Read();
-                if (pending.Count > 0)
+                List<TempAllowEntry> timed = pending.Where(p => p.Mode == "timed").ToList();
+                if (timed.Count > 0)
                 {
-                    TimeSpan left = pending.Select(p => DateTime.Parse(p.Until, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)).Min() - DateTime.UtcNow;
-                    if (left > TimeSpan.Zero) parts.Add("allow " + (int)left.TotalMinutes + ":" + left.Seconds.ToString("00"));
+                    TimeSpan left = timed.Min(p => p.UntilUtc) - DateTime.UtcNow;
+                    if (left > TimeSpan.Zero) parts.Add("open " + (int)left.TotalMinutes + ":" + left.Seconds.ToString("00"));
                 }
+                else if (pending.Count > 0) parts.Add(pending.Select(p => p.Subject).Distinct().Count() + " open");
             }
             catch (Exception) { }
             if (quietMode) parts.Add("quiet");

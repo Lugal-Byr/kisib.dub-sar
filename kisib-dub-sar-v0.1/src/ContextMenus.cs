@@ -46,7 +46,7 @@ namespace Kisib
         // A plain-text card for one certificate: everything needed to talk about it without a screenshot.
         internal string CertificateCard(CertificateRecord c)
         {
-            HashSet<string> blocked = snapshot == null ? new HashSet<string>() : GroupCatalog.BlockedIdentities(snapshot);
+            HashSet<string> blocked = snapshot == null ? new HashSet<string>() : snapshot.Blocked;
             StringBuilder t = new StringBuilder();
             t.AppendLine("Subject: " + c.Subject);
             t.AppendLine("Issuer: " + c.Issuer);
@@ -102,13 +102,12 @@ namespace Kisib
                 InstallRoute(snapshot.Paths.Missing(snapshot.Paths.Path(r, c.SpkiSha256)), c.SubjectShortName);
             });
             certMenu.MenuItems.Add("Block this certificate...", delegate { BlockSelectedCertificate(); });
-            foreach (int minutes in new int[] { 3, 10, 60 })
+            certMenu.MenuItems.Add(AllowSubmenu("Allow", delegate
             {
-                int m = minutes;
-                certMenu.MenuItems.Add("Allow for " + m + " minutes", delegate
-                { CertificateRecord c = sel(); if (c != null) AllowTemporarily(new List<CertificateRecord> { c }, c.SubjectShortName, TimeSpan.FromMinutes(m), true); });
-            }
-            certMenu.MenuItems.Add("Unblock (kisib's own blocks)", delegate { UnblockSelectedCertificate(); });
+                CertificateRecord c = sel();
+                return c == null ? new AllowTarget { Certs = delegate { return new List<CertificateRecord>(); }, NothingWhy = "Select a certificate first." } : TargetFor(c);
+            }));
+            certMenu.MenuItems.Add("Unblock for good (rules won't put it back)", delegate { UnblockSelectedCertificate(); });
             certMenu.MenuItems.Add("-");
             certMenu.MenuItems.Add("Tag this certificate...", delegate
             {

@@ -97,13 +97,13 @@ namespace Kisib
         }
 
         // Owner-draw for one column of a details ListView; the other cells draw normally.
-        internal static void AttachTo(ListView grid, int column)
+        internal static void AttachTo(ListView grid, params int[] columns)
         {
             grid.OwnerDraw = true;
             grid.DrawColumnHeader += delegate(object sender, DrawListViewColumnHeaderEventArgs e) { e.DrawDefault = true; };
             grid.DrawSubItem += delegate(object sender, DrawListViewSubItemEventArgs e)
             {
-                if (e.ColumnIndex != column || !Has(e.SubItem.Text)) { e.DrawDefault = true; return; }
+                if (Array.IndexOf(columns, e.ColumnIndex) < 0 || !Has(e.SubItem.Text)) { e.DrawDefault = true; return; }
                 bool selected = e.Item.Selected;
                 Color back = selected ? SystemColors.Highlight : e.Item.UseItemStyleForSubItems ? e.Item.BackColor : e.SubItem.BackColor;
                 Color fore = selected ? SystemColors.HighlightText : e.Item.UseItemStyleForSubItems ? e.Item.ForeColor : e.SubItem.ForeColor;
