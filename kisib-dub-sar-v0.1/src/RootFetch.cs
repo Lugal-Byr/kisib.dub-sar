@@ -176,6 +176,8 @@ namespace Kisib
                         BlockEngine.Note("trust-from-microsoft", X509Location.CurrentUser, c.Sha256, c.Sha1, c.SubjectShortName, "root from Microsoft's list (certutil -generateSSTFromWU)");
                     }
                     added.Add(c.SubjectShortName);
+                    // You asked for it: keep your bloc rules (👑 💃 ...) from blocking it again on the next scan.
+                    try { AllowedList.AddRange(new CertificateRecord[] { c }, "fetched root"); } catch (IOException) { }
                 }
                 catch (Exception ex) { problems.Add(c.SubjectShortName + ": " + ex.Message); }
             }

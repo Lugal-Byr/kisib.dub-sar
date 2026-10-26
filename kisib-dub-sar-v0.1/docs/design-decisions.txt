@@ -733,3 +733,6 @@ util"). MMC can't be deep-linked to one certificate, so kisib names each store t
 (.LocalMachine copies collapse into the one whole-PC place; Group Policy flagged), opens those snap-ins and
 Windows' own certificate dialog (X509Certificate2UI), copies the thumbprint, and offers Unblock for good. Live map
 CA boxes not stored on this PC now say that this is normal for a CA a site sends along.
+
+D072 A root kisib fetches on request (Get root, Required for app, Fix it) now goes on the never-block list too; before,
+a bloc rule (AAA Certificate Services is 👑 and 💃) could block it again on the next scan.
