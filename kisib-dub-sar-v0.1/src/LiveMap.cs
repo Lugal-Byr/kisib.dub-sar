@@ -563,7 +563,7 @@ namespace Kisib
             if (IsRevocationRefusal(d)) m.MenuItems.Add("Check revocation servers", delegate { CheckRevocation(d); });
             m.MenuItems.Add(AllowSubmenu("Allow", delegate { return TargetFor(d); }));
             m.MenuItems.Add("Why was it refused?", delegate { ShowText("Why — " + d.Subject, ExplainDenial(d)); });
-            m.MenuItems.Add("Reroute around the block...", delegate
+            m.MenuItems.Add("🌀 Route around (another path to a root you trust)...", delegate
             {
                 List<CertificateRecord> missing;
                 List<CertificateRecord> route = DenialRoute(d, out missing);

@@ -513,6 +513,14 @@ namespace Kisib
             TrustGraph g = snapshot.Paths;
             List<CertificateRecord> chain = d.ChainSha1.Select(FindBySha1).Where(c => c != null && c.SpkiSha256 != null).ToList();
             if (chain.Count == 0) return null;
+            // Revoked (or a dead path) with no block of yours: the exact copies Windows refused are avoided, so the
+            // route goes through another issue of the same CA (same key, another signer) if one exists.
+            if (d.Code.EndsWith("92010", StringComparison.OrdinalIgnoreCase) && BlockedBehind(d).Count == 0)
+            {
+                HashSet<string> avoid = new HashSet<string>(snapshot.Blocked, StringComparer.Ordinal);
+                foreach (CertificateRecord c in chain) avoid.Add(c.Identity);
+                r = g.Compute(avoid);
+            }
             CertificateRecord lowest = chain.FirstOrDefault(c => !chain.Any(x =>
             {
                 List<string> up;

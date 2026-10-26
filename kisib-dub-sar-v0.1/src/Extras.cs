@@ -136,7 +136,7 @@ namespace Kisib
             if (d.BlockedBy != null) { icon = "🚫"; why = "blocked by you · " + d.BlockedBy.Split(',')[0].Trim(); tint = Color.FromArgb(255, 240, 242); stripe = Color.FromArgb(222, 84, 104); }
             else if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase)) { icon = "🔑"; why = "root missing, not your block · Fix it gets it"; tint = Color.FromArgb(242, 246, 255); stripe = Color.FromArgb(96, 124, 204); }
             else if (d.Code.EndsWith("92010", StringComparison.OrdinalIgnoreCase)) { icon = "⛔"; why = "revoked, or in Disallowed · Fix it checks"; tint = Color.FromArgb(255, 244, 236); stripe = Color.FromArgb(222, 128, 64); }
-            else if (d.Verdict == "yellow") { icon = "🌀"; why = (d.Category != null ? d.Category + " can't connect" : "known company, refused") + " · " + ShortReason(d.Reason ?? ""); tint = Color.FromArgb(255, 250, 230); stripe = Color.FromArgb(214, 164, 40); }
+            else if (d.Verdict == "yellow") { icon = "🔌"; why = (d.Category != null ? d.Category + " can't connect" : "known company, refused") + " · " + ShortReason(d.Reason ?? ""); tint = Color.FromArgb(255, 250, 230); stripe = Color.FromArgb(214, 164, 40); }
             else { icon = "❔"; why = ShortReason(d.Reason ?? "refused"); tint = Color.FromArgb(246, 246, 250); stripe = Color.FromArgb(140, 140, 160); }
             why += " · " + d.Time.ToString("HH:mm");
             DenialToast t = null;

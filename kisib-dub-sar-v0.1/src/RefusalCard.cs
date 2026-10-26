@@ -45,7 +45,10 @@ namespace Kisib
             Button allow = AllowButton("Allow", delegate { return TargetFor(d); });
             allow.Margin = new Padding(3); allow.Height = 30; allow.Enabled = blocked.Count > 0;
             actions.Controls.Add(allow);
-            button(route == null ? "Reroute: no other path" : missing.Count == 0 ? "Reroute: path already on PC" : "Reroute around the block...", route != null && missing.Count > 0)
+            Button around = button(route == null ? "Route around: no other path" : missing.Count == 0 ? "Route around: already on PC" : "Route around...", route != null && missing.Count > 0);
+            Image spiral = EmojiImages.For(0x1F300);
+            if (spiral != null) { around.Image = new Bitmap(spiral, new Size(20, 20)); around.TextImageRelation = TextImageRelation.ImageBeforeText; around.ImageAlign = ContentAlignment.MiddleLeft; }
+            around
                 .Click += delegate { InstallRoute(missing, d.Subject); };
             button("Get what it asked for", true).Click += delegate { GetRequested(d); };
             if (IsRevocationRefusal(d)) button("Check revocation servers", true).Click += delegate { CheckRevocation(d); };

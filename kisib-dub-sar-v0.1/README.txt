@@ -105,7 +105,7 @@ the main window stays usable, each reopens where you left it, Esc closes it.
 POP-UPS AND THE REFUSAL CARD
 A refusal pop-up is a small card in the corner, in bold Comic Sans with color emoji
 (Microsoft's Fluent Emoji, MIT; docs/third-party-notices.txt) (up to four stack): an emoji for
-the kind (🚫 blocked by you, 🔑 root missing, ⛔ revoked or Disallowed, 🌀 a trusted
+the kind (🚫 blocked by you, 🔑 root missing, ⛔ revoked or Disallowed, 🔌 a trusted
 service can't connect, ❔ anything else), who -> what on one line, why and the time
 on a short grey line, and chips: Allow (when it's your block), Fix it (get what it
 asked for), Details, Shh 1 h. Click the card for the refusal card; × closes it.
@@ -234,6 +234,14 @@ for good. A CA certificate missing from this PC: imported into Intermediate
 Certification Authorities (kept in ROUTES, put back after a reformat). The root
 missing: fetched from Microsoft's list. If none of that applies, it says so: a
 revoked certificate stays revoked, and no import changes that.
+
+🌀 ROUTE AROUND
+On a refusal (card, live map, denials list): if another path to a root you trust
+exists, kisib installs the missing cross-signs into Intermediate CAs so Windows
+can take it (kept in ROUTES, put back after a reformat; Tools > Routes kisib
+installed undoes it). For "revoked" with nothing of yours behind it, the copies
+Windows refused are avoided, so the route goes through another issue of the same
+CA if there is one. Fix it does this on its own for those refusals.
 
 MISSING ROOTS (NOT YOUR BLOCK)
 "root not trusted (not your block)" means Windows needed a root it doesn't have and

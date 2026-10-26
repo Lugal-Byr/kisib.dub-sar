@@ -718,3 +718,8 @@ folder when elevated, copied over the program files (running exe renamed to *.ol
 folder skipped), then "--tray --restarted" (the new copy waits up to 30 s for the old one's single-instance
 mutex). Install copies the folder (lists only if the target has none), starts the copy with
 --installed-startup when Start with Windows was on so the logon task and folder lock move to it.
+
+D069 🌀 is route around (user, 2026-10-26: "that route around should b the spiral"): the card button carries it in
+color, the menus and the Tools page row in text; the trusted-service pop-up uses 🔌. Route around also works for
+"revoked" refusals with no block behind them: DenialRoute recomputes reach with the refused copies treated as
+blocked, so the path uses another issue of the same CA key; Fix it installs that route by itself.

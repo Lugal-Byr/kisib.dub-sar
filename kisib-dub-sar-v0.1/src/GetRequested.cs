@@ -100,6 +100,21 @@ namespace Kisib
                     rootMissing ? top.SubjectShortName : top.IssuerShortName);
                 said.Add("Getting the root from Microsoft's list (another line says when it's in).");
             }
+            // Revoked with nothing of yours behind it: route around through another issue of the same CA.
+            if (said.Count == 0 && d.Code.EndsWith("92010", StringComparison.OrdinalIgnoreCase))
+            {
+                List<CertificateRecord> missing;
+                List<CertificateRecord> route = DenialRoute(d, out missing);
+                if (route != null && missing.Count > 0)
+                    try
+                    {
+                        RouteStore.Install(missing.Where(c => c.Der != null).ToList(), Elevation.IsElevated ? X509Location.LocalMachine : X509Location.CurrentUser, "route around a refused copy for " + ProgramName(d));
+                        said.Add("🌀 Routed around the refused copy: added " + String.Join(", ", missing.Select(c => c.SubjectShortName + " (signed by " + c.IssuerShortName + ")").ToArray()) + " so Windows can take " + TrustGraph.PathText(route) + ".");
+                        StartScan();
+                    }
+                    catch (Exception ex) { problems.Add("route around: " + ex.Message); }
+                else if (route != null) said.Add("🌀 Another path is already on this PC (" + TrustGraph.PathText(route) + "); Windows should take it on the next try.");
+            }
             if (said.Count == 0 && IsRevocationRefusal(d))
             {
                 CheckRevocation(d);

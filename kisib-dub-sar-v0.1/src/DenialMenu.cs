@@ -30,7 +30,7 @@ namespace Kisib
                 FetchRoot(d);
             }));
             items.Add(new MenuItem("Why was this refused? (groups, rules, who blocked it)", delegate { Denial d = selected(); if (d != null) ShowText("Why — " + d.Subject, ExplainDenial(d)); }));
-            items.Add(new MenuItem("Reroute around the block (use a cross-signed path)...", delegate
+            items.Add(new MenuItem("🌀 Route around (another path to a root you trust)...", delegate
             {
                 Denial d = selected(); if (d == null) return;
                 List<CertificateRecord> missing;
@@ -148,7 +148,7 @@ namespace Kisib
             else
             {
                 t.AppendLine("  " + TrustGraph.PathText(route));
-                t.AppendLine(missing.Count == 0 ? "  Already on this PC; Windows should find it [to test]." : "  Needs " + missing.Count + " certificate(s) Windows can't find: right-click > Reroute around the block installs them.");
+                t.AppendLine(missing.Count == 0 ? "  Already on this PC; Windows should find it [to test]." : "  Needs " + missing.Count + " certificate(s) Windows can't find: right-click > 🌀 Route around installs them.");
             }
             return t.ToString();
         }
