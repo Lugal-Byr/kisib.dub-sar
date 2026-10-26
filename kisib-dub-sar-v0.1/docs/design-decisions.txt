@@ -745,3 +745,9 @@ old one was (window or tray) and says "kisib updated to vX" (or where it now run
 
 D074 Import > File put a new root into Trusted Root but not on the never-block list, so a bloc rule (AAA Certificate
 Services is 👑 and 💃) blocked it on the next scan. Imported roots and CAs now go on the never-block list.
+D075 Fix it on Windows' side (user, 2026-10-26): right-click a live map box, arrow or refusal card. For each cert in the
+     refused chain it shows what Windows holds against it (Untrusted Certificates in certlm/certmgr, Group Policy,
+     Microsoft's disallowedcert list, a root missing from Trusted Root), the certificate-manager steps, the certutil lines
+     (delstore Disallowed / addstore Root / urlcache crl delete / verify -urlfetch), and opens certutil -url on a .cer kisib
+     writes to %LOCALAPPDATA%\kisib.dub-sar\certs. Windows reports a cert in Untrusted Certificates like a revoked one
+     (0x80092010), so that is checked first. kisib shows the way; the deleting and importing stay the user's clicks.

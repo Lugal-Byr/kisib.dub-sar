@@ -505,6 +505,7 @@ namespace Kisib
                     List<string> wanted = new List<string>(n.Sha1s);
                     m.MenuItems.Add("Get " + n.Label + " from Microsoft (what Windows would download)", delegate { FetchFromMicrosoft(x => wanted.Contains(x.Sha1, StringComparer.OrdinalIgnoreCase), n.Label); });
                 }
+                m.MenuItems.Add(WindowsSideLabel, delegate { ShowWindowsSideFix(n.Label, n.Sha1s, n.LastDenial); });
                 m.MenuItems.Add("Copy SHA-1", delegate { CopyText(String.Join("\r\n", n.Sha1s.ToArray())); });
                 return m;
             }
@@ -539,6 +540,7 @@ namespace Kisib
                 }
                 m.MenuItems.Add("What breaks if I block it...", delegate { ShowText("If you block " + c.SubjectShortName, WhatBreaks(n, certs)); });
             }
+            m.MenuItems.Add(WindowsSideLabel, delegate { ShowWindowsSideFix(n.Label, n.Sha1s, n.LastDenial); });
             m.MenuItems.Add("Where Windows keeps it (certlm.msc / certmgr.msc)...", delegate { ShowWhereInWindows(c); });
             m.MenuItems.Add("Who vouches for it (paths, cross-signs)...", delegate { ShowText("Paths — " + c.SubjectShortName, PathsReport(c)); });
             m.MenuItems.Add("Show in main list", delegate
@@ -567,6 +569,7 @@ namespace Kisib
             if (IsRevocationRefusal(d)) m.MenuItems.Add("Check revocation servers", delegate { CheckRevocation(d); });
             m.MenuItems.Add(AllowSubmenu("Allow", delegate { return TargetFor(d); }));
             m.MenuItems.Add("Why was it refused?", delegate { ShowText("Why — " + d.Subject, ExplainDenial(d)); });
+            m.MenuItems.Add(WindowsSideLabel, delegate { ShowWindowsSideFix(d.Site ?? d.Subject, d.ChainSha1.Take(1), d); });
             m.MenuItems.Add("🌀 Route around (another path to a root you trust)...", delegate
             {
                 List<CertificateRecord> missing;

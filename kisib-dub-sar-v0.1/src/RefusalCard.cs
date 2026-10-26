@@ -54,6 +54,7 @@ namespace Kisib
             CertificateRecord shown = blocked.FirstOrDefault() ?? d.ChainSha1.Select(FindBySha1).FirstOrDefault(x => x != null);
             if (shown != null) button("Where Windows keeps it", true).Click += delegate { ShowWhereInWindows(shown); };
             if (IsRevocationRefusal(d)) button("Check revocation servers", true).Click += delegate { CheckRevocation(d); };
+            button("Fix it on Windows' side", true).Click += delegate { ShowWindowsSideFix(d.Site ?? d.Subject, d.ChainSha1.Take(1), d); };
             if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase))
                 button("Get " + MissingRootName(d) + " from Microsoft", true).Click += delegate { FetchRoot(d); };
             if (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase))
