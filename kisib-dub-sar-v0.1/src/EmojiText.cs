@@ -133,7 +133,7 @@ namespace Kisib
                 Color back = selected ? SystemColors.Highlight : e.Item.UseItemStyleForSubItems ? e.Item.BackColor : e.SubItem.BackColor;
                 Color fore = selected ? SystemColors.HighlightText : e.Item.UseItemStyleForSubItems ? e.Item.ForeColor : e.SubItem.ForeColor;
                 using (Brush b = new SolidBrush(back)) e.Graphics.FillRectangle(b, e.Bounds);
-                Draw(e.Graphics, e.SubItem.Text, grid.Font, new Rectangle(e.Bounds.X + 4, e.Bounds.Y, Math.Max(0, e.Bounds.Width - 8), e.Bounds.Height), fore);
+                Draw(e.Graphics, e.SubItem.Text, e.Item.Font ?? grid.Font, new Rectangle(e.Bounds.X + 4, e.Bounds.Y, Math.Max(0, e.Bounds.Width - 8), e.Bounds.Height), fore);
             };
         }
     }

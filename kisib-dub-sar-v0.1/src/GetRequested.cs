@@ -100,6 +100,11 @@ namespace Kisib
                     rootMissing ? top.SubjectShortName : top.IssuerShortName);
                 said.Add("Getting the root from Microsoft's list (another line says when it's in).");
             }
+            if (said.Count == 0 && IsRevocationRefusal(d))
+            {
+                CheckRevocation(d);
+                said.Add("Nothing is blocked or missing: Windows couldn't reach a revocation server. Checking which ones (a window opens).");
+            }
             if (said.Count == 0)
             {
                 string why = d.Code.EndsWith("92010", StringComparison.OrdinalIgnoreCase)

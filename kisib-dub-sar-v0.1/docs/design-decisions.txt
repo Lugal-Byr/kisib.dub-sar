@@ -701,3 +701,14 @@ and tree: the crowns, EU columns and committees, BRICS the bricks, supranational
 
 D065 The trusted-service-can't-connect card used 🌀 (a spiral). The user pointed out the spiral is a sacred
 symbol in Native American traditions; it's now 🔌 (unplugged), which says what happened.
+
+D065 Never lifted, revocation check, Tools page arrangement (user, 2026-10-26: "is there a fail safe to make sure
+idiots dont enable literal old expired hacker used certs", iCloud still failing with "revocation server"
+refusals, "can it arrange alphabetical or by category"). Guarded() runs inside every lift (LiftForGood, Lift,
+AllowFor, bloc unblock, import, root fetch): kisib's incident list by certificate or key (key twins of a key
+compromise included), Windows' own disallowedcert.stl (HKLM AutoUpdate\DisallowedCertEncodedCtl, same parser as
+the trusted list), and expired / not yet valid certificates stay blocked, with one line saying why. The
+revocation check reads each chain certificate's OCSP / CA-issuer (AIA) and CRL (CDP) addresses from its DER
+(missing certificates from crt.sh), sends one GET to each with a 7 s timeout (any HTTP answer = reachable), and
+reports per server. Tools page: rows carry a kind (fix, block, allow, watch, lists, kisib itself) shown as
+header rows with color emoji, or A to Z; the choice is a SETTINGS switch.

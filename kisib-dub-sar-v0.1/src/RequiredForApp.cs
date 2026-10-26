@@ -301,6 +301,8 @@ namespace Kisib
                     List<CertificateRecord> blocks = WithTwins(new CertificateRecord[] { onPc ?? c }).Where(snapshot.IsBlocked).ToList();
                     if (blocks.Count > 0) report.Add("unblocked " + c.SubjectShortName + ": " + LiftForGood(blocks, "imported from " + Path.GetFileName(path), "imported"));
                 }
+                string never = LiftGuard.Why(c, sourceDirectory);
+                if (never != null) { report.Add("refused " + c.SubjectShortName + " (" + never + ")"); continue; }
                 if (c.Subject == c.Issuer)
                 {
                     bool listed = windowsList.Contains(c.Sha1);

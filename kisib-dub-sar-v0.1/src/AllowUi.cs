@@ -134,14 +134,16 @@ namespace Kisib
 
         internal void AllowFor(List<CertificateRecord> certs, string label, TimeSpan duration, string mode)
         {
-            List<CertificateRecord> all = WithTwins(certs);
-            if (all.Count == 0) { Say("Nothing to allow for " + label + "."); return; }
+            List<string> kept = new List<string>();
+            List<CertificateRecord> all = Guarded(WithTwins(certs), kept);
+            if (all.Count == 0) { Say("Nothing to allow for " + label + "." + (kept.Count > 0 ? " " + kept[0] : "")); return; }
             LiftResult r;
             try { r = TempAllow.Lift(all, duration, mode); }
             catch (Exception ex) { Say("Allow failed for " + label + ": " + ex.Message); return; }
             allowTimer.Start();
             string span = mode == "restart" ? "until kisib closes or the PC restarts" : mode.StartsWith("program:", StringComparison.Ordinal) ? "while " + mode.Substring(8) + " runs" :
                 "for " + (int)duration.TotalMinutes + " minutes";
+            r.Problems.AddRange(kept);
             Say("Allowed " + span + ": " + label + ". " + LiftSummary(all, r.Removed, r.Errors, r.Problems));
             WatchAllow(all, label);
             StartScan();

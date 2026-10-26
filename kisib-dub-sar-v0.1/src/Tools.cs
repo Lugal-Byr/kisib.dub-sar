@@ -31,6 +31,7 @@ namespace Kisib
                 new ToolRow { Name = "Repair: What this PC uses", What = "Blocked or missing roots behind refusals in the last 7 days", Now = () => denials.Count(d => !d.Ok && !d.Noise && d.Time > DateTime.Now.AddDays(-7)) + " refusals this week", Run = RepairUsed },
                 new ToolRow { Name = "Repair: Reset to the standard seals", What = "All seals back, one-off blocks lifted; only your blocs stay blocked", Now = () => snapshot == null ? "after a scan" : snapshot.Blocked.Count + " blocked now", Run = RepairReset },
                 new ToolRow { Name = "Repair: Put back what was blocked before kisib", What = "Re-blocks what you unblocked by hand from Microsoft's untrusted list", Now = () => UnblockedByHand.Read().Count + " on the list", Run = RepairPutBack },
+                new ToolRow { Name = "Revocation check", What = "For the latest \"revocation server unreachable\" refusal: which servers it needed, and can they be reached", Now = () => { int n = denials.Count(d => !d.Ok && IsRevocationRefusal(d) && d.Time > DateTime.Now.AddDays(-1)); return n == 0 ? "none today" : n + " in the last day"; }, Run = () => { Denial last = denials.Where(d => !d.Ok && IsRevocationRefusal(d) && d.ChainSha1.Count > 0).OrderByDescending(d => d.Time).FirstOrDefault(); if (last == null) Say("No revocation refusal with a chain on record."); else CheckRevocation(last); } },
                 new ToolRow { Name = "Required for app", What = "Each app > the roots it used > the CAs in between; tick what has to keep working", Now = () => { int n = AppChains.All().Select(r => r.Program).Distinct(StringComparer.OrdinalIgnoreCase).Count(); return n + " apps seen"; }, Run = ShowRequiredForApp },
                 new ToolRow { Name = "Import a certificate file", What = "Roots go into Trusted Root (Windows' own list decides, or you do), CAs into Intermediate CAs", Now = () => "", Run = ImportFromFile },
                 new ToolRow { Name = "Keep Claude reachable", What = "After every scan, the roots the Claude app needs are unblocked and put back, even inside a blocked bloc", Now = () => (Storage.Setting("keep claude reachable off") ? "off" : "on") + " · " + ClaudeState(), Run = () => { Storage.Setting("keep claude reachable off", !Storage.Setting("keep claude reachable off")); Say("Keep Claude reachable is " + (Storage.Setting("keep claude reachable off") ? "off." : "on.")); if (!Storage.Setting("keep claude reachable off")) KeepReachable(true); } },
@@ -62,6 +63,20 @@ namespace Kisib
             };
         }
 
+        // Tools grouped by what they do; the emoji draws in color in the list.
+        private static readonly string[] ToolKinds = { "🔧 Fix and repair", "🚫 Block", "✅ Allow", "👀 Watch", "📋 Lists and info", "⚙️ kisib itself" };
+
+        private static int KindOf(string name)
+        {
+            if (name.StartsWith("Repair", StringComparison.Ordinal) || name.StartsWith("Required", StringComparison.Ordinal) || name.StartsWith("Import", StringComparison.Ordinal) ||
+                name.IndexOf("Claude's connection", StringComparison.Ordinal) >= 0 || name.StartsWith("Keep Claude", StringComparison.Ordinal) || name.StartsWith("Revocation", StringComparison.Ordinal)) return 0;
+            if (name.StartsWith("Block", StringComparison.Ordinal) || name.StartsWith("Rules", StringComparison.Ordinal) || name.StartsWith("Undo", StringComparison.Ordinal) || name.StartsWith("Reroute", StringComparison.Ordinal) || name.StartsWith("Routes", StringComparison.Ordinal)) return 1;
+            if (name.StartsWith("Never", StringComparison.Ordinal) || name.StartsWith("Open right now", StringComparison.Ordinal) || name.StartsWith("Program allows", StringComparison.Ordinal) || name.StartsWith("Trusted categories", StringComparison.Ordinal)) return 2;
+            if (name.StartsWith("Live map", StringComparison.Ordinal) || name.StartsWith("Certificate denials", StringComparison.Ordinal) || name.StartsWith("Watching", StringComparison.Ordinal) || name.StartsWith("Quiet", StringComparison.Ordinal) || name == "Programs") return 3;
+            if (name.StartsWith("Rescan", StringComparison.Ordinal) || name.StartsWith("Running as", StringComparison.Ordinal) || name.StartsWith("Let Claude", StringComparison.Ordinal)) return 5;
+            return 4;
+        }
+
         private string ClaudeState()
         {
             if (snapshot == null) return "after a scan";
@@ -89,15 +104,30 @@ namespace Kisib
             Form dialog = new Form { Text = "kisib tools — everything, and how it stands right now", Size = new Size(1150, 720), Font = Font };
             ListView grid = new ListView();
             SetupGrid(grid, new string[] { "Tool", "What it does", "Right now" }, new int[] { 300, 520, 300 });
-            EmojiText.AttachTo(grid, 1, 2);
+            EmojiText.AttachTo(grid, 0, 1, 2);
             List<ToolRow> rows = ToolRows();
+            bool byName = Storage.Setting("tools a to z");
+            ComboBox arrange = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, Margin = new Padding(3, 5, 3, 3) };
+            arrange.Items.AddRange(new object[] { "by what they do", "A to Z" });
+            arrange.SelectedIndex = byName ? 1 : 0;
+            FlowLayoutPanel top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 36, Padding = new Padding(6, 2, 6, 0) };
+            top.Controls.Add(new Label { Text = "Arrange:", AutoSize = true, Padding = new Padding(0, 9, 0, 0) });
+            top.Controls.Add(arrange);
             Action fill = delegate
             {
                 if (dialog.IsDisposed) return;
                 string keep = grid.SelectedItems.Count > 0 ? grid.SelectedItems[0].Text : null;
                 grid.BeginUpdate(); grid.Items.Clear();
-                foreach (ToolRow r in rows)
+                List<ToolRow> ordered = byName ? rows.OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase).ToList()
+                    : rows.OrderBy(r => KindOf(r.Name)).ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase).ToList();
+                int lastKind = -1;
+                foreach (ToolRow r in ordered)
                 {
+                    if (!byName && KindOf(r.Name) != lastKind)
+                    {
+                        lastKind = KindOf(r.Name);
+                        grid.Items.Add(new ListViewItem(new string[] { ToolKinds[lastKind], "", "" }) { BackColor = Color.FromArgb(236, 236, 248), ForeColor = Color.FromArgb(60, 60, 110), Font = new Font(grid.Font, FontStyle.Bold) });
+                    }
                     string now;
                     try { now = r.Now(); } catch (Exception ex) { now = "? " + ex.Message; }
                     ListViewItem item = new ListViewItem(new string[] { r.Name, r.What, now }) { Tag = r };
@@ -108,13 +138,14 @@ namespace Kisib
                 grid.EndUpdate();
             };
             fill();
-            Action run = delegate { if (grid.SelectedItems.Count == 0) return; ToolRow r = (ToolRow)grid.SelectedItems[0].Tag; try { r.Run(); } catch (Exception ex) { Say(r.Name + ": " + ex.Message); } fill(); };
+            arrange.SelectedIndexChanged += delegate { byName = arrange.SelectedIndex == 1; Storage.Setting("tools a to z", byName); fill(); };
+            Action run = delegate { if (grid.SelectedItems.Count == 0 || grid.SelectedItems[0].Tag == null) return; ToolRow r = (ToolRow)grid.SelectedItems[0].Tag; try { r.Run(); } catch (Exception ex) { Say(r.Name + ": " + ex.Message); } fill(); };
             grid.DoubleClick += delegate { run(); };
             grid.KeyDown += delegate(object s, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) run(); };
             Button go = new Button { Text = "Run selected tool", Dock = DockStyle.Bottom, Height = 32 };
             go.Click += delegate { run(); };
             Label foot = new Label { Dock = DockStyle.Bottom, Height = 24, Padding = new Padding(8, 4, 0, 0), ForeColor = SystemColors.GrayText, Text = "Double-click a tool to run it. This list updates after every scan." };
-            dialog.Controls.Add(grid); dialog.Controls.Add(foot); dialog.Controls.Add(go);
+            dialog.Controls.Add(grid); dialog.Controls.Add(top); dialog.Controls.Add(foot); dialog.Controls.Add(go);
             toolsRefresh = fill;
             dialog.FormClosed += delegate { if (toolsRefresh == fill) toolsRefresh = null; };
             ShowTool(dialog, "tools");

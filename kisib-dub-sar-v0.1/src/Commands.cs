@@ -149,6 +149,7 @@ namespace Kisib
             "  unblock <sha1|site>          unblock for good (never-block list)\r\n" +
             "  reblock                      close everything open right now (temporary allows)\r\n" +
             "  get-root <sha1|name>         put a missing root into Trusted Root, fresh from Microsoft's list\r\n" +
+            "  revocation <site|program>    which revocation servers the latest matching refusal needed, and can they be reached\r\n" +
             "  get <site|program|name>      for the latest refusal that matches: unblock, import, or fetch what it asked for\r\n" +
             "  rules                        groups kept blocked\r\n" +
             "  unblock-bloc <name>          drop a bloc/continent/country rule and lift what kisib blocked for it\r\n" +
@@ -225,6 +226,19 @@ namespace Kisib
                     }, 20000);
                     WaitFor(() => !gettingRequested && !fetchingRoots, 200);
                     return result + "\r\n" + OnWindow(() => lastSay, 10000);
+                }
+                case "revocation":
+                {
+                    if (rest.Length < 3) return "revocation <site|program>";
+                    string started = OnWindow(() =>
+                    {
+                        Denial d = denials.Where(x => !x.Ok && IsRevocationRefusal(x) && ((x.Site ?? "").IndexOf(rest, StringComparison.OrdinalIgnoreCase) >= 0 || (x.Subject ?? "").IndexOf(rest, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            (x.Program ?? "").IndexOf(rest, StringComparison.OrdinalIgnoreCase) >= 0)).OrderByDescending(x => x.Time).FirstOrDefault();
+                        if (d == null) return "No revocation refusal matching " + rest + ".";
+                        CheckRevocation(d); return lastSay;
+                    }, 20000);
+                    WaitFor(() => !checkingRevocation, 120);
+                    return started + "\r\n" + OnWindow(() => lastSay, 10000);
                 }
                 case "get-root":
                 {

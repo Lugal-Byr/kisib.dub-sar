@@ -179,7 +179,26 @@ administrator; only kisib's own pinned copies ever go there.
 TOOLS PAGE
 Tools > Tools page (Ctrl+T, or the Tools button): every tool on one list with what
 it does and how it stands right now (lists loaded, leaks, rules, open allows,
-admin or not). Double-click to run one.
+admin or not). Double-click to run one. Arrange: by what they do (🔧 Fix and
+repair, 🚫 Block, ✅ Allow, 👀 Watch, 📋 Lists and info, ⚙️ kisib itself) or A to Z;
+kisib remembers the choice.
+
+NEVER LIFTED
+Whatever you press (Allow, Unblock, Get what it asked for, Required for app,
+Import, a repair, Keep Claude reachable), these stay blocked and the result says
+why: anything on kisib's compromised list (data/incident-hashes.csv) or sharing a
+key listed as compromised, anything on Windows' own untrusted list (which Windows
+keeps in the registry next to its trusted list), and anything expired or not
+valid yet (Windows ignores those in a chain anyway). Import refuses them too.
+
+REVOCATION CHECK
+"revocation server unreachable" means Windows couldn't ask a CA whether a
+certificate was cancelled (OCSP or a CRL download), and apps like Apple's sign-in
+give up. On such a refusal (card, live map, denials list, Tools page, Fix it,
+--do revocation <site|program>), kisib lists the servers each certificate in the
+chain names and tries each one: reachable, or not (name didn't resolve, blocked,
+no answer). A firewall, VPN kill switch or DNS blocker stopping those hosts is the
+usual cause; they only answer "is this certificate cancelled?".
 
 REQUIRED FOR APP
 Tools > Required for app (also tray, live map right-click, Tools page): every app

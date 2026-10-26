@@ -21,6 +21,7 @@ namespace Kisib
                 return d == null ? new AllowTarget { Certs = delegate { return new List<CertificateRecord>(); }, NothingWhy = "Select a refusal first." } : TargetFor(d);
             }));
             items.Add(new MenuItem("Get what it asked for (unblock, import, or fetch the root)", delegate { Denial d = selected(); if (d != null) GetRequested(d); }));
+            items.Add(new MenuItem("Check revocation servers (which ones it needed, can they be reached)", delegate { Denial d = selected(); if (d != null) CheckRevocation(d); }));
             items.Add(new MenuItem("Get the missing root from Microsoft (what Windows would download)", delegate
             {
                 Denial d = selected();

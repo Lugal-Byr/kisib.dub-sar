@@ -159,6 +159,8 @@ namespace Kisib
             {
                 CertificateRecord c = CertificateRecord.FromDer(der);
                 CertificateRecord onPc = snapshot == null ? null : snapshot.BySha1(c.Sha1);
+                string never = LiftGuard.Why(c, sourceDirectory);
+                if (never != null) { problems.Add(c.SubjectShortName + " stays out (" + never + ")"); continue; }
                 if (onPc != null && snapshot.IsBlocked(onPc)) { problems.Add(c.SubjectShortName + " is blocked by you, so it stays out (Allow or Unblock it first)"); continue; }
                 try
                 {

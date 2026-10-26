@@ -560,6 +560,7 @@ namespace Kisib
         {
             m.MenuItems.Add("Open refusal card", delegate { OpenRefusalCard(d); });
             m.MenuItems.Add("Get what it asked for (unblock, import, or fetch the root)", delegate { GetRequested(d); });
+            if (IsRevocationRefusal(d)) m.MenuItems.Add("Check revocation servers", delegate { CheckRevocation(d); });
             m.MenuItems.Add(AllowSubmenu("Allow", delegate { return TargetFor(d); }));
             m.MenuItems.Add("Why was it refused?", delegate { ShowText("Why — " + d.Subject, ExplainDenial(d)); });
             m.MenuItems.Add("Reroute around the block...", delegate

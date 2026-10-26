@@ -268,7 +268,8 @@ namespace Kisib
             }
             HashSet<string> members = new HashSet<string>(chosen.SelectMany(g => g.Members), StringComparer.Ordinal);
             List<CertificateRecord> candidates = WithTwins(members.Select(id => snapshot.Certificates[id])).Where(snapshot.IsBlocked).ToList();
-            List<CertificateRecord> lift = candidates.Where(c => !keep.Contains(c.Identity) && snapshot.KisibBlockedSha1.Contains(c.Sha1)).ToList();
+            List<string> guardNotes = new List<string>();
+            List<CertificateRecord> lift = Guarded(candidates.Where(c => !keep.Contains(c.Identity) && snapshot.KisibBlockedSha1.Contains(c.Sha1)), guardNotes);
             int stayOther = candidates.Count(c => keep.Contains(c.Identity));
             int stayBefore = candidates.Count(c => !keep.Contains(c.Identity) && !snapshot.KisibBlockedSha1.Contains(c.Sha1));
             int removed = 0, errors = 0;
@@ -286,6 +287,7 @@ namespace Kisib
             List<string> parts = new List<string> { "Unblocked " + label + (dropped > 0 ? " and dropped its rule" : "") + ": " + removed + " certificate" + (removed == 1 ? "" : "s") + " lifted." };
             if (stayOther > 0) parts.Add(stayOther + " stay blocked because they are also in " + String.Join(", ", keptBy.Distinct().ToArray()) + ".");
             if (stayBefore > 0) parts.Add(stayBefore + " were blocked before kisib and stay (unblock them by hand if you want).");
+            parts.AddRange(guardNotes);
             if (!Elevation.IsElevated && lift.Any(c => c.FoundIn.Any(f => f.StartsWith("LOCAL_MACHINE\\Disallowed", StringComparison.OrdinalIgnoreCase))))
                 parts.Add("Whole-PC blocks need kisib run as administrator to lift.");
             if (errors > 0) parts.Add(errors + " could not be changed (Block history has why).");

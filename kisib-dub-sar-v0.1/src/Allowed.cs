@@ -104,13 +104,18 @@ namespace Kisib
         internal string LiftForGood(List<CertificateRecord> certs, string reason, string source)
         {
             List<string> problems = new List<string>();
-            string said = Lift(certs, reason, problems);
-            try { AllowedList.AddRange(certs, source); } catch (IOException ex) { return said + " Could not save the never-block list: " + ex.Message; }
+            List<CertificateRecord> ok = Guarded(certs, problems);
+            string said = LiftCore(ok, reason, problems);
+            try { AllowedList.AddRange(ok, source); } catch (IOException ex) { return said + " Could not save the never-block list: " + ex.Message; }
             return said;
         }
 
         // Out of Disallowed only; nothing goes on the never-block list (a reset keeps your rules able to block them later).
         internal string Lift(List<CertificateRecord> certs, string reason, List<string> problems)
+        { return LiftCore(Guarded(certs, problems), reason, problems); }
+
+        // Compromised, Windows-distrusted and expired certificates were taken out by Guarded() before this.
+        private string LiftCore(List<CertificateRecord> certs, string reason, List<string> problems)
         {
             int removed = 0, errors = 0;
             HashSet<string> sha1s = new HashSet<string>(certs.Select(c => c.Sha1), StringComparer.OrdinalIgnoreCase);
