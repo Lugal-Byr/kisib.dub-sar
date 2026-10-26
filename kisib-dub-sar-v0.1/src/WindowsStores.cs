@@ -25,10 +25,16 @@ namespace Kisib
 
         private static string WhereLine(string path)
         {
+            if (path.IndexOf("MICROSOFT_LIST", StringComparison.OrdinalIgnoreCase) >= 0) return "Microsoft's root list (Windows downloads it when needed; not on this PC yet)";
+            if (path.StartsWith("CCADB", StringComparison.OrdinalIgnoreCase)) return "CCADB public list (kisib knows it; that alone doesn't put it on this PC)";
             string[] parts = path.Split('\\');
             if (parts.Length < 2) return path;
             string location = parts[0], physical = parts.Length > 2 ? parts[parts.Length - 1] : "";
-            int storeAt = location.Equals("USERS", StringComparison.OrdinalIgnoreCase) && parts.Length > 3 ? 2 : 1;
+            bool users = location.Equals("USERS", StringComparison.OrdinalIgnoreCase);
+            if (users && parts.Length < 3) return null;
+            if (users && parts[1].EndsWith("_Classes", StringComparison.OrdinalIgnoreCase)) return null;
+            int storeAt = users ? 2 : 1;
+            physical = parts.Length > storeAt + 1 ? parts[parts.Length - 1] : "";
             string store = parts[storeAt], name;
             if (!StoreNames.TryGetValue(store, out name)) name = store;
             string where;
@@ -41,7 +47,7 @@ namespace Kisib
                 where = physical.Equals(".LocalMachine", StringComparison.OrdinalIgnoreCase) ? "certlm.msc (whole PC) → " + name + "   (this user only sees the whole-PC copy)"
                     : "certmgr.msc (you) → " + name + " → Certificates";
             else if (location.StartsWith("USERS", StringComparison.OrdinalIgnoreCase))
-                where = physical.Equals(".LocalMachine", StringComparison.OrdinalIgnoreCase) ? "certlm.msc (whole PC) → " + name + "   (seen by " + parts[1] + ")" : "another account (" + parts[1] + ") → " + name;
+                where = "another account (" + AccountName(parts[1]) + ") → " + name;
             else if (location.IndexOf("GROUP_POLICY", StringComparison.OrdinalIgnoreCase) >= 0 || physical.IndexOf("GroupPolicy", StringComparison.OrdinalIgnoreCase) >= 0)
                 where = "Group Policy → " + name + "   (only a policy change removes it)";
             else if (location.IndexOf("SERVICE", StringComparison.OrdinalIgnoreCase) >= 0) where = "a service's own store → " + name;
@@ -52,10 +58,26 @@ namespace Kisib
             return where;
         }
 
+        private static string AccountName(string sid)
+        {
+            switch (sid.ToUpperInvariant())
+            {
+                case "S-1-5-18": return "SYSTEM";
+                case "S-1-5-19": return "LOCAL SERVICE";
+                case "S-1-5-20": return "NETWORK SERVICE";
+                case ".DEFAULT": return "new-user default";
+                default: return sid.EndsWith("-1001", StringComparison.Ordinal) || sid.StartsWith("S-1-5-21-", StringComparison.Ordinal) ? "a user account" : sid;
+            }
+        }
+
         internal void ShowWhereInWindows(CertificateRecord c)
         {
             if (c == null) return;
-            List<string> places = c.FoundIn.Concat(c.Collections).Distinct(StringComparer.OrdinalIgnoreCase).Select(WhereLine).Distinct().ToList();
+            // The physical stores say where it really is; the logical views (every account's copy of the whole-PC
+            // store) only repeat that, so they are used only when nothing physical is known.
+            List<string> source = c.FoundIn.Where(p => p.Split('\\').Length >= 3 || p.IndexOf("CCADB", StringComparison.OrdinalIgnoreCase) >= 0 || p.IndexOf("MICROSOFT_LIST", StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+            if (source.Count == 0) source = c.FoundIn.Concat(c.Collections).ToList();
+            List<string> places = source.Distinct(StringComparer.OrdinalIgnoreCase).Select(WhereLine).Where(l => l != null).Distinct().ToList();
             bool blocked = snapshot != null && snapshot.IsBlocked(c);
             Form f = new Form { Text = "Where Windows keeps it — " + c.SubjectShortName, Size = new Size(820, 440), Font = new Font("Comic Sans MS", 10F), StartPosition = FormStartPosition.CenterScreen };
             TextBox text = new TextBox { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, WordWrap = true, ScrollBars = ScrollBars.Vertical, BorderStyle = BorderStyle.None, BackColor = Color.White, TabStop = false };
