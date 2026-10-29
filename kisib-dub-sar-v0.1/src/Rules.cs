@@ -147,7 +147,7 @@ namespace Kisib
     internal sealed class RuleOutcome
     {
         internal string Status = "";
-        internal int Added;
+        internal int Added, Lightened, Removed;
         internal readonly List<string> Log = new List<string>();
     }
 
@@ -158,11 +158,13 @@ namespace Kisib
         internal static RuleOutcome Apply(Snapshot result)
         {
             RuleOutcome o = new RuleOutcome();
+            // Lighter: kisib's own entries under a blocked root are dead weight; take them back out.
+            try { o.Removed = LightBlock.Lighten(result, o); } catch (Exception ex) { o.Log.Add(DateTime.UtcNow.ToString("o") + "\tLighter failed\t" + ex.Message); }
             List<BlockRule> rules;
             try { rules = BlockRules.Read(); }
             catch (Exception ex) { o.Status = "Rules unreadable: " + ex.Message; return o; }
             GroupsRoot groups = result.Groups;
-            if (rules.Count == 0 || groups == null || groups.Error != null) return o;
+            if (rules.Count == 0 || groups == null || groups.Error != null) { if (o.Removed > 0) o.Status = "Lighter: took out " + o.Removed + " extra Untrusted Certificates entries (already dead under a blocked root)"; return o; }
             bool elevated = Elevation.IsElevated;
             AllowedSet allowed = AllowedList.Load();
             int skipped = 0, failed = 0, protectedSkipped = 0;
@@ -186,6 +188,14 @@ namespace Kisib
                         if (!labels.Contains(label)) labels.Add(label);
                     }
                 }
+                // Lighter: a CA under a root this blocks (or already blocked) is dead without its own entry.
+                if (plan.Count > 0 && result.Paths != null)
+                {
+                    LightBlock.Cut cut = LightBlock.Compute(result.Paths, LightBlock.Records(result, LightBlock.BlockedFor(result, scope)).Concat(plan.Values.Select(i => i.Certificate)));
+                    List<string> spare = plan.Values.Where(i => !LightBlock.Needed(result.Paths, cut, i.Certificate)).Select(i => i.Certificate.Identity).ToList();
+                    foreach (string id in spare) plan.Remove(id);
+                    o.Lightened += spare.Count;
+                }
                 if (plan.Count == 0) continue;
                 try
                 {
@@ -197,7 +207,9 @@ namespace Kisib
             }
             o.Status = "Rules: " + rules.Count + " active" + (o.Added > 0 ? ", blocked " + o.Added + " NEW" : ", nothing new") +
                 (skipped > 0 ? ", " + skipped + " whole-PC rules need admin" : "") + (failed > 0 ? ", " + failed + " errors (Block history)" : "") +
-                (protectedSkipped > 0 ? ", " + protectedSkipped + " protected or never-block skipped" : "");
+                (protectedSkipped > 0 ? ", " + protectedSkipped + " protected or never-block skipped" : "") +
+                (o.Lightened > 0 ? ", " + o.Lightened + " not needed (under a blocked root)" : "") +
+                (o.Removed > 0 ? ", took out " + o.Removed + " extra entries (lighter)" : "");
             return o;
         }
     }

@@ -244,7 +244,7 @@ namespace Kisib
                         try { Display(result, rules, stamp); drawn = true; }
                         catch (Exception ex) { DrawFailed(ex); }
                         finally { FinishScan(); }
-                        if (rules.Added > 0) StartScan(true);
+                        if (rules.Added > 0 || rules.Removed > 0) StartScan(true);
                         else if (drawn) try { KeepReachable(false); } catch (Exception ex) { CrashLog.Write("keep Claude reachable", ex); }
                     });
                 }

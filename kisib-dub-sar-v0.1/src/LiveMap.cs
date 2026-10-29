@@ -431,6 +431,9 @@ namespace Kisib
                 line(WhoIsWho.Program(exe) ?? exe + " = (not in your who-is-who list)");
                 if (n.Service != null) line("service: " + n.Service);
                 m.MenuItems.Add("-");
+                MenuItem make = new MenuItem("🔧 Make " + exe + " work (get everything it was refused)", delegate { MakeProgramWork(n); });
+                make.Enabled = liveMap.EdgesOf(n).Any(e => e.From == n && e.LastDenial != null);
+                m.MenuItems.Add(make);
                 if (IsBroker(n.Program))
                     m.MenuItems.Add("Find the app behind it (open connections right now)...", delegate
                     {

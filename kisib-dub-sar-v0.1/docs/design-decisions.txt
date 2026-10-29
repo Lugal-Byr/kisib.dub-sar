@@ -751,3 +751,9 @@ D075 Fix it on Windows' side (user, 2026-10-26): right-click a live map box, arr
      (delstore Disallowed / addstore Root / urlcache crl delete / verify -urlfetch), and opens certutil -url on a .cer kisib
      writes to %LOCALAPPDATA%\kisib.dub-sar\certs. Windows reports a cert in Untrusted Certificates like a revoked one
      (0x80092010), so that is checked first. kisib shows the way; the deleting and importing stay the user's clicks.
+D076 Block lighter + Make this program work (user, 2026-10-28). The user's account had 4,147 Untrusted Certificates
+     entries, mostly CCADB CAs under roots the same bloc rules already block. Every scan now takes kisib's own entries
+     back out when the CA is already dead (every way up goes through a blocked root key), and rules stop adding them.
+     Only root keys count as blocked, every self-signed root counts as a possible anchor, a CA with an issuer kisib can't
+     place is kept, and copies of a blocked root's key are kept, so no blocked path reopens. Program boxes on the live
+     map get "Make <program> work": every distinct refusal goes through Get what it asked for, one after another.
