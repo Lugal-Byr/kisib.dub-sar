@@ -26,7 +26,9 @@ namespace Kisib
             if (blocked.Count > 0) done.Add("Unblocked for good. " + LiftForGood(blocked, "trusted from the live map", "trusted from the live map"));
 
             // The root itself, or the self-signed copy of a cross-signed CA's key (DigiCert Trusted Root G4 sent cross-signed, say).
-            List<CertificateRecord> roots = Guarded(WithTwins(ok).Where(x => x.Subject == x.Issuer && x.Der != null && !TrustGraph.InRootStore(x)), problems);
+            List<CertificateRecord> upRoots = new List<CertificateRecord>(), upCas = new List<CertificateRecord>();
+            if (snapshot.Paths != null) foreach (CertificateRecord c in ok.Where(x => x.Subject != x.Issuer)) Up(snapshot.Paths, c, upRoots, upCas, 0);
+            List<CertificateRecord> roots = Guarded(WithTwins(ok).Concat(upRoots).Where(x => x.Subject == x.Issuer && x.Der != null && !TrustGraph.InRootStore(x)), problems);
             foreach (CertificateRecord c in roots.GroupBy(x => x.Sha1).Select(g => g.First()))
             {
                 try
@@ -39,7 +41,7 @@ namespace Kisib
                 catch (Exception ex) { problems.Add(c.SubjectShortName + ": " + ex.Message); }
             }
 
-            List<CertificateRecord> cas = ok.Where(x => x.Subject != x.Issuer && x.Der != null && IsCa(x.Der) && !TrustGraph.OnPcForPath(x)).GroupBy(x => x.Sha1).Select(g => g.First()).ToList();
+            List<CertificateRecord> cas = ok.Concat(Guarded(upCas, problems)).Where(x => x.Subject != x.Issuer && x.Der != null && IsCa(x.Der) && !TrustGraph.OnPcForPath(x)).GroupBy(x => x.Sha1).Select(g => g.First()).ToList();
             if (cas.Count > 0)
                 try
                 {
@@ -56,6 +58,31 @@ namespace Kisib
             Say("✅ " + n.Label + " trusted" + (elevated ? " (whole PC)" : " (your account; run kisib as administrator so installers and services trust it too)") + ". " +
                 String.Join(" ", done.ToArray()) + (problems.Count > 0 ? " " + String.Join("; ", problems.ToArray()) + "." : ""));
             StartScan();
+        }
+
+        // Up the chain to a root: the roots above that aren't trusted here, and the CAs on the way that aren't on this PC.
+        // Stops where a root is already in Trusted Root (that path works, nothing to add).
+        private static bool Up(TrustGraph g, CertificateRecord c, List<CertificateRecord> roots, List<CertificateRecord> cas, int depth)
+        {
+            List<string> keys;
+            if (depth > 8 || !g.IssuerKeys.TryGetValue(c.Identity, out keys)) return false;
+            List<CertificateRecord> foundRoots = new List<CertificateRecord>(), foundCas = new List<CertificateRecord>();
+            foreach (string k in keys)
+            {
+                List<CertificateRecord> parents;
+                if (!g.ByKey.TryGetValue(k, out parents)) continue;
+                foreach (CertificateRecord p in parents)
+                {
+                    if (g.SelfSigned.Contains(p.Identity)) { if (TrustGraph.InRootStore(p)) return true; foundRoots.Add(p); continue; }
+                    if (p.Identity == c.Identity) continue;
+                    List<CertificateRecord> branchRoots = new List<CertificateRecord>(), branchCas = new List<CertificateRecord>();
+                    if (!TrustGraph.OnPcForPath(p)) branchCas.Add(p);
+                    if (Up(g, p, branchRoots, branchCas, depth + 1)) { cas.AddRange(branchCas); return true; }
+                    foundRoots.AddRange(branchRoots); foundCas.AddRange(branchCas);
+                }
+            }
+            roots.AddRange(foundRoots); cas.AddRange(foundCas);
+            return false;
         }
 
         internal void DistrustFromMap(MapNode n, List<CertificateRecord> certs)

@@ -92,7 +92,9 @@ namespace Kisib
             // 3. A missing root comes fresh from Microsoft's list (only if Microsoft lists it).
             CertificateRecord top = chain.LastOrDefault();
             bool rootMissing = top != null && top.Subject == top.Issuer && !TrustGraph.InRootStore(snapshot.BySha1(top.Sha1) ?? top) && !snapshot.IsBlocked(snapshot.BySha1(top.Sha1));
-            bool issuerMissing = top != null && top.Subject != top.Issuer && d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase);
+            // Windows stopped below the root (untrusted root, or "CA not on this PC"): fetch the root above unless one is already trusted here.
+            bool issuerMissing = top != null && top.Subject != top.Issuer && (d.Code.EndsWith("B0109", StringComparison.OrdinalIgnoreCase) ||
+                !snapshot.Certificates.Values.Any(x => x.Subject == top.Issuer && x.Subject == x.Issuer && TrustGraph.InRootStore(x)));
             if (rootMissing || issuerMissing)
             {
                 string issuerDn = top.Subject != top.Issuer ? top.Issuer : null, issuerKey = top.AuthorityKeyId, sha1 = top.Sha1;
