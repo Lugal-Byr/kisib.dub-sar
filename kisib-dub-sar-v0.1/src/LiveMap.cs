@@ -18,6 +18,7 @@ namespace Kisib
         internal int Column, Hits;
         internal DateTime Last;
         internal bool Blocked, Refused, Web, Files;
+        internal bool Flipped;        // switched to ✅ Trusted on the map since its last refusal
         internal Denial LastDenial;   // the latest refusal that went through this box
         internal RectangleF Box;
     }
@@ -119,6 +120,7 @@ namespace Kisib
         }
 
         private void Dirty() { dirty = true; canvas.Invalidate(); }
+        internal void Repaint() { Dirty(); }
         internal void SetStatus(string text) { info.Text = text; }
 
         internal void FocusProgram(MapNode program)
@@ -176,7 +178,7 @@ namespace Kisib
             {
                 n.Hits++; n.Last = d.Time;
                 if (web) n.Web = true; else n.Files = true;
-                if (bad) { n.Refused = true; n.LastDenial = d; }
+                if (bad) { n.Refused = true; n.LastDenial = d; n.Flipped = false; }
             }
             for (int i = 0; i + 1 < path.Count; i++)
             {
@@ -328,9 +330,9 @@ namespace Kisib
                     using (Brush b = new SolidBrush(fill)) g.FillRectangle(b, n.Box);
                     bool notOnPc = n.Placeholder != null || (n.Column >= 2 && n.Sha1s.Count > 0 && n.Detail == null);
                     if (notOnPc) g.DrawRectangle(dashed, n.Box.X, n.Box.Y, n.Box.Width, n.Box.Height);
-                    else using (Pen border = new Pen(n == hover || n == selected ? Color.Black : n.Refused ? Color.Firebrick : Color.Silver, n == hover || n == selected ? 2 : 1))
+                    else using (Pen border = new Pen(n == hover || n == selected ? Color.Black : n.Flipped ? Color.SeaGreen : n.Refused ? Color.Firebrick : Color.Silver, n == hover || n == selected ? 2 : 1))
                         g.DrawRectangle(border, n.Box.X, n.Box.Y, n.Box.Width, n.Box.Height);
-                    string second = (n.Detail ?? (notOnPc && n.Placeholder == null ? "not on this PC" : "")) + (n.Blocked ? "  BLOCKED" : "") +
+                    string second = (n.Detail ?? (notOnPc && n.Placeholder == null ? "not on this PC" : "")) + (n.Blocked ? "  BLOCKED" : "") + (n.Flipped ? "  ✅ TRUSTED" : "") +
                         (n.Sha1s.Count > 1 ? "  ·  " + n.Sha1s.Count + " certs" : "") + "  ·  " + n.Hits + "×";
                     RectangleF line1 = new RectangleF(n.Box.X + 4, n.Box.Y + 2, n.Box.Width - 8, 16), line2 = new RectangleF(n.Box.X + 4, n.Box.Y + 17, n.Box.Width - 8, 16);
                     using (Brush text = new SolidBrush(dim ? Color.Silver : Color.Black))
@@ -431,9 +433,6 @@ namespace Kisib
                 line(WhoIsWho.Program(exe) ?? exe + " = (not in your who-is-who list)");
                 if (n.Service != null) line("service: " + n.Service);
                 m.MenuItems.Add("-");
-                MenuItem make = new MenuItem("🔧 Make " + exe + " work (get everything it was refused)", delegate { MakeProgramWork(n); });
-                make.Enabled = liveMap.EdgesOf(n).Any(e => e.From == n && e.LastDenial != null);
-                m.MenuItems.Add(make);
                 if (IsBroker(n.Program))
                     m.MenuItems.Add("Find the app behind it (open connections right now)...", delegate
                     {
@@ -503,6 +502,7 @@ namespace Kisib
                 line(n.Label + ": not on this PC or in kisib's lists (the site sent it).");
                 line("Block or allow the CA above it instead, or load Tools > Update CCADB list so kisib knows it.");
                 m.MenuItems.Add("-");
+                if (n.LastDenial != null) { Denial wanted = n.LastDenial; m.MenuItems.Add("✅ Trusted (get it and trust it)", delegate { n.Flipped = true; n.Refused = false; liveMap.Repaint(); GetRequested(wanted); }); }
                 if (n.Column == 3 && n.Sha1s.Count > 0)
                 {
                     List<string> wanted = new List<string>(n.Sha1s);
@@ -521,6 +521,11 @@ namespace Kisib
                 line("Not stored on this PC: the site or program sends it along each time (normal for a CA)");
             line(n.Blocked ? "Blocked: " + WhyLine(c) : missingRoot ? "Not your block: this root isn't in Trusted Root here, and Windows didn't download it" + (RootAutoUpdateOff() ? " (its automatic root download is switched off)" : "") :
                 guard != null ? "Trusted, protected by trusted category " + guard : "Trusted");
+            m.MenuItems.Add("-");
+            // The switch: what Windows does with this certificate right now, and one click to flip it.
+            bool trustedNow = !n.Blocked && (c.Subject == c.Issuer ? TrustGraph.InRootStore(c) : TrustGraph.OnPcForPath(c));
+            m.MenuItems.Add(new MenuItem("✅ Trusted", delegate { TrustFromMap(n, certs); }) { RadioCheck = true, Checked = trustedNow || n.Flipped });
+            m.MenuItems.Add(new MenuItem("🚫 Untrusted (blocked)", delegate { DistrustFromMap(n, certs); }) { RadioCheck = true, Checked = n.Blocked });
             m.MenuItems.Add("-");
             if (missingRoot)
                 m.MenuItems.Add("Get " + c.SubjectShortName + " from Microsoft (what Windows would download)", delegate { FetchFromMicrosoft(x => certs.Any(y => String.Equals(y.Sha1, x.Sha1, StringComparison.OrdinalIgnoreCase)), c.SubjectShortName); });
@@ -568,7 +573,7 @@ namespace Kisib
         private void RefusalItems(ContextMenu m, Denial d)
         {
             m.MenuItems.Add("Open refusal card", delegate { OpenRefusalCard(d); });
-            m.MenuItems.Add("Get what it asked for (unblock, import, or fetch the root)", delegate { GetRequested(d); });
+            m.MenuItems.Add("✅ Trusted: let it through (unblock, import, fetch the root)", delegate { GetRequested(d); });
             if (IsRevocationRefusal(d)) m.MenuItems.Add("Check revocation servers", delegate { CheckRevocation(d); });
             m.MenuItems.Add(AllowSubmenu("Allow", delegate { return TargetFor(d); }));
             m.MenuItems.Add("Why was it refused?", delegate { ShowText("Why — " + d.Subject, ExplainDenial(d)); });

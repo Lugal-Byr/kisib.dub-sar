@@ -93,33 +93,4 @@ namespace Kisib
             return removed;
         }
     }
-
-    internal sealed partial class ExplorerForm
-    {
-        // "Make this program work": every distinct refusal the program got, one after another through Get what it asked for.
-        internal void MakeProgramWork(MapNode n)
-        {
-            string exe = System.IO.Path.GetFileName(n.Program ?? n.Label);
-            List<Denial> todo = liveMap.EdgesOf(n).Where(e => e.From == n && e.LastDenial != null).Select(e => e.LastDenial)
-                .GroupBy(d => String.Join(",", d.ChainSha1.ToArray()) + "|" + d.Code + "|" + (d.ChainSha1.Count == 0 ? d.Key : ""))
-                .Select(x => x.OrderByDescending(d => d.Time).First()).ToList();
-            if (todo.Count == 0) { Say(exe + " has no refusals on the map right now."); return; }
-            if (!Elevation.IsElevated)
-                Say("kisib isn't running as administrator, so roots go into your account only. Installers (msiexec) check the whole PC: run kisib as administrator for those.");
-            int next = 0;
-            Timer t = new Timer { Interval = 1500 };
-            t.Tick += delegate
-            {
-                if (gettingRequested || fetchingRoots) return;
-                if (next >= todo.Count)
-                {
-                    t.Stop(); t.Dispose();
-                    Say("Done with " + exe + ": went through " + todo.Count + " refusal" + (todo.Count == 1 ? "" : "s") + ". Start " + exe + " again.");
-                    return;
-                }
-                try { GetRequested(todo[next++]); } catch (Exception ex) { CrashLog.Write("make program work", ex); }
-            };
-            t.Start();
-        }
-    }
 }
