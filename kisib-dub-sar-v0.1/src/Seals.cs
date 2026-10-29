@@ -59,6 +59,10 @@ namespace Kisib
             { "8D25CD97229DBF70356BDA4EB3CC734031E24CF00FAFCFD32DC76EB5841C7EA8", "online", "Google websites" },
             { "34D8A73EE208D9BCDB0D956520934B4E40E69482596E8B6F73C8426B010A6F48", "online", "Google websites" },
             { "349DFA4058C5E263123B398AE795573C4E1313C83FE68F93556CD5E8031B3C7D", "online", "Google websites" },
+            { "3E9099B5015E8F486C00BCEA9D111EE721FABA355A89BCF1DF69561E3DC6325C", "windows", "signed programs and time stamps (DigiCert, older)" },
+            { "9ACFAB7E43C8D880D06B262A94DEEEE4B4659989C3D0CAF19BAF6405E41AB7DF", "windows", "signed programs and installers (Apple, Symantec code signing)" },
+            { "2399561127A57125DE8CEFEA610DDF2FA078B5C8067F4E828290BFB860E84B3C", "windows", "time stamps on signed installers (Symantec, Apple)" },
+            { "552F7BDCF1A7AF9E6CE672017F4F12ABF77240C78E761AC203D1D9D20AC89988", "windows", "signed programs and installers (Apple, Defender, DigiCert code signing)" },
         };
 
         private static List<Seal> all;

@@ -502,7 +502,7 @@ namespace Kisib
                 line(n.Label + ": not on this PC or in kisib's lists (the site sent it).");
                 line("Block or allow the CA above it instead, or load Tools > Update CCADB list so kisib knows it.");
                 m.MenuItems.Add("-");
-                if (n.LastDenial != null) { Denial wanted = n.LastDenial; m.MenuItems.Add("✅ Trusted (get it and trust it)", delegate { n.Flipped = true; n.Refused = false; liveMap.Repaint(); GetRequested(wanted); }); }
+                if (n.LastDenial != null) { Denial wanted = n.LastDenial; m.MenuItems.Add("✅ Trusted (get it and trust it)", delegate { GetRequested(wanted); }); }
                 if (n.Column == 3 && n.Sha1s.Count > 0)
                 {
                     List<string> wanted = new List<string>(n.Sha1s);

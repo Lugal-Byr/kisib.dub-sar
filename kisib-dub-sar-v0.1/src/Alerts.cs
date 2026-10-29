@@ -237,7 +237,7 @@ namespace Kisib
                     d.Reason = "side check, went through: the same site passed at the same moment (" + PolicyWordsOrReason(d) + ")";
                 }
                 MapAdd(d); CheckAllowWatch(d);
-                if (!d.SideCheck) { OnDenial(d); ProgramAllowOnRefusal(d); }
+                if (!d.SideCheck) { OnDenial(d); ProgramAllowOnRefusal(d); try { AutoTrustRoots(d); } catch (Exception ex) { CrashLog.Write("auto roots", ex); } }
             }
             if (held.Count == 0) holdTimer.Stop();
         }

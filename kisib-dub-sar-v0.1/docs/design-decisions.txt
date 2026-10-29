@@ -761,3 +761,9 @@ D077 The live map switch (user, 2026-10-28): every certificate box has ✅ Trust
      cross-signed key) into Trusted Root and a missing CA into Intermediate CAs, keeps it off bloc rules, and the box
      turns green with "✅ TRUSTED" until it's refused again. Refusal menus say "✅ Trusted: let it through". The fail-safe
      still applies. ("Make this program work" was dropped: the user flips the boxes herself.)
+D078 Signed files get their roots by themselves (user, 2026-10-28). iCloud's installer failed with "AppleApplicationSupport.msi
+     was rejected by digital signature policy": Apple's signatures and time stamps hang under VeriSign Class 3 Public
+     Primary CA - G5, VeriSign Universal Root and DigiCert Trusted Root G4, which weren't on the laptop, and Windows wasn't
+     downloading roots by itself. kisib now carries those (plus DigiCert Assured ID Root CA) as pinned seals, and when a
+     signed file is refused it puts the missing root into Trusted Root itself (admin only, Microsoft-listed or carried
+     roots only, never one the user blocked, fail-safe applies). Tools has no switch yet; setting "auto roots off" stops it.

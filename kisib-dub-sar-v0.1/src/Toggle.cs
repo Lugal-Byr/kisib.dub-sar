@@ -27,7 +27,7 @@ namespace Kisib
 
             // The root itself, or the self-signed copy of a cross-signed CA's key (DigiCert Trusted Root G4 sent cross-signed, say).
             List<CertificateRecord> upRoots = new List<CertificateRecord>(), upCas = new List<CertificateRecord>();
-            if (snapshot.Paths != null) foreach (CertificateRecord c in ok.Where(x => x.Subject != x.Issuer)) Up(snapshot.Paths, c, upRoots, upCas, 0);
+            if (snapshot.Paths != null) foreach (CertificateRecord c in ok.Where(x => x.Subject != x.Issuer)) Up(snapshot.Paths, c, upRoots, upCas, 0); foreach (CertificateRecord c in ok.Where(x => x.Subject != x.Issuer)) RootsAbove(c, upRoots, 0);
             List<CertificateRecord> roots = Guarded(WithTwins(ok).Concat(upRoots).Where(x => x.Subject == x.Issuer && x.Der != null && !TrustGraph.InRootStore(x)), problems);
             foreach (CertificateRecord c in roots.GroupBy(x => x.Sha1).Select(g => g.First()))
             {
