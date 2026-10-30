@@ -112,6 +112,7 @@ namespace Kisib
             menu.MenuItems.Add(openNow);
             menu.MenuItems.Add("Tools...", delegate { RestoreFromTray(); ShowToolsPage(); });
             menu.MenuItems.Add("Required for app...", delegate { RestoreFromTray(); ShowRequiredForApp(); });
+            menu.MenuItems.Add("Windows certificates, live...", delegate { RestoreFromTray(); ShowLedger(); });
             menu.MenuItems.Add("Check for updates", delegate { CheckForUpdate(true); });
             menu.MenuItems.Add("-");
             menu.MenuItems.Add("Fix Claude's connection", delegate { KeepReachable(true); });

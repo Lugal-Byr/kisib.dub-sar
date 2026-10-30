@@ -767,3 +767,11 @@ D078 Signed files get their roots by themselves (user, 2026-10-28). iCloud's ins
      downloading roots by itself. kisib now carries those (plus DigiCert Assured ID Root CA) as pinned seals, and when a
      signed file is refused it puts the missing root into Trusted Root itself (admin only, Microsoft-listed or carried
      roots only, never one the user blocked, fail-safe applies). Tools has no switch yet; setting "auto roots off" stops it.
+D079 Windows certificates, live (user, 2026-10-29). One window lists every certificate in Windows' own stores plus
+     everything kisib ever did (BLOCK HISTORY): where it sits now, what Windows says right now (kisib asks Windows to
+     build the chain, no revocation download), who put it there (kisib, or Windows / before kisib), with ✅ / 🚫,
+     Where Windows keeps it, Fix it on Windows' side and Trim. Tools, tray, Block menu and every live map right-click
+     open it. kisib's own chain checks no longer show up as refusals. The trim (and the automatic one on every scan)
+     now also clears dead-weight entries in the user's own Untrusted Certificates that kisib has no history for (an
+     older copy of kisib or another tool), writing them down so Repair > Put back restores them; the whole PC's store
+     keeps Windows' own entries.

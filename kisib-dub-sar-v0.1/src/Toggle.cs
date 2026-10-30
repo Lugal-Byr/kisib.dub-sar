@@ -14,10 +14,16 @@ namespace Kisib
     {
         internal void TrustFromMap(MapNode n, List<CertificateRecord> certs)
         {
-            if (snapshot == null) { Say("Run a scan first."); return; }
+            if (TrustCerts(n.Label, certs)) { n.Flipped = true; n.Refused = false; if (liveMap != null) liveMap.Repaint(); }
+        }
+
+        // The ✅ Trusted switch itself (live map boxes and What kisib did rows).
+        internal bool TrustCerts(string label, List<CertificateRecord> certs)
+        {
+            if (snapshot == null) { Say("Run a scan first."); return false; }
             List<string> kept = new List<string>();
             List<CertificateRecord> ok = Guarded(certs, kept);
-            if (ok.Count == 0) { Say(n.Label + " stays untrusted: " + String.Join("; ", kept.ToArray()) + "."); return; }
+            if (ok.Count == 0) { Say(label + " stays untrusted: " + String.Join("; ", kept.ToArray()) + "."); return false; }
             bool elevated = Elevation.IsElevated;
             X509Location scope = elevated ? X509Location.LocalMachine : X509Location.CurrentUser;
             List<string> done = new List<string>(), problems = new List<string>(kept);
@@ -52,12 +58,11 @@ namespace Kisib
 
             // Yours now: bloc rules won't block it again.
             try { AllowedList.AddRange(ok, "trusted from the live map"); } catch (IOException) { }
-            if (done.Count == 0) done.Add(n.Label + " is already trusted on this PC.");
-            n.Flipped = true; n.Refused = false;
-            if (liveMap != null) liveMap.Repaint();
-            Say("✅ " + n.Label + " trusted" + (elevated ? " (whole PC)" : " (your account; run kisib as administrator so installers and services trust it too)") + ". " +
+            if (done.Count == 0) done.Add(label + " is already trusted on this PC.");
+            Say("✅ " + label + " trusted" + (elevated ? " (whole PC)" : " (your account; run kisib as administrator so installers and services trust it too)") + ". " +
                 String.Join(" ", done.ToArray()) + (problems.Count > 0 ? " " + String.Join("; ", problems.ToArray()) + "." : ""));
             StartScan();
+            return true;
         }
 
         // Up the chain to a root: the roots above that aren't trusted here, and the CAs on the way that aren't on this PC.

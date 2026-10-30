@@ -82,12 +82,21 @@ namespace Kisib
                 HashSet<string> here = s.BlockedIn(BlockEngine.ScopePrefix(scope));
                 if (here.Count == 0) continue;
                 HashSet<string> mine;
-                try { mine = AddedIn(scope); } catch (Exception) { continue; }
-                if (mine.Count == 0) continue;
+                try { mine = AddedIn(scope); } catch (Exception) { mine = new HashSet<string>(StringComparer.OrdinalIgnoreCase); }
                 Cut cut = Compute(g, Records(s, BlockedFor(s, scope)));
-                List<string> spare = Records(s, here).Where(c => c.Sha256 != null && mine.Contains(c.Sha256) && !Needed(g, cut, c)).Select(c => c.Sha256).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-                if (spare.Count == 0) continue;
-                try { removed += BlockEngine.Unblock(spare, scope, "lighter: under a blocked root, already dead").Count(r => r.Result == "removed"); }
+                List<CertificateRecord> dead = Records(s, here).Where(c => c.Sha256 != null && !Needed(g, cut, c)).ToList();
+                List<string> spare = dead.Where(c => mine.Contains(c.Sha256)).Select(c => c.Sha256).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                // Your own account's store: entries kisib can't find in its history (an older copy of kisib, another tool)
+                // come out too when they're dead weight. They're written down, so Repair > Put back can restore them.
+                // The whole PC's store keeps Windows' own entries untouched.
+                List<CertificateRecord> foreign = scope != X509Location.CurrentUser ? new List<CertificateRecord>() : dead.Where(c => !mine.Contains(c.Sha256) &&
+                    c.FoundIn.Any(p => p.StartsWith("CURRENT_USER\\Disallowed\\", StringComparison.OrdinalIgnoreCase) && !p.EndsWith(".LocalMachine", StringComparison.OrdinalIgnoreCase) &&
+                        p.IndexOf("GroupPolicy", StringComparison.OrdinalIgnoreCase) < 0)).ToList();
+                try
+                {
+                    if (spare.Count > 0) removed += BlockEngine.Unblock(spare, scope, "lighter: under a blocked root, already dead").Count(r => r.Result == "removed");
+                    if (foreign.Count > 0) removed += BlockEngine.UnblockAny(foreign, scope, "lighter: under a blocked root, already dead").Count(r => r.Result == "removed");
+                }
                 catch (Exception ex) { o.Log.Add(DateTime.UtcNow.ToString("o") + "\tLighter failed\t" + scope + "\t" + ex.Message); }
             }
             return removed;

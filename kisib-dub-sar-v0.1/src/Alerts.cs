@@ -204,8 +204,11 @@ namespace Kisib
         private readonly Dictionary<string, DateTime> recentPass = new Dictionary<string, DateTime>(StringComparer.Ordinal);
         private readonly System.Windows.Forms.Timer holdTimer = new System.Windows.Forms.Timer { Interval = 500 };
 
+        private static readonly int OwnProcessId = System.Diagnostics.Process.GetCurrentProcess().Id;
+
         private void HandleCheck(Denial d)
         {
+            if (d.ProcessId == OwnProcessId) return;   // kisib's own checks (What kisib did, certificate windows)
             d.Service = ServiceNames.For(d.Program, d.ProcessId);
             if (d.Ok)
             {

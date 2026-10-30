@@ -222,6 +222,7 @@ namespace Kisib
         {
             block.MenuItems.Add(new MenuItem("-"));
             block.MenuItems.Add(new MenuItem("&Rules (keep groups blocked)...", delegate { ShowRules(); }));
+            block.MenuItems.Add(new MenuItem("&Windows certificates, live (and what kisib did)...", delegate { ShowLedger(); }));
             block.MenuItems.Add(new MenuItem("Update &Microsoft root list", delegate { UpdateMicrosoftList(); }));
             block.MenuItems.Add(new MenuItem("Update &CCADB list (all CA certificates, catches cross-signs)", delegate { UpdateCcadb(); }));
         }

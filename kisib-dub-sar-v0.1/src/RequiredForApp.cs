@@ -337,6 +337,7 @@ namespace Kisib
             import.MenuItems.Add("File...", delegate { ImportFromFile(); });
             m.MenuItems.Add(import);
             m.MenuItems.Add("Required for app...", delegate { ShowRequiredForApp(); });
+            m.MenuItems.Add("📒 Windows certificates, live (and what kisib did)...", delegate { ShowLedger(); });
             return m;
         }
     }
