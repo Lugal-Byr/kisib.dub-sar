@@ -775,3 +775,11 @@ D079 Windows certificates, live (user, 2026-10-29). One window lists every certi
      now also clears dead-weight entries in the user's own Untrusted Certificates that kisib has no history for (an
      older copy of kisib or another tool), writing them down so Repair > Put back restores them; the whole PC's store
      keeps Windows' own entries.
+D080 Windows essentials can't be bloc-blocked (2026-11-09). Bloc rules (👑 🏛️ 🧱 🤡 💃) could catch roots Windows needs
+     for its own files, updates and time stamps (Microsoft Time Stamp Root 2014, Microsoft ECC roots, Thawte Timestamping
+     CA, the VeriSign/DigiCert code-signing roots, every Microsoft CA under them): owners.csv tags Microsoft 💃, Thawte is
+     C=ZA 🧱. While the Windows essentials category is on, kisib's pinned Windows/Microsoft seals and Microsoft's own CAs
+     are protected, and any of them already caught is taken back out on the next scan (never one Microsoft's own
+     untrusted list names). Missing roots are put back for website refusals too, not only signed files. Unblocking a
+     bloc also lifts what an older copy of kisib left in your own account's Untrusted Certificates. Status lines show on
+     the live map; Windows notifications only when no kisib window is in front. Old test recorders left the View menu.

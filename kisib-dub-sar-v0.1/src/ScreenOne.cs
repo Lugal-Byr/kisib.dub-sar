@@ -26,7 +26,7 @@ namespace Kisib
         {
             MenuItem options = new MenuItem("Optional &features");
             options.MenuItems.AddRange(new MenuItem[] { journalToggle, archiveToggle, autoScanToggle, syscallToggle });
-            view.MenuItems.Add(options);
+            // The old test recorders (journal, archive, syscall capture) stay out of the menu; rescan-on-change is on the Tools page.
             archiveToggle.Enabled = false; syscallToggle.Enabled = false;
             journalToggle.Click += delegate { ChangeRecording(false); };
             archiveToggle.Click += delegate { ChangeRecording(true); };

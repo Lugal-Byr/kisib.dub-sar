@@ -148,6 +148,7 @@ namespace Kisib
     {
         internal string Status = "";
         internal int Added, Lightened, Removed;
+        internal string Healed;
         internal readonly List<string> Log = new List<string>();
     }
 
@@ -160,6 +161,8 @@ namespace Kisib
             RuleOutcome o = new RuleOutcome();
             // Lighter: kisib's own entries under a blocked root are dead weight; take them back out.
             try { o.Removed = LightBlock.Lighten(result, o); } catch (Exception ex) { o.Log.Add(DateTime.UtcNow.ToString("o") + "\tLighter failed\t" + ex.Message); }
+            // Windows essentials a bloc rule caught before they were protected come back out.
+            try { o.Removed += HealEssentials(result, o); } catch (Exception ex) { o.Log.Add(DateTime.UtcNow.ToString("o") + " Essentials check failed " + ex.Message); }
             List<BlockRule> rules;
             try { rules = BlockRules.Read(); }
             catch (Exception ex) { o.Status = "Rules unreadable: " + ex.Message; return o; }
@@ -211,6 +214,27 @@ namespace Kisib
                 (o.Lightened > 0 ? ", " + o.Lightened + " not needed (under a blocked root)" : "") +
                 (o.Removed > 0 ? ", took out " + o.Removed + " extra entries (lighter)" : "");
             return o;
+        }
+
+        // Only kisib's own pinned Windows/Microsoft seals, or essentials this kisib blocked itself; never anything
+        // Microsoft's untrusted list names (old fraudulent "Microsoft" certificates stay blocked).
+        private static int HealEssentials(Snapshot result, RuleOutcome o)
+        {
+            HashSet<string> microsoftUntrusted = LiftGuard.WindowsUntrusted();
+            List<CertificateRecord> caught = result.Blocked.Select(id => result.Certificates[id]).Where(c =>
+            {
+                if (c.Sha1 == null || microsoftUntrusted.Contains(c.Sha1) || TrustCategories.ProtectedBy(c) != "Windows essentials") return false;
+                Seal seal = Seals.BySha1(c.Sha1);
+                return (seal != null && (seal.Set == "windows" || seal.Set == "microsoft")) || result.KisibBlockedSha1.Contains(c.Sha1);
+            }).ToList();
+            if (caught.Count == 0) return 0;
+            int removed = 0;
+            foreach (X509Location scope in Elevation.IsElevated ? new X509Location[] { X509Location.CurrentUser, X509Location.LocalMachine } : new X509Location[] { X509Location.CurrentUser })
+                removed += BlockEngine.UnblockAny(caught, scope, "Windows essentials: never kept blocked by a bloc rule").Count(r => r.Result == "removed");
+            if (removed > 0)
+                o.Healed = "Unblocked " + removed + " Windows essentials a bloc rule had caught (" + String.Join(", ", caught.Select(c => c.SubjectShortName).Distinct().Take(6).ToArray()) +
+                    (caught.Count > 6 ? "..." : "") + "): Windows needs them to check its own files, updates and time stamps." + (Elevation.IsElevated ? "" : " Run kisib as administrator to clear the whole-PC ones too.");
+            return removed;
         }
     }
 

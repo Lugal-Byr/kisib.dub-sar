@@ -266,6 +266,16 @@ namespace Kisib
                 if (cat.Roots.Any(r => String.Equals(r, c.SubjectCn, StringComparison.OrdinalIgnoreCase) ||
                     (c.Subject != c.Issuer && String.Equals(r, c.IssuerCn, StringComparison.OrdinalIgnoreCase))))
                     return cat.Name;
+            // Windows' own roots (the seals kisib carries for Windows and Microsoft) and Microsoft's own CAs: a bloc rule
+            // must never take these away, or Windows can't check its own files, updates and time stamps.
+            TrustCategory essentials = Read().FirstOrDefault(x => x.Name.StartsWith("Windows essentials", StringComparison.OrdinalIgnoreCase));
+            if (essentials == null || essentials.Enabled)
+            {
+                Seal seal = c.Sha1 == null ? null : Seals.BySha1(c.Sha1);
+                if (seal != null && (seal.Set == "windows" || seal.Set == "microsoft")) return "Windows essentials";
+                if ((c.SubjectOrganization ?? "").IndexOf("Microsoft Corporation", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                    (c.IssuerOrganization ?? "").IndexOf("Microsoft Corporation", StringComparison.OrdinalIgnoreCase) >= 0) return "Windows essentials";
+            }
             return null;
         }
 

@@ -58,7 +58,6 @@ namespace Kisib
             MenuItem view = new MenuItem("&View");
             refreshMenu = new MenuItem("&Refresh", delegate { StartScan(); }, Shortcut.F5);
             view.MenuItems.Add(refreshMenu);
-            view.MenuItems.Add(new MenuItem("Activity &log", delegate { ShowLog(); }));
             view.MenuItems.Add(new MenuItem("&History log", delegate { ShowLog(); }));
             view.MenuItems.Add(new MenuItem("Enumeration &summary", delegate { ShowSummary(); }));
             view.MenuItems.Add(new MenuItem("Store &errors", delegate { ShowStoreErrors(); }));
@@ -244,6 +243,7 @@ namespace Kisib
                         try { Display(result, rules, stamp); drawn = true; }
                         catch (Exception ex) { DrawFailed(ex); }
                         finally { FinishScan(); }
+                        if (rules.Healed != null) Say(rules.Healed);
                         if (rules.Added > 0 || rules.Removed > 0) StartScan(true);
                         else if (drawn) try { KeepReachable(false); } catch (Exception ex) { CrashLog.Write("keep Claude reachable", ex); }
                     });

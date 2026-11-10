@@ -20,7 +20,7 @@ namespace Kisib
 
         private void AutoTrustRoots(Denial d)
         {
-            if (d == null || d.Ok || d.IsWeb || d.ChainSha1.Count == 0 || snapshot == null || Storage.Setting("auto roots off")) return;
+            if (d == null || d.Ok || d.ChainSha1.Count == 0 || snapshot == null || Storage.Setting("auto roots off")) return;
             if (!Elevation.IsElevated)
             {
                 if (!autoRootHinted) { autoRootHinted = true; Say("A signed file was refused because Windows is missing a root. Run kisib as administrator and it puts Microsoft-listed roots in by itself."); }

@@ -269,9 +269,13 @@ namespace Kisib
             HashSet<string> members = new HashSet<string>(chosen.SelectMany(g => g.Members), StringComparer.Ordinal);
             List<CertificateRecord> candidates = WithTwins(members.Select(id => snapshot.Certificates[id])).Where(snapshot.IsBlocked).ToList();
             List<string> guardNotes = new List<string>();
-            List<CertificateRecord> lift = Guarded(candidates.Where(c => !keep.Contains(c.Identity) && snapshot.KisibBlockedSha1.Contains(c.Sha1)), guardNotes);
+            // Yours to lift: what kisib blocked, and anything in your own account's Untrusted Certificates
+            // (Windows ships nothing there; an older copy of kisib or another tool put it in).
+            Func<CertificateRecord, bool> mine = c => snapshot.KisibBlockedSha1.Contains(c.Sha1) || c.FoundIn.Any(p => p.StartsWith("CURRENT_USER\\Disallowed\\", StringComparison.OrdinalIgnoreCase) &&
+                !p.EndsWith(".LocalMachine", StringComparison.OrdinalIgnoreCase) && p.IndexOf("GroupPolicy", StringComparison.OrdinalIgnoreCase) < 0);
+            List<CertificateRecord> lift = Guarded(candidates.Where(c => !keep.Contains(c.Identity) && mine(c)), guardNotes);
             int stayOther = candidates.Count(c => keep.Contains(c.Identity));
-            int stayBefore = candidates.Count(c => !keep.Contains(c.Identity) && !snapshot.KisibBlockedSha1.Contains(c.Sha1));
+            int stayBefore = candidates.Count(c => !keep.Contains(c.Identity) && !mine(c));
             int removed = 0, errors = 0;
             List<string> problems = new List<string>();
             foreach (X509Location scope in Elevation.IsElevated ? new X509Location[] { X509Location.CurrentUser, X509Location.LocalMachine } : new X509Location[] { X509Location.CurrentUser })

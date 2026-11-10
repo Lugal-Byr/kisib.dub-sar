@@ -171,7 +171,9 @@ namespace Kisib
             int stop = tip.IndexOf(". ", StringComparison.Ordinal);
             if (stop > 15 && stop < 150) tip = tip.Substring(0, stop + 1);
             if (tip.Length > 150) tip = tip.Substring(0, 149) + "…";
-            if (tray != null) try { tray.ShowBalloonTip(5000, "kisib", tip, ToolTipIcon.None); } catch (Exception) { }
+            if (liveMap != null && !liveMap.IsDisposed) try { liveMap.SetStatus(text); } catch (Exception) { }
+            // A Windows notification only when no kisib window is in front to show the line.
+            if (tray != null && Form.ActiveForm == null) try { tray.ShowBalloonTip(5000, "kisib", tip, ToolTipIcon.None); } catch (Exception) { }
         }
 
         // Proof it worked: the next check that touches these certificates says whether it got through.
