@@ -20,6 +20,11 @@ namespace Kisib
                 Environment.ExitCode = CommandClient.Run(String.Join(" ", args.Skip(1).ToArray()));
                 return;
             }
+            // Test plumbing for the build service: a TLS probe in its own process, and the self-test (refused anywhere else).
+            if (args != null && args.Length >= 3 && args[0] == "--probe") { Environment.ExitCode = Probe.Run(args[1], args[2]); return; }
+            string selfTest = null;
+            for (int i = 0; args != null && i + 1 < args.Length; i++) if (args[i] == "--selftest") selfTest = args[i + 1];
+            if (selfTest != null && !ExplorerForm.SelfTestAllowed) { Environment.ExitCode = 9; return; }
             string directory = Environment.GetEnvironmentVariable("KISIB_SOURCE_DIR");
             if (String.IsNullOrEmpty(directory))
             {
@@ -65,7 +70,7 @@ namespace Kisib
             for (int i = 0; i < all.Length; i++)
             {
                 string arg = all[i];
-                if (arg == "--after") { i++; continue; }
+                if (arg == "--after" || arg == "--selftest") { i++; continue; }
                 if (arg == "--updated") { if (i + 1 < all.Length) form.UpdatedTo = all[++i]; continue; }
                 if (arg == "--tray") form.StartInTray = true;
                 else if (arg == "--installed-startup") form.RepointStartup = true;
@@ -74,6 +79,7 @@ namespace Kisib
             }
             // Restarted by an older kisib's updater (no --updated): still say it happened.
             if (restarted && form.UpdatedTo == null) form.UpdatedTo = AboutText.Version;
+            if (selfTest != null) { form.SelfTestFolder = Path.GetFullPath(selfTest); form.Shown += delegate { form.StartSelfTest(); }; }
             Application.Run(form);
             GC.KeepAlive(single);
         }

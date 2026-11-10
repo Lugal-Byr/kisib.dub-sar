@@ -129,6 +129,7 @@ namespace Kisib
         }
 
         internal IEnumerable<MapEdge> EdgesOf(MapNode n) { return edges.Values.Where(e => e.From == n || e.To == n); }
+        internal List<MapNode> AllNodes() { return nodes.Values.ToList(); }
 
         // After a block, unblock or allow: recolor the boxes from the new scan.
         internal void RefreshBlocked()
